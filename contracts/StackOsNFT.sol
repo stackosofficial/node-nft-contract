@@ -318,7 +318,6 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
 
     function adminWithdraw() public onlyOwner {
         require(block.timestamp > timeLock);
-        console.log(adminWithdrawableAmount);
         currency.transfer(msg.sender, adminWithdrawableAmount);
     }
 }
