@@ -163,7 +163,6 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         currency.transfer(msg.sender, _ticketID.length.mul(participationFee));
     }
 
-    //should this be public? this should be called by chainlink's callback...
     function announceWinners(uint256 number) public {
         require(participationTickets > 0, "No participants.");
         for (uint256 i; i < prizes; i++) {
@@ -319,6 +318,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
 
     function adminWithdraw() public onlyOwner {
         require(block.timestamp > timeLock);
+        console.log(adminWithdrawableAmount);
         currency.transfer(msg.sender, adminWithdrawableAmount);
     }
 }

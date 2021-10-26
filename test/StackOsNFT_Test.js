@@ -33,7 +33,7 @@ describe("StackOS NFT", function () {
     SYMBOL = "SON";
     STACK_TOKEN_FOR_PAYMENT = currency.address;
     PRICE = parse("0.1");
-    MAX_SUPPLY = 5;
+    MAX_SUPPLY = 15;
     PRIZES = 2;
     URI_LINK = "https://google.com/";
 
@@ -125,7 +125,10 @@ describe("StackOS NFT", function () {
     await expect(stackOsNFT.partnerMint(4)).to.be.revertedWith("Can't Mint");
   });
   it("Partners mint", async function () {
+
+    console.log(format(await currency.balanceOf(stackOsNFT.address)));
     //admin withdraw currency, for simplicity of later tests
+    // THIS CALL SOMETIMES FALL WITH ERROR: 'ERC20: transfer amount exceeds balance'
     await stackOsNFT.adminWithdraw();
 
     await stackOsNFT.whitelistPartner(joe.address, true, 2);
@@ -144,5 +147,22 @@ describe("StackOS NFT", function () {
     expect(await stackOsNFT.getDelegatee(owner.address, 0)).to.equal(
       joe.address
     );
+  });
+  it("Auction", async function () {
+    // await expect(stackOsNFT.placeBid(1)).to.be.revertedWith("Auction closed!");
+    await currency.approve(stackOsNFT.address, parse("100.0"));
+    // console.log(format(await currency.balanceOf(owner.address)))
+    await stackOsNFT.placeBid(parse("1.0"));
+    await stackOsNFT.placeBid(parse("1.0"));
+    await stackOsNFT.placeBid(parse("2.0"));
+    await stackOsNFT.placeBid(parse("5.0"));
+    await stackOsNFT.placeBid(parse("3.0"));
+    await stackOsNFT.placeBid(parse("10.0"));
+    await stackOsNFT.placeBid(parse("15.0"));
+    await stackOsNFT.placeBid(parse("5.0"));
+    await stackOsNFT.placeBid(parse("1.0"));
+    await stackOsNFT.placeBid(parse("9.0"));
+    await stackOsNFT.finalizeAuction();
+    console.log(format(await currency.balanceOf(owner.address)))
   });
 });
