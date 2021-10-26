@@ -160,6 +160,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
                 ticketStatus[_ticketID[i]] = TicketStatus.Withdrawn;
             }
         }
+        adminWithdrawableAmount -= _ticketID.length.mul(participationFee);
         currency.transfer(msg.sender, _ticketID.length.mul(participationFee));
     }
 
@@ -318,7 +319,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
 
     function adminWithdraw() public onlyOwner {
         require(block.timestamp > timeLock);
-        console.log(adminWithdrawableAmount / 10**18);
+        // console.log("0.", adminWithdrawableAmount / 10**17);
         currency.transfer(msg.sender, adminWithdrawableAmount);
     }
 }

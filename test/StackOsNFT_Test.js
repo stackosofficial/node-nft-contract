@@ -128,7 +128,6 @@ describe("StackOS NFT", function () {
 
     console.log(format(await currency.balanceOf(stackOsNFT.address)));
     //admin withdraw currency, for simplicity of later tests
-    // THIS CALL SOMETIMES FALL WITH ERROR: 'ERC20: transfer amount exceeds balance'
     await stackOsNFT.adminWithdraw();
 
     await stackOsNFT.whitelistPartner(joe.address, true, 2);
