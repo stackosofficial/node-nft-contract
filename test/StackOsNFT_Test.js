@@ -133,7 +133,39 @@ describe("StackOS NFT", function () {
     await stackOsNFT.startSales();
     await expect(stackOsNFT.partnerMint(4)).to.be.revertedWith("Can't Mint");
   });
+  if("Deploy fresh contracts", async function() {
+
+    currency = await ERC20.deploy(parse("1000.0"));
+    await currency.deployed();
+
+    link = await ERC20_2.deploy();
+    await link.deployed();
+    console.log(link.address);
+
+    coordinator = await Coordinator.deploy(link.address);
+    await coordinator.deployed();
+    console.log(coordinator.address);
+
+    stackOsNFT = await StackOS.deploy(
+      NAME,
+      SYMBOL,
+      STACK_TOKEN_FOR_PAYMENT,
+      PRICE,
+      MAX_SUPPLY,
+      PRIZES,
+      URI_LINK
+    );
+    await stackOsNFT.deployed();
+  })
   it("Partners mint", async function () {
+    await stackOsNFT.whitelistPartner(joe.address, true, 2);
+    await currency.transfer(joe.address, parse("2.0"));
+    console.log(format(await currency.balanceOf(joe.address)));
+    await currency.connect(joe).approve(stackOsNFT.address, parse("2.0"));
+    await expect(stackOsNFT.connect(joe).partnerMint(4)).to.be.revertedWith("Can't Mint");
+    // await stackOsNFT.connect(joe).partnerMint(2);
+  });
+  it("Partners play lottery", async function () {
     await stackOsNFT.whitelistPartner(joe.address, true, 2);
     await currency.transfer(joe.address, parse("2.0"));
     console.log(format(await currency.balanceOf(joe.address)));
