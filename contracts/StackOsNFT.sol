@@ -20,7 +20,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         Rewarded,
         Withdrawn
     }
-
+    
     Counters.Counter private _tokenIdCounter;
     uint256 private maxSupply;
     uint256 private totalSupply;
