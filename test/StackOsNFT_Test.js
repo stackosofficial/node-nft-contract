@@ -128,4 +128,17 @@ describe("StackOS NFT", function () {
       joe.address
     );
   });
+  it("Partners can't mint", async function () {
+    await expect(stackOsNFT.partnerMint(4)).to.be.revertedWith("Sales not started");
+    await stackOsNFT.startSales();
+    await expect(stackOsNFT.partnerMint(4)).to.be.revertedWith("Can't Mint");
+  });
+  it("Partners mint", async function () {
+    await stackOsNFT.whitelistPartner(joe.address, true, 2);
+    await currency.transfer(joe.address, parse("2.0"));
+    console.log(format(await currency.balanceOf(joe.address)));
+    await currency.connect(joe).approve(stackOsNFT.address, parse("2.0"));
+    await expect(stackOsNFT.connect(joe).partnerMint(4)).to.be.revertedWith("Can't Mint");
+    // await stackOsNFT.connect(joe).partnerMint(2);
+  });
 });

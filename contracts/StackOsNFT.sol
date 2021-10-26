@@ -201,7 +201,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
 
     function partnerMint(uint256 _amount) public {
         require(salesStarted, "Sales not started");
-        require(strategicPartner[msg.sender][true] <= _amount, "Can't Mint");
+        require(strategicPartner[msg.sender][true] >= _amount, "Can't Mint");
         currency.transferFrom(
             msg.sender,
             address(this),
