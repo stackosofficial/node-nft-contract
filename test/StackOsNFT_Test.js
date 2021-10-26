@@ -99,15 +99,15 @@ describe("StackOS NFT", function () {
 
     // this should be calculated at runtime because there can be arbitrary amount of winning tickets
     console.log(
-      format(parse("999.6").add(PRICE.mul(notWinning.length))), 
-      format(parse("0.4").sub(PRICE.mul(notWinning.length))),
+      format(parse("999.0").add(PRICE.mul(notWinning.length))), 
+      format(parse("1.0").sub(PRICE.mul(notWinning.length))),
       notWinning.length
     );
     expect(await currency.balanceOf(owner.address)).to.be.equal(
-      parse("999.6").add(PRICE.mul(notWinning.length))
+      parse("999.0").add(PRICE.mul(notWinning.length))
     );
     expect(await currency.balanceOf(stackOsNFT.address)).to.be.equal(
-      parse("0.4").sub(PRICE.mul(notWinning.length))
+      parse("1.0").sub(PRICE.mul(notWinning.length))
     );
   });
   it("Claim reward", async function () {
