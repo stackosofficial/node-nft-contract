@@ -45,7 +45,11 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
     mapping(address => mapping(uint256 => address)) private delegates;
     uint256 private totalDelegators;
 
-    // Send to a timelock contract.
+    mapping(uint256 => uint256) public top10Bids;
+    mapping(uint256 => address) public top10Biders;
+    mapping(address => uint256) public bidderBalance;
+
+    bool public auctionClosed;
 
     constructor(
         string memory _name,
@@ -122,7 +126,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
             );
             if (ticketStatus[_ticketID[i]] == TicketStatus.Won) {
                 ticketStatus[_ticketID[i]] = TicketStatus.Rewarded;
-                mint();
+                mint(msg.sender);
             } else {
                 revert("Ticket Did not win!");
             }
@@ -194,24 +198,45 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         adminWithdrawableAmount += participationFee.mul(_amount);
         for (uint256 i; i < _amount; i++) {
             strategicPartner[msg.sender][true]--;
-            mint();
+            mint(msg.sender);
         }
     }
 
-    // Duch Auction.
-    // Anyone is eligable for the dutch auction
-    // A user can place a bid stack token amount gets transfered out of his wallet.
-    // he can transfer back on taking back the bid.
-    // Check the highest big
-    // Top bidders who participate in the NFT get the NFT's
-    // % of NFT's
-    // WORK IN PROGRESS 
-    function placeBid(uint256 _amount) public {
-        currency.transfer(msg.sender, _amount);
+    // Auction
+    function placeBid(uint256 _amount) public returns (uint256 i) {
+        require(auctionClosed == false, "Auction closed!");
+        currency.transferFrom(msg.sender, address(this), _amount);
+        for (i = 10; i != 0; i--) {
+            if (top10Bids[i] < _amount) {
+                if (i > 1) {
+                    for (uint256 b; b < i; b++) {
+                        //  Start over wrtiting from bottom up.
+                        if (b == 0 && top10Bids[b + 1] != 0) {
+                            currency.transfer(
+                                top10Biders[b + 1],
+                                top10Bids[b + 1]
+                            );
+                        }
+                        top10Bids[b] = top10Bids[b + 1];
+                        top10Biders[b] = top10Biders[b + 1];
+                    }
+                }
+
+                top10Bids[i] = _amount;
+                top10Biders[i] = msg.sender;
+
+                i = 0;
+                return i;
+            }
+        }
     }
 
-    function withdrawBid(uint256 _amount) public {
-        currency.transfer(msg.sender, _amount);
+    function finalizeAuction() public onlyOwner {
+        for (uint256 i = 1; i < 10; i++) {
+            if (top10Biders[i] != address(0)) {
+                mint(top10Biders[i]);
+            }
+        }
     }
 
     function delegate(address _delegatee, uint256 tokenId) public {
@@ -232,10 +257,10 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         salesStarted = true;
     }
 
-    function mint() internal {
+    function mint(address _address) internal {
         require(salesStarted, "Sales not started");
         require(totalSupply < maxSupply, "Max supply reached");
-        _safeMint(msg.sender, _tokenIdCounter.current());
+        _safeMint(_address, _tokenIdCounter.current());
         _setTokenURI(_tokenIdCounter.current(), URI);
         _tokenIdCounter.increment();
         totalSupply += 1;
