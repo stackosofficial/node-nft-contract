@@ -8,17 +8,38 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "@chainlink/contracts/src/v0.8/VRFConsumerBase.sol";
 
-contract StackOsNFT is ERC721, ERC721URIStorage, Ownable {
+contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
     using Counters for Counters.Counter;
+    using SafeMath for uint256;
+
+    enum TicketStatus {
+        Won,
+        Rewarded,
+        Withdrawn
+    }
 
     Counters.Counter private _tokenIdCounter;
     uint256 private maxSupply;
     uint256 private totalSupply;
-    uint256 private price;
+    uint256 private participationFee;
+    uint256 private participationTickets;
+    uint256 private prizes;
+    uint256 public randomNumber;
+    mapping(uint256 => address) public ticketOwner;
+    mapping(uint256 => TicketStatus) public ticketStatus;
+    mapping(address => mapping(bool => uint256)) internal strategicPartner;
+    bool public ticketStatusAssigned;
+    uint256[] public winningTickets;
     IERC20 private currency;
     bool private salesStarted;
     string private URI;
+    bytes32 internal keyHash;
+    uint256 internal fee;
+    uint256 public timeLock;
+    uint256 internal adminWithdrawableAmount;
 
     mapping(uint256 => uint256) private delegationTimestamp;
     mapping(address => mapping(uint256 => address)) private delegates;
@@ -26,19 +47,26 @@ contract StackOsNFT is ERC721, ERC721URIStorage, Ownable {
 
     // Send to a timelock contract.
 
-
     constructor(
         string memory _name,
         string memory _symbol,
         IERC20 _currencyToken,
-        uint256 _price,
+        uint256 _participationFee,
         uint256 _maxSupply,
         string memory uriLink
-    ) ERC721(_name, _symbol) {
+    )
+        ERC721(_name, _symbol)
+        VRFConsumerBase(
+            0xb3dCcb4Cf7a26f6cf6B120Cf5A73875B7BBc655B, // VRF Coordinator
+            0x01BE23585060835E02B77ef475b0Cc51aA1e0709 // LINK Token
+        )
+    {
         currency = _currencyToken;
-        price = _price;
+        participationFee = _participationFee;
         maxSupply = _maxSupply;
         URI = uriLink;
+        keyHash = 0x2ed0feb3e7fd2022120aa84fab1945545a9f2ffc9076fd6156fa96eaff4c1311;
+        fee = 1 * 10**17; // 0.1 LINK (Varies by network)
     }
 
     function getTotalDelegators() public view returns (uint256) {
@@ -69,22 +97,122 @@ contract StackOsNFT is ERC721, ERC721URIStorage, Ownable {
         return _exists(tokenId);
     }
 
-
-    // Stake / win / Purchase is the staked / withdraw are not winners.
-    // lottery tickets depend on how many your purchaise.
-    // 100 / 10 -- 10 per ticket
     // Next generation ticket multiplier. The multiplier will only take effect if NFT 1 gen is sent to NFT 2
 
     // Strategic Have to pay the same floor price , but must be whitelisted.
-    
-    
+    function stakeForTickets(uint256 _amount) public {
+        //add open/close staking
+        uint256 depositAmount = participationFee.mul(_amount);
+        currency.transferFrom(msg.sender, address(this), depositAmount);
+        uint256 nextTicketID = participationTickets;
+        for (uint256 i; i < _amount; i++) {
+            ticketOwner[nextTicketID] = msg.sender;
+            nextTicketID++;
+        }
+        participationTickets += _amount;
+    }
+
+    function claimReward(uint256[] calldata _ticketID) public {
+        require(winningTickets.length > 0, "Not Decided Yet.");
+        require(ticketStatusAssigned == true, "Not Assigned Yet!");
+        for (uint256 i; i < _ticketID.length; i++) {
+            require(
+                ticketOwner[_ticketID[i]] == msg.sender,
+                "Not your ticket."
+            );
+            if (ticketStatus[_ticketID[i]] == TicketStatus.Won) {
+                ticketStatus[_ticketID[i]] = TicketStatus.Rewarded;
+                mint();
+            } else {
+                revert("Ticket Did not win!");
+            }
+        }
+    }
+
+    function returnStake(uint256[] calldata _ticketID) public {
+        require(winningTickets.length > 0, "Not Decided Yet.");
+        require(ticketStatusAssigned == true, "Not Assigned Yet!");
+        for (uint256 i; i < _ticketID.length; i++) {
+            require(
+                ticketOwner[_ticketID[i]] == msg.sender,
+                "Not your ticket."
+            );
+            if (
+                ticketStatus[_ticketID[i]] == TicketStatus.Rewarded ||
+                ticketStatus[_ticketID[i]] == TicketStatus.Withdrawn ||
+                ticketStatus[_ticketID[i]] == TicketStatus.Won
+            ) {
+                revert("Ticket Stake Not Returnable");
+            } else {
+                ticketStatus[_ticketID[i]] = TicketStatus.Withdrawn;
+            }
+        }
+        currency.transfer(msg.sender, _ticketID.length.mul(participationFee));
+    }
+
+    function announceWinners(uint256 number) public {
+        for (uint256 i; i < prizes; i++) {
+            winningTickets.push(
+                uint256(
+                    keccak256(
+                        abi.encodePacked(
+                            block.difficulty,
+                            block.timestamp,
+                            number + i
+                        )
+                    )
+                ) % participationTickets
+            );
+        }
+    }
+
+    function mapOutWinningTickets() public {
+        require(winningTickets.length > 0, "Not Decided Yet.");
+        require(ticketStatusAssigned == false, "Already Assigned.");
+        for (uint256 i; i < winningTickets.length; i++) {
+            ticketStatus[winningTickets[i]] = TicketStatus.Won;
+        }
+        ticketStatusAssigned = true;
+        adminWithdrawableAmount += winningTickets.length.mul(participationFee);
+    }
+
+    function whitelistPartner(
+        address _address,
+        bool _whitelist,
+        uint256 _amount
+    ) public onlyOwner {
+        strategicPartner[_address][_whitelist] = _amount;
+    }
+
+    function partnerMint(uint256 _amount) public {
+        require(strategicPartner[msg.sender][true] <= _amount, "Can't Mint");
+        currency.transferFrom(
+            msg.sender,
+            address(this),
+            participationFee.mul(_amount)
+        );
+        adminWithdrawableAmount += participationFee.mul(_amount);
+        for (uint256 i; i < _amount; i++) {
+            strategicPartner[msg.sender][true]--;
+            mint();
+        }
+    }
+
     // Duch Auction.
     // Anyone is eligable for the dutch auction
     // A user can place a bid stack token amount gets transfered out of his wallet.
     // he can transfer back on taking back the bid.
     // Check the highest big
     // Top bidders who participate in the NFT get the NFT's
-    // % of NFT's   
+    // % of NFT's
+    // WORK IN PROGRESS 
+    function placeBid(uint256 _amount) public {
+        currency.transfer(msg.sender, _amount);
+    }
+
+    function withdrawBid(uint256 _amount) public {
+        currency.transfer(msg.sender, _amount);
+    }
 
     function delegate(address _delegatee, uint256 tokenId) public {
         require(msg.sender != address(0), "Delegate to address-zero");
@@ -104,12 +232,9 @@ contract StackOsNFT is ERC721, ERC721URIStorage, Ownable {
         salesStarted = true;
     }
 
-    // user approve on their side and then we can take their tokens and give new NFT in return
-    function mint() external {
+    function mint() internal {
         require(salesStarted, "Sales not started");
         require(totalSupply < maxSupply, "Max supply reached");
-        currency.transferFrom(msg.sender, address(this), price);
-
         _safeMint(msg.sender, _tokenIdCounter.current());
         _setTokenURI(_tokenIdCounter.current(), URI);
         _tokenIdCounter.increment();
@@ -137,5 +262,23 @@ contract StackOsNFT is ERC721, ERC721URIStorage, Ownable {
         returns (string memory)
     {
         return super.tokenURI(tokenId);
+    }
+
+    function getRandomNumber() internal returns (bytes32 requestId) {
+        require(LINK.balanceOf(address(this)) >= fee, "Not enough LINK");
+        return requestRandomness(keyHash, fee);
+    }
+
+    function fulfillRandomness(bytes32 requestId, uint256 randomness)
+        internal
+        override
+    {
+        randomNumber = randomness;
+        announceWinners(randomness);
+    }
+
+    function adminWithdraw() public onlyOwner {
+        require(block.timestamp > timeLock);
+        currency.transfer(msg.sender, adminWithdrawableAmount);
     }
 }
