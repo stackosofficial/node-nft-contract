@@ -40,6 +40,9 @@ module.exports = {
     ]
   },
   networks: {
+    hardhat: {
+       allowUnlimitedContractSize: true,
+    },
     rinkeby: {
       url: process.env.RINKEBY_URL || "",
       accounts:
