@@ -33,7 +33,7 @@ describe("StackOS NFT", function () {
     STACK_TOKEN_FOR_PAYMENT = currency.address;
     PRICE = parse("0.1");
     MAX_SUPPLY = 5;
-    PRIZES = 100;
+    PRIZES = 2;
     URI_LINK = "https://google.com/";
 
     const StackOS = await ethers.getContractFactory("StackOsNFT");
@@ -53,10 +53,10 @@ describe("StackOS NFT", function () {
     
     await expect(stackOsNFT.stakeForTickets(2)).to.be.revertedWith("Lottery inactive");
     await stackOsNFT.activateLottery();
-    await stackOsNFT.stakeForTickets(2);
+    await stackOsNFT.stakeForTickets(4);
 
-    expect(await currency.balanceOf(accounts[0].address)).to.be.equal(parse("999.8"));
-    expect(await currency.balanceOf(stackOsNFT.address)).to.be.equal(parse("0.2"));
+    expect(await currency.balanceOf(accounts[0].address)).to.be.equal(parse("999.6"));
+    expect(await currency.balanceOf(stackOsNFT.address)).to.be.equal(parse("0.4"));
   });
   it("Start lottery", async function () {
     await link.transfer(stackOsNFT.address, parse("10.0"));
@@ -74,7 +74,37 @@ describe("StackOS NFT", function () {
     // console.log(await stackOsNFT.winningTickets(2));
   });
   it("Map out winners", async function () {
-    await stackOsNFT.mapOutWinningTickets();
-    await expect(stackOsNFT.returnStake([0])).to.be.revertedWith("123");
+    await stackOsNFT.mapOutWinningTickets(); 
   });
+  it("Return stake", async function () {
+    winningTickets = [];
+    ticketStatus = [];
+    for(let i = 0; i < PRIZES; i++) {
+      winningTickets.push((await stackOsNFT.winningTickets(i)).toNumber());
+    }
+    for(let i = 0; i < 4; i++) {
+      ticketStatus.push(await stackOsNFT.ticketStatus(i));
+    }
+    console.log(ticketStatus, winningTickets);
+
+    // get tickets that doesn't exists in winningTickets, so they are NOT winning
+    notWinning = [ ...Array(4).keys() ].filter(e => winningTickets.indexOf(e) == -1)
+    console.log(notWinning);
+
+    await expect(stackOsNFT.returnStake(winningTickets)).to.be.revertedWith("Ticket Stake Not Returnable");
+    await stackOsNFT.returnStake(notWinning);
+    await expect(stackOsNFT.returnStake(notWinning)).to.be.revertedWith("Ticket Stake Not Returnable");
+
+    // this should be calculated at runtime
+    // expect(await currency.balanceOf(accounts[0].address)).to.be.equal(parse("999.9"));
+    // expect(await currency.balanceOf(stackOsNFT.address)).to.be.equal(parse("0.4"));
+  });
+  it("Claim reward", async function () {
+    await expect(stackOsNFT.claimReward(notWinning)).to.be.revertedWith("Ticket Did not win!");
+    // it reverts when passing duplicates, so with 'Set' we get only unique indexes
+    uniqueWinning = [ ...new Set(winningTickets) ];
+    await stackOsNFT.claimReward(uniqueWinning);
+    console.log((await stackOsNFT.balanceOf(accounts[0].address)).toNumber(), uniqueWinning.length);
+    expect(await stackOsNFT.balanceOf(accounts[0].address)).to.be.equal(uniqueWinning.length)
+  })
 });

@@ -16,6 +16,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
     using SafeMath for uint256;
 
     enum TicketStatus {
+        None,
         Won,
         Rewarded,
         Withdrawn
