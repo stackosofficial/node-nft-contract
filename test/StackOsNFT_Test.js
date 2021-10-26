@@ -59,25 +59,6 @@ describe("StackOS NFT", function () {
     expect(await currency.balanceOf(owner.address)).to.be.equal(parse("999.6"));
     expect(await currency.balanceOf(stackOsNFT.address)).to.be.equal(parse("0.4"));
   });
-  it("Partners can't mint", async function () {
-    await expect(stackOsNFT.partnerMint(4)).to.be.revertedWith("Sales not started");
-    await stackOsNFT.startSales();
-    await expect(stackOsNFT.partnerMint(4)).to.be.revertedWith("Can't Mint");
-  });
-  it("Partners mint", async function () {
-
-    //non-partners
-    await currency.approve(stackOsNFT.address, parse("2.0"));
-    await stackOsNFT.stakeForTickets(2);
-
-    //partners
-    await stackOsNFT.whitelistPartner(joe.address, true, 2);
-    await currency.transfer(joe.address, parse("2.0"));
-    console.log(format(await currency.balanceOf(joe.address)));
-    await currency.connect(joe).approve(stackOsNFT.address, parse("2.0"));
-    await expect(stackOsNFT.connect(joe).partnerMint(4)).to.be.revertedWith("Can't Mint");
-    // await stackOsNFT.connect(joe).partnerMint(2);
-  });
   it("Start lottery", async function () {
     await link.transfer(stackOsNFT.address, parse("10.0"));
     await stackOsNFT.announceLottery();
@@ -138,6 +119,23 @@ describe("StackOS NFT", function () {
       uniqueWinning.length
     );
   })
+  it("Partners can't mint", async function () {
+    await expect(stackOsNFT.partnerMint(4)).to.be.revertedWith("Sales not started");
+    await stackOsNFT.startSales();
+    await expect(stackOsNFT.partnerMint(4)).to.be.revertedWith("Can't Mint");
+  });
+  it("Partners mint", async function () {
+    //admin withdraw currency, for simplicity of later tests
+    await stackOsNFT.adminWithdraw();
+
+    await stackOsNFT.whitelistPartner(joe.address, true, 2);
+    await currency.transfer(joe.address, parse("2.0"));
+    await currency.connect(joe).approve(stackOsNFT.address, parse("2.0"));
+    await expect(stackOsNFT.connect(joe).partnerMint(4)).to.be.revertedWith("Can't Mint");
+    await stackOsNFT.connect(joe).partnerMint(2);
+    expect(await stackOsNFT.balanceOf(joe.address)).to.be.equal(2);
+    expect(await currency.balanceOf(stackOsNFT.address)).to.be.equal(parse("0.2"));
+  });
   it("Owners can delegate their NFTs", async function () {
     expect(await stackOsNFT.getDelegatee(owner.address, 0)).to.equal(
       ethers.constants.AddressZero
