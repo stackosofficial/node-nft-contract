@@ -72,7 +72,7 @@ describe("StackOS NFT", function () {
       winningTickets.push((await stackOsNFT.winningTickets(i)).toNumber());
     }
     // get NOT winning tickets
-    notWinning = [ ...Array(4).keys() ].filter(e => winningTickets.indexOf(e) == -1)
+    notWinning = [ ...Array(10).keys() ].filter(e => winningTickets.indexOf(e) == -1)
     console.log(winningTickets, notWinning);
     // claimReward reverts when passing duplicates, so we get only unique indexes
     uniqueWinning = [ ...new Set(winningTickets) ];
