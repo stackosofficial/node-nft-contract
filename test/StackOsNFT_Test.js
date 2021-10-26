@@ -158,6 +158,12 @@ describe("StackOS NFT", function () {
     await stackOsNFT.deployed();
   })
   it("Partners mint", async function () {
+
+    //non-partners
+    await currency.approve(stackOsNFT.address, parse("2.0"));
+    await stackOsNFT.stakeForTickets(2);
+
+    //partners
     await stackOsNFT.whitelistPartner(joe.address, true, 2);
     await currency.transfer(joe.address, parse("2.0"));
     console.log(format(await currency.balanceOf(joe.address)));
@@ -165,12 +171,32 @@ describe("StackOS NFT", function () {
     await expect(stackOsNFT.connect(joe).partnerMint(4)).to.be.revertedWith("Can't Mint");
     // await stackOsNFT.connect(joe).partnerMint(2);
   });
-  it("Partners play lottery", async function () {
-    await stackOsNFT.whitelistPartner(joe.address, true, 2);
-    await currency.transfer(joe.address, parse("2.0"));
-    console.log(format(await currency.balanceOf(joe.address)));
-    await currency.connect(joe).approve(stackOsNFT.address, parse("2.0"));
-    await expect(stackOsNFT.connect(joe).partnerMint(4)).to.be.revertedWith("Can't Mint");
-    // await stackOsNFT.connect(joe).partnerMint(2);
+  it("Start lottery", async function () {
+    await link.transfer(stackOsNFT.address, parse("10.0"));
+    await stackOsNFT.announceLottery();
+    expect(await stackOsNFT.ticketOwner(1)).to.be.equal(owner.address);
+  });
+  it("Announce winners", async function () {
+    await stackOsNFT.announceWinners(1);
+
+    winningTickets = [];
+    for(let i = 0; i < PRIZES; i++) {
+      winningTickets.push((await stackOsNFT.winningTickets(i)).toNumber());
+    }
+    // get NOT winning tickets
+    notWinning = [ ...Array(4).keys() ].filter(e => winningTickets.indexOf(e) == -1)
+    console.log(winningTickets, notWinning);
+    // claimReward reverts when passing duplicates, so we get only unique indexes
+    uniqueWinning = [ ...new Set(winningTickets) ];
+
+    await expect(stackOsNFT.claimReward(uniqueWinning)).to.be.revertedWith(
+      "Not Assigned Yet!"
+    );
+    await expect(stackOsNFT.returnStake(notWinning)).to.be.revertedWith(
+      "Not Assigned Yet!"
+      );
+  });
+  it("Map out winners", async function () {
+    await stackOsNFT.mapOutWinningTickets(); 
   });
 });
