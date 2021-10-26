@@ -34,7 +34,7 @@ describe("StackOS NFT", function () {
     STACK_TOKEN_FOR_PAYMENT = currency.address;
     PRICE = parse("0.1");
     MAX_SUPPLY = 15;
-    PRIZES = 2;
+    PRIZES = 10;
     URI_LINK = "https://google.com/";
 
     const StackOS = await ethers.getContractFactory("StackOsNFT");
@@ -50,14 +50,14 @@ describe("StackOS NFT", function () {
     await stackOsNFT.deployed();
   });
   it("Stake for tickets", async function () {
-    await currency.approve(stackOsNFT.address, parse("2.0"));
+    await currency.approve(stackOsNFT.address, parse("10.0"));
     
     await expect(stackOsNFT.stakeForTickets(2)).to.be.revertedWith("Lottery inactive");
     await stackOsNFT.activateLottery();
-    await stackOsNFT.stakeForTickets(4);
+    await stackOsNFT.stakeForTickets(10);
 
-    expect(await currency.balanceOf(owner.address)).to.be.equal(parse("999.6"));
-    expect(await currency.balanceOf(stackOsNFT.address)).to.be.equal(parse("0.4"));
+    expect(await currency.balanceOf(owner.address)).to.be.equal(parse("999.0"));
+    expect(await currency.balanceOf(stackOsNFT.address)).to.be.equal(parse("1.0"));
   });
   it("Start lottery", async function () {
     await link.transfer(stackOsNFT.address, parse("10.0"));
