@@ -272,7 +272,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         lotteryActive = true;
     }
 
-    function mint() internal {
+    function mint(address _address) internal {
         require(totalSupply < maxSupply, "Max supply reached");
         _safeMint(_address, _tokenIdCounter.current());
         _setTokenURI(_tokenIdCounter.current(), URI);
