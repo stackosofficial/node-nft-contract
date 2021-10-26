@@ -2,8 +2,9 @@ const { ethers } = require("hardhat");
 const { use, expect } = require("chai");
 const { solidity } = require("ethereum-waffle");
 
-describe("Best", function () {
+describe("StackOS NFT", function () {
   const parse = ethers.utils.parseEther;
+  const format = ethers.utils.formatEther;
   it("Defining Generals", async function () {
     // General
     provider = ethers.provider;
@@ -13,86 +14,67 @@ describe("Best", function () {
     const ERC20 = await ethers.getContractFactory("TestCurrency");
     currency = await ERC20.deploy(parse("1000.0"));
     await currency.deployed();
-
-    const ERC20_2 = await ethers.getContractFactory("TestCurrency");
-    currency2 = await ERC20_2.deploy(parse("1000.0"));
-    await currency2.deployed();
   });
-  it("Deploy Best NFT", async function () {
+  it("Deploy fake LINK", async function () {
+    const ERC20_2 = await ethers.getContractFactory("LinkToken");
+    link = await ERC20_2.deploy();
+    await link.deployed();
+    console.log(link.address);
+  });
+  it("Deploy VRF Coordinator", async function () {
+    const Coordinator = await ethers.getContractFactory("VRFCoordinatorMock");
+    coordinator = await Coordinator.deploy(link.address);
+    await coordinator.deployed();
+    console.log(coordinator.address);
+  });
+  it("Deploy StackOS NFT", async function () {
     NAME = "STACK OS NFT";
     SYMBOL = "SON";
     STACK_TOKEN_FOR_PAYMENT = currency.address;
-    PRICE = parse("1.0");
+    PRICE = parse("0.1");
     MAX_SUPPLY = 5;
+    PRIZES = 100;
     URI_LINK = "https://google.com/";
 
-    const Best = await ethers.getContractFactory("StackOsNFT");
-    best = await Best.deploy(
+    const StackOS = await ethers.getContractFactory("StackOsNFT");
+    stackOsNFT = await StackOS.deploy(
       NAME,
       SYMBOL,
       STACK_TOKEN_FOR_PAYMENT,
       PRICE,
       MAX_SUPPLY,
+      PRIZES,
       URI_LINK
     );
-    await best.deployed();
+    await stackOsNFT.deployed();
   });
-  it("Can't mint when sales not started", async function () {
-    await currency.approve(best.address, parse("2.0"));
-    // here await before 'expect' because 'revertedWith' is async
-    await expect(best.connect(accounts[0]).mint()).to.be.revertedWith(
-      "Sales not started"
-    );
-  });
-  it("Token URI should be predefined", async function () {
-    await best.startSales();
-    await currency.approve(best.address, parse("2.0"));
-    await best.mint();
-    expect(await best.balanceOf(accounts[0].address)).to.equal(1);
-    expect(await best.tokenURI(0)).to.equal("https://google.com/");
-  });
-  it("Can mint when sales started", async function () {
-    await currency.transfer(accounts[1].address, parse("2.0"));
-    // currency.transfer(best.address, parse("2.0"));
-    await currency.connect(accounts[1]).approve(best.address, parse("2.0"));
-    expect(await currency.balanceOf(accounts[1].address)).to.equal(
-      parse("2.0")
-    );
-    await best.connect(accounts[1]).mint();
-    expect(await best.balanceOf(accounts[1].address)).to.equal(1);
-    expect(await currency.balanceOf(accounts[1].address)).to.equal(
-      parse("1.0")
-    );
-    // await expect(await best.balanceOf(accounts[1].address)).to.equal(1);
-  });
-  it("Owners can delegate their NFTs", async function () {
-    expect(await best.getDelegatee(accounts[0].address, 0)).to.equal(
-      ethers.constants.AddressZero
-    );
-    await best.delegate(accounts[1].address, 0);
-    expect(await best.getDelegatee(accounts[0].address, 0)).to.equal(
-      accounts[1].address
-    );
-  });
-  it("Can't pay with other ERC20 tokens", async function () {
-    await currency2.transfer(accounts[3].address, parse("2.0"));
-    expect(await currency.balanceOf(accounts[3].address)).to.equal(
-      ethers.constants.AddressZero
-    );
-    expect(await currency2.balanceOf(accounts[3].address)).to.equal(
-      parse("2.0")
-    );
-    await currency2.connect(accounts[3]).approve(best.address, parse("2.0"));
-    await expect(best.connect(accounts[3]).mint()).to.be.revertedWith(
-      "ERC20: transfer amount exceeds balance"
-    );
-  });
+  it("Stake for tickets", async function () {
+    await currency.approve(stackOsNFT.address, parse("2.0"));
+    
+    await expect(stackOsNFT.stakeForTickets(2)).to.be.revertedWith("Lottery inactive");
+    await stackOsNFT.activateLottery();
+    await stackOsNFT.stakeForTickets(2);
 
-  it("Test max supply limit", async function () {
-    await currency.approve(best.address, parse("500.0"));
-    await best.mint();
-    await best.mint(); // 4th
-    await best.mint(); // 5th
-    await expect(best.mint()).to.be.revertedWith("Max supply reached");
+    expect(await currency.balanceOf(accounts[0].address)).to.be.equal(parse("999.8"));
+    expect(await currency.balanceOf(stackOsNFT.address)).to.be.equal(parse("0.2"));
+  });
+  it("Start lottery", async function () {
+    await link.transfer(stackOsNFT.address, parse("10.0"));
+    await stackOsNFT.announceLottery();
+    expect(await stackOsNFT.ticketOwner(1)).to.be.equal(accounts[0].address);
+    await expect(stackOsNFT.claimReward([0, 1])).to.be.reverted;
+    await expect(stackOsNFT.returnStake([0, 1])).to.be.reverted;
+  });
+  it("Announce winners", async function () {
+    await stackOsNFT.announceWinners(1);
+    await expect(stackOsNFT.claimReward([0, 1])).to.be.reverted;
+    await expect(stackOsNFT.returnStake([0, 1])).to.be.reverted;
+    // console.log(await stackOsNFT.winningTickets(0));
+    // console.log(await stackOsNFT.winningTickets(1));
+    // console.log(await stackOsNFT.winningTickets(2));
+  });
+  it("Map out winners", async function () {
+    await stackOsNFT.mapOutWinningTickets();
+    await expect(stackOsNFT.returnStake([0])).to.be.revertedWith("123");
   });
 });

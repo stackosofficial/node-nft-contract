@@ -35,6 +35,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
     uint256[] public winningTickets;
     IERC20 private currency;
     bool private salesStarted;
+    bool private lotteryActive;
     string private URI;
     bytes32 internal keyHash;
     uint256 internal fee;
@@ -53,17 +54,19 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         IERC20 _currencyToken,
         uint256 _participationFee,
         uint256 _maxSupply,
+        uint256 _prizes,
         string memory uriLink
     )
         ERC721(_name, _symbol)
         VRFConsumerBase(
-            0xb3dCcb4Cf7a26f6cf6B120Cf5A73875B7BBc655B, // VRF Coordinator
-            0x01BE23585060835E02B77ef475b0Cc51aA1e0709 // LINK Token
+            0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0, // VRF Coordinator
+            0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512 // LINK Token
         )
     {
         currency = _currencyToken;
         participationFee = _participationFee;
         maxSupply = _maxSupply;
+        prizes = _prizes;
         URI = uriLink;
         keyHash = 0x2ed0feb3e7fd2022120aa84fab1945545a9f2ffc9076fd6156fa96eaff4c1311;
         fee = 1 * 10**17; // 0.1 LINK (Varies by network)
@@ -101,6 +104,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
 
     // Strategic Have to pay the same floor price , but must be whitelisted.
     function stakeForTickets(uint256 _amount) public {
+        require(lotteryActive, "Lottery inactive");
         //add open/close staking
         uint256 depositAmount = participationFee.mul(_amount);
         currency.transferFrom(msg.sender, address(this), depositAmount);
@@ -112,6 +116,10 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         participationTickets += _amount;
     }
 
+    function announceLottery() public onlyOwner {
+        getRandomNumber();
+    }
+    
     function claimReward(uint256[] calldata _ticketID) public {
         require(winningTickets.length > 0, "Not Decided Yet.");
         require(ticketStatusAssigned == true, "Not Assigned Yet!");
@@ -150,7 +158,9 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         currency.transfer(msg.sender, _ticketID.length.mul(participationFee));
     }
 
+    //should this be public? this should be called by chainlink's callback...
     function announceWinners(uint256 number) public {
+        require(participationTickets > 0, "No participants.");
         for (uint256 i; i < prizes; i++) {
             winningTickets.push(
                 uint256(
@@ -185,6 +195,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
     }
 
     function partnerMint(uint256 _amount) public {
+        require(salesStarted, "Sales not started");
         require(strategicPartner[msg.sender][true] <= _amount, "Can't Mint");
         currency.transferFrom(
             msg.sender,
@@ -232,8 +243,11 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         salesStarted = true;
     }
 
+    function activateLottery() public onlyOwner {
+        lotteryActive = true;
+    }
+
     function mint() internal {
-        require(salesStarted, "Sales not started");
         require(totalSupply < maxSupply, "Max supply reached");
         _safeMint(msg.sender, _tokenIdCounter.current());
         _setTokenURI(_tokenIdCounter.current(), URI);
