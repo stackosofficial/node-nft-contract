@@ -139,6 +139,7 @@ describe("StackOS NFT", function () {
     expect(await currency.balanceOf(stackOsNFT.address)).to.be.equal(parse("0.2"));
   });
   it("Owners can delegate their NFTs", async function () {
+    // this can fall if owner dont win any NFTs in previous
     expect(await stackOsNFT.getDelegatee(owner.address, 0)).to.equal(
       ethers.constants.AddressZero
     );
