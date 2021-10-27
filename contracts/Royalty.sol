@@ -41,7 +41,7 @@ contract Royalty is Ownable {
         uint256 _bankPercent
     ) {
         bank = _bank;
-        addNextGeneration(_stackOS);
+        generations[generationsCount++] = _stackOS;
         bankPercent = _bankPercent;
         minEthToStartCycle = _minEthToStartCycle;
         // start first cycle
@@ -53,6 +53,7 @@ contract Royalty is Ownable {
     // both of them corresponding to start new cycles
     receive() external payable {
         require(msg.value > 0, "Nothing to receive");
+        // require(getTotalDelegators() > 0, "There is no one with delegated NFTs");
 
         // take fee
         uint256 bankPart = ((msg.value * bankPercent) / 10000);
@@ -99,6 +100,25 @@ contract Royalty is Ownable {
     // TODO: should be there any checks?
     function addNextGeneration(StackOSInterface _stackOS) public onlyOwner {
         generations[generationsCount++] = _stackOS;
+
+        // cycles[counter.current()].perTokenReward = getUnitPayment(
+        //     cycles[counter.current()].balance
+        // );
+        // cycles[counter.current()].delegatesCount += _stackOS.getTotalDelegators();
+
+        // if (
+        //     cycles[counter.current()].startTimestamp + CYCLE_DURATION <
+        //     block.timestamp
+        // ) {
+        //     if (cycles[counter.current()].balance >= minEthToStartCycle) {
+        //         cycles[counter.current()].perTokenReward = getUnitPayment(
+        //             cycles[counter.current()].balance
+        //         );
+        //         counter.increment();
+        //         cycles[counter.current()].delegatesCount = getTotalDelegators();
+        //         cycles[counter.current()].startTimestamp = block.timestamp;
+        //     }
+        // }
     }
 
     /*
@@ -175,6 +195,7 @@ contract Royalty is Ownable {
                                 delegationTimestamp < cycles[o].startTimestamp
                             ) {
                                 reward += cycles[o].perTokenReward;
+                                cycles[o].balance -= cycles[o].perTokenReward;
                                 cycles[o].isClaimed[tokenId] = true;
                             }
                         }
@@ -190,5 +211,25 @@ contract Royalty is Ownable {
         (bool success, ) = payable(msg.sender).call{value: reward}("");
         require(success, "Transfer failed");
         lockClaim = false;
+
+            // for (uint256 o = 0; o < counter.current(); o++) {
+            //     console.log(o, reward/10**17, cycles[o].balance/10**17, address(this).balance/10**18);
+                // console.log(o);
+                // // only can get reward for ended cycle, so skip currently running cycle (last one)
+                // if (cycles[o].perTokenReward > 0) {
+                //     // reward for token in this cycle shouldn't be already claimed
+                //     if (cycles[o].isClaimed[tokenId] == false) {
+                //         // is this token delegated earlier than this cycle start?
+                //         if (
+                //             delegationTimestamp < cycles[o].startTimestamp
+                //         ) {
+                //             reward += cycles[o].perTokenReward;
+                //             cycles[o].balance -= cycles[o].perTokenReward;
+                //             cycles[o].isClaimed[tokenId] = true;
+                //         }
+                //     }
+                // }
+            // }
+        // console.log(cycles[counter.current()].delegatesCount, reward/10**17, cycles[counter.current()-1].balance/10**17, address(this).balance/10**18);
     }
 }
