@@ -146,6 +146,8 @@ describe("StackOS NFT", function () {
     expect(await stackOsNFT.getDelegatee(owner.address, 0)).to.equal(
       joe.address
     );
+    await stackOsNFT.startPartnerSales();
+    await expect(stackOsNFT.partnerMint(4)).to.be.revertedWith("Can't Mint");
   });
   it("Auction", async function () {
     // await expect(stackOsNFT.placeBid(1)).to.be.revertedWith("Auction closed!");
