@@ -2,5 +2,5 @@ node_modules
 cache
 artifacts
 .env
-
+.vscode
 package-lock.json
