@@ -16,7 +16,7 @@ contract Royalty {
     uint256 private minEthToStartCycle; // cycle cannot end if its balance is less than this
     uint256 private constant CYCLE_DURATION = 30 days; // cycle cannot end if it started earlier than this
 
-    StackOsNFT private best; // NFTs contract
+    StackOSInterface private best; // NFTs contract
     bool private lockClaim; // anti-reentrancy for claim function
 
     struct Cycle {
