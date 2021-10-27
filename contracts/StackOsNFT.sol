@@ -35,7 +35,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
     uint256 internal fee;
     uint256 public timeLock;
     uint256 internal adminWithdrawableAmount;
-    uint256 private totalDelegators;
+    uint256 private totalDelegated;
     uint256 public auctionCloseTime;
     uint256[] public winningTickets;
 
@@ -78,8 +78,8 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         fee = 1 * 10**17; // 0.1 LINK (Varies by network)
     }
 
-    function getTotalDelegators() public view returns (uint256) {
-        return totalDelegators;
+    function getTotalDelegated() public view returns (uint256) {
+        return totalDelegated;
     }
 
     function getDelegationTimestamp(uint256 _tokenId)
@@ -290,11 +290,11 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
     }
 
     function delegate(address _delegatee, uint256 tokenId) public {
-        require(msg.sender != address(0), "Delegate to address-zero");
+        require(msg.sender != address(0), "Delegate is address-zero");
         require(msg.sender == ownerOf(tokenId), "Not owner");
         require(delegates[tokenId] == address(0), "Already delegated");
         delegates[tokenId] = _delegatee;
-        if (delegationTimestamp[tokenId] == 0) totalDelegators += 1;
+        if (delegationTimestamp[tokenId] == 0) totalDelegated += 1;
         delegationTimestamp[tokenId] = block.timestamp;
     }
 
@@ -315,7 +315,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         super._burn(tokenId);
 
         totalSupply -= 1;
-        totalDelegators -= 1;
+        totalDelegated -= 1;
         delegates[tokenId] = address(0);
         delegationTimestamp[tokenId] = 0;
     }

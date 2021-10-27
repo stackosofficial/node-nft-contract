@@ -46,15 +46,15 @@ contract Royalty is Ownable {
         minEthToStartCycle = _minEthToStartCycle;
         // start first cycle
         cycles[counter.current()].startTimestamp = block.timestamp;
-        cycles[counter.current()].delegatesCount = getTotalDelegators();
+        cycles[counter.current()].delegatesCount = getTotalDelegated();
     }
 
     receive() external payable {
         require(msg.value > 0, "Nothing to receive");
-        require(getTotalDelegators() > 0, "There is no one with delegated NFTs");
+        require(getTotalDelegated() > 0, "There is no one with delegated NFTs");
 
         if(cycles[counter.current()].delegatesCount == 0) {
-            cycles[counter.current()].delegatesCount = getTotalDelegators();
+            cycles[counter.current()].delegatesCount = getTotalDelegated();
         }
 
         // take fee
@@ -77,7 +77,7 @@ contract Royalty is Ownable {
                 // start new cycle
                 counter.increment();
                 // save count of delegates that exists on start of cycle
-                cycles[counter.current()].delegatesCount = getTotalDelegators();
+                cycles[counter.current()].delegatesCount = getTotalDelegated();
                 cycles[counter.current()].startTimestamp = block.timestamp;
                 // previous cycle already got enough balance, otherwise we wouldn't get here, thus we assign this deposit to the new cycle
                 cycles[counter.current()].balance += msg.value - bankPart;
@@ -109,10 +109,10 @@ contract Royalty is Ownable {
     /*
         @titile Get number of delegators in all StackOS generations
     */
-    function getTotalDelegators() public view returns (uint256) {
+    function getTotalDelegated() public view returns (uint256) {
         uint256 total = 0;
         for(uint256 i = 0; i < generationsCount; i++) {
-            total += generations[i].getTotalDelegators();
+            total += generations[i].getTotalDelegated();
         }
         return total;
     }
@@ -150,7 +150,7 @@ contract Royalty is Ownable {
                     cycles[counter.current()].balance
                 );
                 counter.increment();
-                cycles[counter.current()].delegatesCount = getTotalDelegators();
+                cycles[counter.current()].delegatesCount = getTotalDelegated();
                 cycles[counter.current()].startTimestamp = block.timestamp;
             }
         }

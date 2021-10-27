@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 // TODO: should add getGenerationID ?
 interface StackOSInterface {
-    function getTotalDelegators() 
+    function getTotalDelegated() 
         external
         view
         returns (
