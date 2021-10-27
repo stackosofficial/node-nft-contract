@@ -141,10 +141,10 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         override
     {
         randomNumber = randomness;
-        announceWinners();
     }
 
     function announceWinners() public onlyOwner {
+        require(winningTickets.length == 0, "Already Announced");
         uint256 runs = prizes;
         for (uint256 i; i < prizes; i++) {
             uint256 nr = uint256(keccak256(abi.encode(randomNumber + i))) %
