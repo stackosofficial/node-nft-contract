@@ -50,7 +50,6 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
     bool public ticketStatusAssigned;
     bool private salesStarted;
     bool private lotteryActive;
-    bool public auctionClosed;
     string private URI;
     bytes32 internal keyHash;
 
@@ -123,6 +122,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
     }
 
     function announceLottery() public onlyOwner {
+        require(randomNumber == 0, "Random Number already assigned!");
         getRandomNumber();
     }
 
@@ -168,8 +168,8 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         );
     }
 
-    function announceWinners(uint256 number) public {
-        require(participationTickets > 0, "No participants.");
+    function announceWinners() internal {
+        require(participationTickets > 10, "No enough participants.");
         for (uint256 i; i < prizes; i++) {
             winningTickets.push(
                 uint256(
@@ -177,7 +177,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
                         abi.encodePacked(
                             block.difficulty,
                             block.timestamp,
-                            number + i
+                            randomNumber + i
                         )
                     )
                 ) % participationTickets
@@ -203,6 +203,10 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         strategicPartner[_address][_whitelist] = _amount;
     }
 
+    function adjustAuctionCloseTime(uint256 _time) public onlyOwner {
+        auctionCloseTime = _time;
+    }
+
     function partnerMint(uint256 _amount) public {
         require(salesStarted, "Sales not started");
         require(strategicPartner[msg.sender][true] >= _amount, "Can't Mint");
@@ -220,13 +224,12 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
 
     // Auction
     function placeBid(uint256 _amount) public returns (uint256 i) {
-        require(auctionClosed == false, "Auction closed!");
+        require(block.timestamp < auctionCloseTime, "Auction closed!");
         stackOSToken.transferFrom(msg.sender, address(this), _amount);
         for (i = 10; i != 0; i--) {
             if (top10Bids[i] < _amount) {
                 if (i > 1) {
                     for (uint256 b; b < i; b++) {
-                        //  Start over wrtiting from bottom up.
                         if (b == 0 && top10Bids[b + 1] != 0) {
                             stackOSToken.transfer(
                                 top10Biders[b + 1],
@@ -237,10 +240,8 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
                         top10Biders[b] = top10Biders[b + 1];
                     }
                 }
-
                 top10Bids[i] = _amount;
                 top10Biders[i] = msg.sender;
-
                 i = 0;
                 return i;
             }
@@ -248,6 +249,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
     }
 
     function finalizeAuction() public onlyOwner {
+        require(block.timestamp > auctionCloseTime, "Auction still ongoing.");
         for (uint256 i = 1; i < 10; i++) {
             if (top10Biders[i] != address(0)) {
                 mint(top10Biders[i]);
@@ -269,7 +271,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         delegationTimestamp[tokenId] = block.timestamp;
     }
 
-    function startSales() public onlyOwner {
+    function startPartnerSales() public onlyOwner {
         salesStarted = true;
     }
 
@@ -318,7 +320,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         override
     {
         randomNumber = randomness;
-        announceWinners(randomness);
+        announceWinners();
     }
 
     function adminWithdraw() public onlyOwner {
