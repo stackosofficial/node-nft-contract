@@ -16,7 +16,7 @@ contract Royalty {
     uint256 private minEthToStartCycle; // cycle cannot end if its balance is less than this
     uint256 private constant CYCLE_DURATION = 30 days; // cycle cannot end if it started earlier than this
 
-    StackOSInterface private best; // NFTs contract
+    StackOSInterface private stackOS; // NFTs contract
     bool private lockClaim; // anti-reentrancy for claim function
 
     struct Cycle {
@@ -34,18 +34,18 @@ contract Royalty {
 
 
     constructor(
-        StackOsNFT _best,
+        StackOsNFT _stackOS,
         uint256 _minEthToStartCycle,
         address payable _bank,
         uint256 _bankPercent
     ) {
         bank = _bank;
-        best = _best;
+        stackOS = _stackOS;
         bankPercent = _bankPercent;
         minEthToStartCycle = _minEthToStartCycle;
         // start first cycle
         cycles[counter.current()].startTimestamp = block.timestamp;
-        cycles[counter.current()].delegatesCount = best.getTotalDelegators();
+        cycles[counter.current()].delegatesCount = stackOS.getTotalDelegators();
     }
 
     // should this be protected against reentrancy? and what about claim function?
@@ -74,7 +74,7 @@ contract Royalty {
                 // start new cycle
                 counter.increment();
                 // save count of delegates that exists on start of cycle
-                cycles[counter.current()].delegatesCount = best
+                cycles[counter.current()].delegatesCount = stackOS 
                     .getTotalDelegators();
                 cycles[counter.current()].startTimestamp = block.timestamp;
                 // previous cycle already got enough balance, otherwise we wouldn't get here, thus we assign this deposit to the new cycle
@@ -115,7 +115,7 @@ contract Royalty {
         require(!lockClaim, "Reentrant call!");
         lockClaim = true;
         require(address(this).balance > 0, "No royalty");
-        require(best.balanceOf(msg.sender) > 0, "You dont have NFTs");
+        require(stackOS.balanceOf(msg.sender) > 0, "You dont have NFTs");
 
         // same code as in `receive()` function, except that here we don't receive ether, but simply start new cycle if it's time
         if (
@@ -127,7 +127,7 @@ contract Royalty {
                     cycles[counter.current()].balance
                 );
                 counter.increment();
-                cycles[counter.current()].delegatesCount = best
+                cycles[counter.current()].delegatesCount = stackOS 
                     .getTotalDelegators();
                 cycles[counter.current()].startTimestamp = block.timestamp;
             }
@@ -139,13 +139,13 @@ contract Royalty {
         // iterate over passed tokens
         for (uint256 i = 0; i < tokenIds.length; i++) {
             uint256 tokenId = tokenIds[i];
-            require(best.ownerOf(tokenId) == msg.sender, "Not owner");
+            require(stackOS.ownerOf(tokenId) == msg.sender, "Not owner");
             require(
-                best.getDelegatee(msg.sender, tokenId) != address(0),
+                stackOS.getDelegatee(msg.sender, tokenId) != address(0),
                 "NFT should be delegated"
             );
 
-            uint256 delegationTimestamp = best.getDelegationTimestamp(tokenId);
+            uint256 delegationTimestamp = stackOS.getDelegationTimestamp(tokenId);
             if (delegationTimestamp > 0) {
                 // iterate over cycles
                 for (uint256 o = 0; o < counter.current(); o++) {
