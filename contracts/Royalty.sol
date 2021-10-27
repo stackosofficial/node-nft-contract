@@ -24,15 +24,14 @@ contract Royalty is Ownable {
         uint256 startTimestamp; // when cycle started
         uint256 perTokenReward; // price of NFT in cycle, calculated when cycle ends
         uint256 balance; // how much deposited during cycle
-        uint256 delegatesCount; // how much NFT delegators exists when cycle starts
+        uint256 delegatedCount; // how much tokens delegated when cycle starts
         mapping(uint256 => bool) isClaimed; // whether or not reward is claimed for certain NFT (the same token can have true and false in different cycles)
     }
 
     mapping(uint256 => Cycle) private cycles; // a new cycle starts when two conditions met, `CYCLE_DURATION` time passed and `minEthToStartCycle` ether deposited
 
-    mapping(uint256 => StackOSInterface) private generations; 
-    uint256 private generationsCount; 
-
+    mapping(uint256 => StackOSInterface) private generations; // StackOS NFT contract different generations
+    uint256 private generationsCount; // total stackOS generations added
 
     constructor(
         StackOSInterface _stackOS,
@@ -44,17 +43,16 @@ contract Royalty is Ownable {
         generations[generationsCount++] = _stackOS;
         bankPercent = _bankPercent;
         minEthToStartCycle = _minEthToStartCycle;
-        // start first cycle
-        cycles[counter.current()].startTimestamp = block.timestamp;
-        cycles[counter.current()].delegatesCount = getTotalDelegated();
     }
 
     receive() external payable {
         require(msg.value > 0, "Nothing to receive");
         require(getTotalDelegated() > 0, "There is no one with delegated NFTs");
 
-        if(cycles[counter.current()].delegatesCount == 0) {
-            cycles[counter.current()].delegatesCount = getTotalDelegated();
+        // this should be true for the first cycle only
+        if(cycles[counter.current()].startTimestamp == 0) {
+            cycles[counter.current()].startTimestamp = block.timestamp;
+            cycles[counter.current()].delegatedCount = getTotalDelegated();
         }
 
         // take fee
@@ -77,7 +75,7 @@ contract Royalty is Ownable {
                 // start new cycle
                 counter.increment();
                 // save count of delegates that exists on start of cycle
-                cycles[counter.current()].delegatesCount = getTotalDelegated();
+                cycles[counter.current()].delegatedCount = getTotalDelegated();
                 cycles[counter.current()].startTimestamp = block.timestamp;
                 // previous cycle already got enough balance, otherwise we wouldn't get here, thus we assign this deposit to the new cycle
                 cycles[counter.current()].balance += msg.value - bankPart;
@@ -107,7 +105,7 @@ contract Royalty is Ownable {
     }
 
     /*
-        @titile Get number of delegators in all StackOS generations
+        @titile Get number of delegated tokens in every added StackOS generation 
     */
     function getTotalDelegated() public view returns (uint256) {
         uint256 total = 0;
@@ -119,13 +117,13 @@ contract Royalty is Ownable {
 
     /*
         @title Calculate how much should get each NFT delegator for one token
-        @param _amount Number to divide by total delegators
+        @param _amount Number to divide by total delegated tokens
         @return 
         @dev no need to require(_amount == 0)? amount checked everywhere anyway, so cant be 0 here (currently)
     */
     function getUnitPayment(uint256 _amount) public view returns (uint256) {
-        uint256 totalDelegators = cycles[counter.current()].delegatesCount;
-        return (totalDelegators > 0) ? (_amount / totalDelegators) : 0;
+        uint256 delegatedCount = cycles[counter.current()].delegatedCount;
+        return (delegatedCount > 0) ? (_amount / delegatedCount) : 0;
     }
 
     /*
@@ -150,7 +148,7 @@ contract Royalty is Ownable {
                     cycles[counter.current()].balance
                 );
                 counter.increment();
-                cycles[counter.current()].delegatesCount = getTotalDelegated();
+                cycles[counter.current()].delegatedCount = getTotalDelegated();
                 cycles[counter.current()].startTimestamp = block.timestamp;
             }
         }
@@ -177,7 +175,7 @@ contract Royalty is Ownable {
                         if (cycles[o].isClaimed[tokenId] == false) {
                             // is this token delegated earlier than this cycle start?
                             if (
-                                delegationTimestamp < cycles[o].startTimestamp
+                                delegationTimestamp < cycles[o].startTimestamp // TODO: can we have on 0 cycle, 1 delegate, with the same block.timestamp as cycle startTime? if so, we are in trouble, money for such cycly can never be taken
                             ) {
                                 reward += cycles[o].perTokenReward;
                                 cycles[o].balance -= cycles[o].perTokenReward; // this is unnecessery for now
@@ -196,10 +194,5 @@ contract Royalty is Ownable {
         (bool success, ) = payable(msg.sender).call{value: reward}("");
         require(success, "Transfer failed");
         lockClaim = false;
-
-        for (uint256 o = 0; o < counter.current(); o++) {
-            console.log(o, reward/10**17, cycles[o].delegatesCount, address(this).balance/10**18);
-            // console.log(cycles[o].balance/10**17);
-        }
     }
 }
