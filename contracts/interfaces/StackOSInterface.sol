@@ -20,7 +20,6 @@ interface StackOSInterface {
         );
 
     function getDelegatee(
-        address _delegate,
         uint256 _tokenId
     )
         external

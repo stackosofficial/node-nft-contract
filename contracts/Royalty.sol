@@ -49,11 +49,14 @@ contract Royalty is Ownable {
         cycles[counter.current()].delegatesCount = getTotalDelegators();
     }
 
-    // should this be protected against reentrancy? and what about claim function?
-    // both of them corresponding to start new cycles
     receive() external payable {
         require(msg.value > 0, "Nothing to receive");
-        // require(getTotalDelegators() > 0, "There is no one with delegated NFTs");
+        require(getTotalDelegators() > 0, "There is no one with delegated NFTs");
+
+        // this is need for first cycle
+        if(cycles[counter.current()].delegatesCount == 0) {
+            cycles[counter.current()].delegatesCount = getTotalDelegators();
+        }
 
         // take fee
         uint256 bankPart = ((msg.value * bankPercent) / 10000);
@@ -61,7 +64,6 @@ contract Royalty is Ownable {
             (bool success, ) = bank.call{value: bankPart}("");
             require(success, "Re-route to bank failed");
         }
-
         // is current cycle lasts enough?
         if (
             cycles[counter.current()].startTimestamp + CYCLE_DURATION <
@@ -99,26 +101,10 @@ contract Royalty is Ownable {
 
     // TODO: should be there any checks?
     function addNextGeneration(StackOSInterface _stackOS) public onlyOwner {
+        for(uint256 i; i < generationsCount; i++) {
+            require(generations[i] != _stackOS, "This generation already exists");
+        }
         generations[generationsCount++] = _stackOS;
-
-        // cycles[counter.current()].perTokenReward = getUnitPayment(
-        //     cycles[counter.current()].balance
-        // );
-        // cycles[counter.current()].delegatesCount += _stackOS.getTotalDelegators();
-
-        // if (
-        //     cycles[counter.current()].startTimestamp + CYCLE_DURATION <
-        //     block.timestamp
-        // ) {
-        //     if (cycles[counter.current()].balance >= minEthToStartCycle) {
-        //         cycles[counter.current()].perTokenReward = getUnitPayment(
-        //             cycles[counter.current()].balance
-        //         );
-        //         counter.increment();
-        //         cycles[counter.current()].delegatesCount = getTotalDelegators();
-        //         cycles[counter.current()].startTimestamp = block.timestamp;
-        //     }
-        // }
     }
 
     /*
@@ -178,7 +164,7 @@ contract Royalty is Ownable {
             uint256 tokenId = tokenIds[i];
             require(generations[generationId].ownerOf(tokenId) == msg.sender, "Not owner");
             require(
-                generations[generationId].getDelegatee(msg.sender, tokenId) != address(0),
+                generations[generationId].getDelegatee(tokenId) != address(0),
                 "NFT should be delegated"
             );
 
@@ -195,7 +181,7 @@ contract Royalty is Ownable {
                                 delegationTimestamp < cycles[o].startTimestamp
                             ) {
                                 reward += cycles[o].perTokenReward;
-                                cycles[o].balance -= cycles[o].perTokenReward;
+                                cycles[o].balance -= cycles[o].perTokenReward; // this is unnecessery for now
                                 cycles[o].isClaimed[tokenId] = true;
                             }
                         }
@@ -212,24 +198,9 @@ contract Royalty is Ownable {
         require(success, "Transfer failed");
         lockClaim = false;
 
-            // for (uint256 o = 0; o < counter.current(); o++) {
-            //     console.log(o, reward/10**17, cycles[o].balance/10**17, address(this).balance/10**18);
-                // console.log(o);
-                // // only can get reward for ended cycle, so skip currently running cycle (last one)
-                // if (cycles[o].perTokenReward > 0) {
-                //     // reward for token in this cycle shouldn't be already claimed
-                //     if (cycles[o].isClaimed[tokenId] == false) {
-                //         // is this token delegated earlier than this cycle start?
-                //         if (
-                //             delegationTimestamp < cycles[o].startTimestamp
-                //         ) {
-                //             reward += cycles[o].perTokenReward;
-                //             cycles[o].balance -= cycles[o].perTokenReward;
-                //             cycles[o].isClaimed[tokenId] = true;
-                //         }
-                //     }
-                // }
-            // }
-        // console.log(cycles[counter.current()].delegatesCount, reward/10**17, cycles[counter.current()-1].balance/10**17, address(this).balance/10**18);
+        for (uint256 o = 0; o < counter.current(); o++) {
+            console.log(o, reward/10**17, cycles[o].delegatesCount, address(this).balance/10**18);
+            // console.log(cycles[o].balance/10**17);
+        }
     }
 }

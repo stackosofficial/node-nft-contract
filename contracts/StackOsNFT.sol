@@ -90,7 +90,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         return delegationTimestamp[_tokenId];
     }
 
-    function getDelegatee(address _delegate, uint256 _tokenId)
+    function getDelegatee(uint256 _tokenId)
         public
         view
         returns (address)
