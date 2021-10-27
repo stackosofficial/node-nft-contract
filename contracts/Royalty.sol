@@ -178,7 +178,7 @@ contract Royalty is Ownable {
                                 delegationTimestamp < cycles[o].startTimestamp // TODO: can we have on 0 cycle, 1 delegate, with the same block.timestamp as cycle startTime? if so, we are in trouble, money for such cycly can never be taken
                             ) {
                                 reward += cycles[o].perTokenReward;
-                                cycles[o].balance -= cycles[o].perTokenReward; // this is unnecessery for now
+                                cycles[o].balance -= cycles[o].perTokenReward; // TODO: this is unnecessery ? it seems dont affect anything, all tests pass with or without it
                                 cycles[o].isClaimed[tokenId] = true;
                             }
                         }
@@ -187,7 +187,7 @@ contract Royalty is Ownable {
             }
         }
 
-        // should this be replaced with 'if' statement?
+        // TODO: should this be replaced with 'if' statement?
         require(reward > 0, "Nothing to claim");
 
         // finally send reward
