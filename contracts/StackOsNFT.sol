@@ -108,68 +108,39 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
     // Next generation ticket multiplier. The multiplier will only take effect if NFT 1 gen is sent to NFT 2
 
     // Strategic Have to pay the same floor price , but must be whitelisted.
-    function stakeForTickets(uint256 _amount) public {
+    function stakeForTickets(uint256 _ticketAmount) public {
         require(lotteryActive, "Lottery inactive");
-        //add open/close staking
-        uint256 depositAmount = participationFee.mul(_amount);
+        require(randomNumber == 0, "Random Number already assigned!");
+        uint256 depositAmount = participationFee.mul(_ticketAmount);
         stackOSToken.transferFrom(msg.sender, address(this), depositAmount);
         uint256 nextTicketID = participationTickets;
-        for (uint256 i; i < _amount; i++) {
+        for (uint256 i; i < _ticketAmount; i++) {
             ticketOwner[nextTicketID] = msg.sender;
             nextTicketID++;
         }
-        participationTickets += _amount;
+        participationTickets += _ticketAmount;
     }
 
     function announceLottery() public onlyOwner {
         require(randomNumber == 0, "Random Number already assigned!");
+        require(participationTickets > 10, "No enough participants.");
         getRandomNumber();
     }
 
-    function claimReward(uint256[] calldata _ticketID) public {
-        require(winningTickets.length > 0, "Not Decided Yet.");
-        require(ticketStatusAssigned == true, "Not Assigned Yet!");
-        for (uint256 i; i < _ticketID.length; i++) {
-            require(
-                ticketOwner[_ticketID[i]] == msg.sender,
-                "Not your ticket."
-            );
-            if (ticketStatus[_ticketID[i]] == TicketStatus.Won) {
-                ticketStatus[_ticketID[i]] = TicketStatus.Rewarded;
-                mint(msg.sender);
-            } else {
-                revert("Ticket Did not win!");
-            }
-        }
+    function getRandomNumber() internal returns (bytes32 requestId) {
+        require(LINK.balanceOf(address(this)) >= fee, "Not enough LINK");
+        return requestRandomness(keyHash, fee);
     }
 
-    function returnStake(uint256[] calldata _ticketID) public {
-        require(winningTickets.length > 0, "Not Decided Yet.");
-        require(ticketStatusAssigned == true, "Not Assigned Yet!");
-        for (uint256 i; i < _ticketID.length; i++) {
-            require(
-                ticketOwner[_ticketID[i]] == msg.sender,
-                "Not your ticket."
-            );
-            if (
-                ticketStatus[_ticketID[i]] == TicketStatus.Rewarded ||
-                ticketStatus[_ticketID[i]] == TicketStatus.Withdrawn ||
-                ticketStatus[_ticketID[i]] == TicketStatus.Won
-            ) {
-                revert("Ticket Stake Not Returnable");
-            } else {
-                ticketStatus[_ticketID[i]] = TicketStatus.Withdrawn;
-            }
-        }
-        adminWithdrawableAmount -= _ticketID.length.mul(participationFee);
-        stackOSToken.transfer(
-            msg.sender,
-            _ticketID.length.mul(participationFee)
-        );
+    function fulfillRandomness(bytes32 requestId, uint256 randomness)
+        internal
+        override
+    {
+        randomNumber = randomness;
+        announceWinners();
     }
 
     function announceWinners() internal {
-        require(participationTickets > 10, "No enough participants.");
         for (uint256 i; i < prizes; i++) {
             winningTickets.push(
                 uint256(
@@ -193,6 +164,47 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         }
         ticketStatusAssigned = true;
         adminWithdrawableAmount += winningTickets.length.mul(participationFee);
+    }
+
+    function claimReward(uint256[] calldata _ticketID) public {
+        require(winningTickets.length > 0, "Not Decided Yet.");
+        require(ticketStatusAssigned == true, "Not Assigned Yet!");
+        for (uint256 i; i < _ticketID.length; i++) {
+            require(
+                ticketOwner[_ticketID[i]] == msg.sender,
+                "Not your ticket."
+            );
+            if (ticketStatus[_ticketID[i]] == TicketStatus.Won) {
+                ticketStatus[_ticketID[i]] = TicketStatus.Rewarded;
+                mint(msg.sender);
+            } else {
+                revert("Ticket Did not win or awarded already!");
+            }
+        }
+    }
+
+    function returnStake(uint256[] calldata _ticketID) public {
+        require(winningTickets.length > 0, "Not Decided Yet.");
+        require(ticketStatusAssigned == true, "Not Assigned Yet!");
+        for (uint256 i; i < _ticketID.length; i++) {
+            require(
+                ticketOwner[_ticketID[i]] == msg.sender,
+                "Not your ticket."
+            );
+            if (
+                ticketStatus[_ticketID[i]] == TicketStatus.Rewarded ||
+                ticketStatus[_ticketID[i]] == TicketStatus.Withdrawn ||
+                ticketStatus[_ticketID[i]] == TicketStatus.Won
+            ) {
+                revert("Ticket Stake Not Returnable");
+            } else {
+                ticketStatus[_ticketID[i]] = TicketStatus.Withdrawn;
+            }
+        }
+        stackOSToken.transfer(
+            msg.sender,
+            _ticketID.length.mul(participationFee)
+        );
     }
 
     function whitelistPartner(
@@ -235,12 +247,14 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
                                 top10Biders[b + 1],
                                 top10Bids[b + 1]
                             );
+                            adminWithdrawableAmount -= top10Bids[b + 1];
                         }
                         top10Bids[b] = top10Bids[b + 1];
                         top10Biders[b] = top10Biders[b + 1];
                     }
                 }
                 top10Bids[i] = _amount;
+                adminWithdrawableAmount += _amount;
                 top10Biders[i] = msg.sender;
                 i = 0;
                 return i;
@@ -308,19 +322,6 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         returns (string memory)
     {
         return super.tokenURI(tokenId);
-    }
-
-    function getRandomNumber() internal returns (bytes32 requestId) {
-        require(LINK.balanceOf(address(this)) >= fee, "Not enough LINK");
-        return requestRandomness(keyHash, fee);
-    }
-
-    function fulfillRandomness(bytes32 requestId, uint256 randomness)
-        internal
-        override
-    {
-        randomNumber = randomness;
-        announceWinners();
     }
 
     function adminWithdraw() public onlyOwner {
