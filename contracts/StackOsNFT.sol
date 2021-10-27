@@ -21,42 +21,43 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         Rewarded,
         Withdrawn
     }
-    
+
     Counters.Counter private _tokenIdCounter;
+    IERC20 private stackOSToken;
+
     uint256 private maxSupply;
     uint256 private totalSupply;
     uint256 private participationFee;
     uint256 private participationTickets;
     uint256 private prizes;
     uint256 public randomNumber;
-    mapping(uint256 => address) public ticketOwner;
-    mapping(uint256 => TicketStatus) public ticketStatus;
-    mapping(address => mapping(bool => uint256)) internal strategicPartner;
-    bool public ticketStatusAssigned;
-    uint256[] public winningTickets;
-    IERC20 private currency;
-    bool private salesStarted;
-    bool private lotteryActive;
-    string private URI;
-    bytes32 internal keyHash;
     uint256 internal fee;
     uint256 public timeLock;
     uint256 internal adminWithdrawableAmount;
+    uint256 private totalDelegators;
+    uint256 public auctionCloseTime;
+    uint256[] public winningTickets;
 
+    mapping(uint256 => address) public ticketOwner;
+    mapping(uint256 => TicketStatus) public ticketStatus;
+    mapping(address => mapping(bool => uint256)) internal strategicPartner;
     mapping(uint256 => uint256) private delegationTimestamp;
     mapping(address => mapping(uint256 => address)) private delegates;
-    uint256 private totalDelegators;
-
     mapping(uint256 => uint256) public top10Bids;
     mapping(uint256 => address) public top10Biders;
     mapping(address => uint256) public bidderBalance;
 
+    bool public ticketStatusAssigned;
+    bool private salesStarted;
+    bool private lotteryActive;
     bool public auctionClosed;
+    string private URI;
+    bytes32 internal keyHash;
 
     constructor(
         string memory _name,
         string memory _symbol,
-        IERC20 _currencyToken,
+        IERC20 _stackOSTokenToken,
         uint256 _participationFee,
         uint256 _maxSupply,
         uint256 _prizes,
@@ -68,7 +69,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
             0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512 // LINK Token
         )
     {
-        currency = _currencyToken;
+        stackOSToken = _stackOSTokenToken;
         participationFee = _participationFee;
         maxSupply = _maxSupply;
         prizes = _prizes;
@@ -112,7 +113,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         require(lotteryActive, "Lottery inactive");
         //add open/close staking
         uint256 depositAmount = participationFee.mul(_amount);
-        currency.transferFrom(msg.sender, address(this), depositAmount);
+        stackOSToken.transferFrom(msg.sender, address(this), depositAmount);
         uint256 nextTicketID = participationTickets;
         for (uint256 i; i < _amount; i++) {
             ticketOwner[nextTicketID] = msg.sender;
@@ -124,7 +125,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
     function announceLottery() public onlyOwner {
         getRandomNumber();
     }
-    
+
     function claimReward(uint256[] calldata _ticketID) public {
         require(winningTickets.length > 0, "Not Decided Yet.");
         require(ticketStatusAssigned == true, "Not Assigned Yet!");
@@ -161,7 +162,10 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
             }
         }
         adminWithdrawableAmount -= _ticketID.length.mul(participationFee);
-        currency.transfer(msg.sender, _ticketID.length.mul(participationFee));
+        stackOSToken.transfer(
+            msg.sender,
+            _ticketID.length.mul(participationFee)
+        );
     }
 
     function announceWinners(uint256 number) public {
@@ -202,7 +206,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
     function partnerMint(uint256 _amount) public {
         require(salesStarted, "Sales not started");
         require(strategicPartner[msg.sender][true] >= _amount, "Can't Mint");
-        currency.transferFrom(
+        stackOSToken.transferFrom(
             msg.sender,
             address(this),
             participationFee.mul(_amount)
@@ -217,14 +221,14 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
     // Auction
     function placeBid(uint256 _amount) public returns (uint256 i) {
         require(auctionClosed == false, "Auction closed!");
-        currency.transferFrom(msg.sender, address(this), _amount);
+        stackOSToken.transferFrom(msg.sender, address(this), _amount);
         for (i = 10; i != 0; i--) {
             if (top10Bids[i] < _amount) {
                 if (i > 1) {
                     for (uint256 b; b < i; b++) {
                         //  Start over wrtiting from bottom up.
                         if (b == 0 && top10Bids[b + 1] != 0) {
-                            currency.transfer(
+                            stackOSToken.transfer(
                                 top10Biders[b + 1],
                                 top10Bids[b + 1]
                             );
@@ -320,6 +324,6 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
     function adminWithdraw() public onlyOwner {
         require(block.timestamp > timeLock);
         // console.log("0.", adminWithdrawableAmount / 10**17);
-        currency.transfer(msg.sender, adminWithdrawableAmount);
+        stackOSToken.transfer(msg.sender, adminWithdrawableAmount);
     }
 }
