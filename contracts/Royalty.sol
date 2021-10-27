@@ -53,7 +53,6 @@ contract Royalty is Ownable {
         require(msg.value > 0, "Nothing to receive");
         require(getTotalDelegators() > 0, "There is no one with delegated NFTs");
 
-        // this is need for first cycle
         if(cycles[counter.current()].delegatesCount == 0) {
             cycles[counter.current()].delegatesCount = getTotalDelegators();
         }
