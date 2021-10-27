@@ -238,7 +238,7 @@ describe("Royalty", function () {
     await royalty.connect(partner).claim(0, [0, 1, 2]); 
 
     console.log(format(await owner.getBalance()), format(await bob.getBalance()), format(await vera.getBalance()));
-    // should be zero...
+    // should be zero + last cycle unclaimed
     console.log(format(await provider.getBalance(royalty.address)));
   })
 });
