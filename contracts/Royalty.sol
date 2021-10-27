@@ -2,10 +2,11 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/utils/Counters.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "hardhat/console.sol";
 import "./StackOsNFT.sol";
 
-contract Royalty {
+contract Royalty is Ownable {
     using Counters for Counters.Counter;
 
     Counters.Counter private counter; // counting cycles
@@ -16,7 +17,7 @@ contract Royalty {
     uint256 private minEthToStartCycle; // cycle cannot end if its balance is less than this
     uint256 private constant CYCLE_DURATION = 30 days; // cycle cannot end if it started earlier than this
 
-    StackOSInterface private stackOS; // NFTs contract
+    // StackOSInterface private stackOS; // NFTs contract
     bool private lockClaim; // anti-reentrancy for claim function
 
     struct Cycle {
@@ -29,23 +30,23 @@ contract Royalty {
 
     mapping(uint256 => Cycle) private cycles; // a new cycle starts when two conditions met, `CYCLE_DURATION` time passed and `minEthToStartCycle` ether deposited
 
-
-// Add generations logic 
+    mapping(uint256 => StackOSInterface) private generations; 
+    uint256 private generationsCount; 
 
 
     constructor(
-        StackOsNFT _stackOS,
+        StackOSInterface _stackOS,
         uint256 _minEthToStartCycle,
         address payable _bank,
         uint256 _bankPercent
     ) {
         bank = _bank;
-        stackOS = _stackOS;
+        addNextGeneration(_stackOS);
         bankPercent = _bankPercent;
         minEthToStartCycle = _minEthToStartCycle;
         // start first cycle
         cycles[counter.current()].startTimestamp = block.timestamp;
-        cycles[counter.current()].delegatesCount = stackOS.getTotalDelegators();
+        cycles[counter.current()].delegatesCount = getTotalDelegators();
     }
 
     // should this be protected against reentrancy? and what about claim function?
@@ -74,8 +75,7 @@ contract Royalty {
                 // start new cycle
                 counter.increment();
                 // save count of delegates that exists on start of cycle
-                cycles[counter.current()].delegatesCount = stackOS 
-                    .getTotalDelegators();
+                cycles[counter.current()].delegatesCount = getTotalDelegators();
                 cycles[counter.current()].startTimestamp = block.timestamp;
                 // previous cycle already got enough balance, otherwise we wouldn't get here, thus we assign this deposit to the new cycle
                 cycles[counter.current()].balance += msg.value - bankPart;
@@ -87,18 +87,34 @@ contract Royalty {
         }
     }
 
-    function setBank(address payable _bank) external {
-        require(_bank != address(0), "Must not be zero-address");
+    function setBank(address payable _bank) external onlyOwner {
+        require(_bank != address(0), "Must be not zero-address");
         bank = _bank;
     }
 
-    function setBankPercent(uint256 _percent) external {
+    function setBankPercent(uint256 _percent) external onlyOwner {
         bankPercent = _percent;
     }
 
+    // TODO: should be there any checks?
+    function addNextGeneration(StackOSInterface _stackOS) public onlyOwner {
+        generations[generationsCount++] = _stackOS;
+    }
+
     /*
-        @title calculate how much should get each NFT delegator for one token
-        @param _amount number to divide by total delegators
+        @titile Get number of delegators in all StackOS generations
+    */
+    function getTotalDelegators() public view returns (uint256) {
+        uint256 total = 0;
+        for(uint256 i = 0; i < generationsCount; i++) {
+            total += generations[i].getTotalDelegators();
+        }
+        return total;
+    }
+
+    /*
+        @title Calculate how much should get each NFT delegator for one token
+        @param _amount Number to divide by total delegators
         @return 
         @dev no need to require(_amount == 0)? amount checked everywhere anyway, so cant be 0 here (currently)
     */
@@ -108,16 +124,18 @@ contract Royalty {
     }
 
     /*
-        @title user take reward for delegated NFTs that he owns
-        @param tokenIds token ids to get reward for
+        @title User take reward for delegated NFTs that he owns
+        @param generationId StackOS generation id to get reward for
+        @param tokenIds Token ids to get reward for
     */
-    function claim(uint256[] calldata tokenIds) external payable {
+    function claim(uint256 generationId, uint256[] calldata tokenIds) external payable {
         require(!lockClaim, "Reentrant call!");
         lockClaim = true;
+        require(generationId < generationsCount, "Generation doesn't exist");
         require(address(this).balance > 0, "No royalty");
-        require(stackOS.balanceOf(msg.sender) > 0, "You dont have NFTs");
+        require(generations[generationId].balanceOf(msg.sender) > 0, "You dont have NFTs");
 
-        // same code as in `receive()` function, except that here we don't receive ether, but simply start new cycle if it's time
+        // same 'if' as in `receive()` function, except that here we don't receive ether, but simply start new cycle if it's time
         if (
             cycles[counter.current()].startTimestamp + CYCLE_DURATION <
             block.timestamp
@@ -127,8 +145,7 @@ contract Royalty {
                     cycles[counter.current()].balance
                 );
                 counter.increment();
-                cycles[counter.current()].delegatesCount = stackOS 
-                    .getTotalDelegators();
+                cycles[counter.current()].delegatesCount = getTotalDelegators();
                 cycles[counter.current()].startTimestamp = block.timestamp;
             }
         }
@@ -139,13 +156,13 @@ contract Royalty {
         // iterate over passed tokens
         for (uint256 i = 0; i < tokenIds.length; i++) {
             uint256 tokenId = tokenIds[i];
-            require(stackOS.ownerOf(tokenId) == msg.sender, "Not owner");
+            require(generations[generationId].ownerOf(tokenId) == msg.sender, "Not owner");
             require(
-                stackOS.getDelegatee(msg.sender, tokenId) != address(0),
+                generations[generationId].getDelegatee(msg.sender, tokenId) != address(0),
                 "NFT should be delegated"
             );
 
-            uint256 delegationTimestamp = stackOS.getDelegationTimestamp(tokenId);
+            uint256 delegationTimestamp = generations[generationId].getDelegationTimestamp(tokenId);
             if (delegationTimestamp > 0) {
                 // iterate over cycles
                 for (uint256 o = 0; o < counter.current(); o++) {
