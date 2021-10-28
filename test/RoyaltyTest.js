@@ -207,9 +207,6 @@ describe("Royalty", function () {
     await stackOsNFTgen2.connect(vera).delegate(stackOsNFTgen2.address, 1);
     await stackOsNFTgen2.delegate(stackOsNFTgen2.address, 2);
 
-    // For now, when this function called does matter
-    await royalty.addNextGeneration(stackOsNFTgen2.address);
-    console.log("balance after add generation: ", format(await provider.getBalance(royalty.address)));
     
     await expect(dude.sendTransaction({ // sixth cycle start
         from: dude.address,
@@ -227,6 +224,10 @@ describe("Royalty", function () {
     await royalty.claim(0, [8]);
     console.log(format(await owner.getBalance()), format(await bob.getBalance()), format(await vera.getBalance()))
 
+    // For now, when this function called does matter
+    await royalty.addNextGeneration(stackOsNFTgen2.address);
+    console.log("balance after add generation: ", format(await provider.getBalance(royalty.address)));
+    
     await royalty.connect(bob).claim(1, [0]);
     await royalty.connect(vera).claim(1, [1]); 
     await royalty.claim(1, [2]); 
