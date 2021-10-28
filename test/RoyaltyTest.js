@@ -70,7 +70,6 @@ describe("Royalty", function () {
     await stackOsNFT.whitelistPartner(partner.address, true, 3);
     await currency.connect(partner).approve(stackOsNFT.address, parse("10.0"));
     await stackOsNFT.connect(partner).partnerMint(3);
-    await stackOsNFT.connect(partner).delegate(owner.address, 2);
   })
   it("Bank takes percent", async function () {
     await owner.sendTransaction({
@@ -101,6 +100,7 @@ describe("Royalty", function () {
     })).to.be.not.reverted;
     await provider.send("evm_increaseTime", [CYCLE_DURATION]);
     await provider.send("evm_mine");
+    await stackOsNFT.connect(partner).delegate(owner.address, 2);
     console.log(format(await partner.getBalance()), format(await provider.getBalance(royalty.address)));
     await expect(royalty.connect(partner).claim(0, [0])).to.be.not.reverted; // third cycle starts here
     console.log(format(await partner.getBalance()), format(await provider.getBalance(royalty.address)));
