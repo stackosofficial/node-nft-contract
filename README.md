@@ -26,3 +26,15 @@ Copy and rename `.env.template` to `.env`, open it and then enter your:
 1. Open the file **scripts/deploy.js** and fill settings with your details
 2. Scroll down the file until you see another settings `CONTRACT SETTINGS`, edit it too, as you need
 3. Finally you should be able to deploy, please go to deployment section
+
+## DEPLOYMENT AND VERIFICATION
+Verification will run automatically after deployment.  
+  
+Rinkeby testnet:
+```shell
+npx hardhat run --network rinkeby scripts/deploy.js
+```
+Mainnet:
+```shell
+npx hardhat run --network mainnet scripts/deploy.js
+```
