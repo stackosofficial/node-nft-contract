@@ -46,11 +46,9 @@ contract Royalty is Ownable {
     }
 
     receive() external payable {
-        require(msg.value > 0, "Nothing to receive");
-        require(getTotalDelegated() > 0, "There is no one with delegated NFTs");
 
         // this should be true for the first cycle only
-        if(cycles[counter.current()].startTimestamp == 0) {
+        if(cycles[counter.current()].delegatedCount == 0) {
             cycles[counter.current()].startTimestamp = block.timestamp;
             cycles[counter.current()].delegatedCount = getTotalDelegated();
         }
@@ -59,7 +57,6 @@ contract Royalty is Ownable {
         uint256 bankPart = ((msg.value * bankPercent) / 10000);
         if (bankPart > 0) {
             (bool success, ) = bank.call{value: bankPart}("");
-            require(success, "Re-route to bank failed");
         }
         // is current cycle lasts enough?
         if (
