@@ -47,8 +47,10 @@ contract Royalty is Ownable {
         minEthToStartCycle = _minEthToStartCycle;
     }
 
-    // TODO: bug, if we 'delegate, then receive' in the same block.timestamp, then impossible to claim for that token, 
+    // TODO: bug, if we 'delegate, then receive' in the same block.timestamp, then impossible to claim for that token (this seems to be only bug for first cycle), 
     // the same applies for adding generations and their timestamps
+    // one fix come in mind is to start first cycle only if firstDelegationTimestamp < block.timestamp
+    // maybe something similar for generations...
     receive() external payable {
 
         // this should be true for the first cycle only, even if there is already delegates exists, this cycle still dont know about it
