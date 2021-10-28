@@ -47,9 +47,11 @@ contract Royalty is Ownable {
 
     receive() external payable {
 
-        // this should be true for the first cycle only
+        // this should be true for the first cycle only, even if there is already delegates exists, this cycle still dont know about it
         if(cycles[counter.current()].delegatedCount == 0) {
+            // we can't start cycle without delegated NFTs, so every time there is 0 delegates we just don't allow next ifs to do anything cycle related 
             cycles[counter.current()].startTimestamp = block.timestamp;
+            // we can still get 0 here, then in next ifs we will just receive eth for cycle
             cycles[counter.current()].delegatedCount = getTotalDelegated();
         }
 
@@ -76,6 +78,10 @@ contract Royalty is Ownable {
                 cycles[counter.current()].startTimestamp = block.timestamp;
                 // previous cycle already got enough balance, otherwise we wouldn't get here, thus we assign this deposit to the new cycle
                 cycles[counter.current()].balance += msg.value - bankPart;
+                if(counter.current() == 5) {
+                    console.log(cycles[counter.current()].delegatedCount, cycles[counter.current()].balance);
+                }
+
             } else {
                 cycles[counter.current()].balance += msg.value - bankPart;
             }
@@ -177,6 +183,9 @@ contract Royalty is Ownable {
                                 reward += cycles[o].perTokenReward;
                                 cycles[o].balance -= cycles[o].perTokenReward; // TODO: this is unnecessery ? it seems dont affect anything, all tests pass with or without it
                                 cycles[o].isClaimed[tokenId] = true;
+                if((counter.current() == 6 || counter.current() == 7) && o == 5) {
+                    console.log(tokenId, cycles[o].delegatedCount, cycles[o].balance, cycles[o].perTokenReward);
+                }
                             }
                         }
                     }
@@ -191,5 +200,8 @@ contract Royalty is Ownable {
         (bool success, ) = payable(msg.sender).call{value: reward}("");
         require(success, "Transfer failed");
         lockClaim = false;
+        // for (uint256 o = 0; o <= counter.current(); o++) {
+        //     console.log(o, cycles[o].balance/10**16, counter.current());
+        // }
     }
 }
