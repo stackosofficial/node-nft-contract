@@ -52,6 +52,17 @@ describe("Royalty", function () {
       URI_LINK
     );
     await stackOsNFTgen2.deployed();
+    // gen3
+    stackOsNFTgen3 = await StackOS.deploy(
+      NAME,
+      SYMBOL,
+      STACK_TOKEN_FOR_PAYMENT,
+      PRICE,
+      MAX_SUPPLY,
+      PRIZES,
+      URI_LINK
+    );
+    await stackOsNFTgen3.deployed();
   });
   it("Deploy royalty", async function () {
     const Royalty = await ethers.getContractFactory("Royalty");
@@ -173,7 +184,6 @@ describe("Royalty", function () {
   })
   it("StackOS generation 2 with multiple claimers", async function () {
 
-
     await expect(dude.sendTransaction({ // fifth cycle get 6 eth
         from: dude.address,
         to: royalty.address,
@@ -222,9 +232,8 @@ describe("Royalty", function () {
     await royalty.claim(0, [8]);
     console.log(format(await owner.getBalance()), format(await bob.getBalance()), format(await vera.getBalance()))
 
-    // For now, when this function called does matter
     await royalty.addNextGeneration(stackOsNFTgen2.address); //in past and current cycle delegates of gen2 not counted 
-    console.log("balance after add generation: ", format(await provider.getBalance(royalty.address)));
+    // console.log("balance after add generation: ", format(await provider.getBalance(royalty.address)));
 
     await expect(royalty.claim(1, [2])).to.be.revertedWith("Nothing to claim");
 
@@ -282,7 +291,71 @@ describe("Royalty", function () {
 
     // should be zero + last cycle unclaimed
     console.log(format(await provider.getBalance(royalty.address)));
+    expect(await provider.getBalance(royalty.address)).to.be.equal(parse("0.0"));
     console.log(format(await owner.getBalance()), format(await partner.getBalance()), format(await bob.getBalance()), format(await vera.getBalance()));
     await expect(royalty.addNextGeneration(stackOsNFTgen2.address)).to.be.revertedWith("This generation already exists");
+  })
+  it("StackOS generation 3 with multiple claimers", async function () {
+
+    await royalty.addNextGeneration(stackOsNFTgen3.address);
+
+    await stackOsNFTgen3.whitelistPartner(vera.address, true, 1);
+    await stackOsNFTgen3.whitelistPartner(bob.address, true, 1);
+    await stackOsNFTgen3.whitelistPartner(owner.address, true, 1);
+    await stackOsNFTgen3.startPartnerSales();
+
+    await currency.connect(bob).approve(stackOsNFTgen3.address, parse("5.0"));
+    await stackOsNFTgen3.connect(bob).partnerMint(1);
+    await currency.connect(vera).approve(stackOsNFTgen3.address, parse("5.0"));
+    await stackOsNFTgen3.connect(vera).partnerMint(1);
+    await currency.approve(stackOsNFTgen3.address, parse("5.0"));
+    await stackOsNFTgen3.partnerMint(1);
+
+    await stackOsNFTgen3.connect(bob).delegate(stackOsNFTgen3.address, 0);
+    await stackOsNFTgen3.connect(vera).delegate(stackOsNFTgen3.address, 1);
+    await stackOsNFTgen3.delegate(stackOsNFTgen3.address, 2);
+
+    await expect(dude.sendTransaction({ // this go in 9 cycle, gen3 can't claim
+        from: dude.address,
+        to: royalty.address,
+        value: parse("1000.0")
+    })).to.be.not.reverted;
+
+    await provider.send("evm_increaseTime", [CYCLE_DURATION]);
+    await provider.send("evm_mine");
+
+    await expect(royalty.claim(2, [2])).to.be.revertedWith("Nothing to claim");
+
+    await royalty.connect(bob).claim(0, [6]); // 10 cycle start, generation3 tokens can claim it when it end
+
+    await expect(dude.sendTransaction({ // this go in 10 cycle, gen3 can claim it
+        from: dude.address,
+        to: royalty.address,
+        value: parse("1000.0")
+    })).to.be.not.reverted;
+
+    await provider.send("evm_increaseTime", [CYCLE_DURATION]);
+    await provider.send("evm_mine");
+
+    await royalty.connect(bob).claim(2, [0]); // 11 cycle start
+    await royalty.connect(vera).claim(2, [1]); 
+    await royalty.claim(2, [2]);
+
+    await royalty.connect(bob).claim(0, [6]);
+    await royalty.connect(vera).claim(0, [7]); 
+    await royalty.claim(0, [8]);
+
+    await royalty.connect(bob).claim(1, [0]);
+    await royalty.connect(vera).claim(1, [1]); 
+    await royalty.claim(1, [2]); 
+
+    await royalty.claim(0, [5]); 
+    await royalty.connect(bob).claim(0, [3]);
+    await royalty.connect(vera).claim(0, [4]); 
+    await royalty.connect(partner).claim(0, [0, 1, 2]); 
+
+    console.log(format(await provider.getBalance(royalty.address)));
+    expect(await provider.getBalance(royalty.address)).to.be.equal(parse("0.0"));
+    console.log(format(await owner.getBalance()), format(await partner.getBalance()), format(await bob.getBalance()), format(await vera.getBalance()));
   })
 });
