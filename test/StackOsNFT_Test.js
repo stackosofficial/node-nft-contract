@@ -56,8 +56,10 @@ describe("StackOS NFT", function () {
   });
   it("Stake for tickets", async function () {
     await currency.approve(stackOsNFT.address, parse("10.0"));
-    
-    await expect(stackOsNFT.stakeForTickets(2)).to.be.revertedWith("Lottery inactive");
+
+    await expect(stackOsNFT.stakeForTickets(2)).to.be.revertedWith(
+      "Lottery inactive"
+    );
     await stackOsNFT.activateLottery();
     await stackOsNFT.stakeForTickets(14);
 
@@ -88,7 +90,7 @@ describe("StackOS NFT", function () {
     await stackOsNFT.announceWinners(100);
 
     winningTickets = [];
-    for(let i = 0; i < PRIZES; i++) {
+    for (let i = 0; i < PRIZES; i++) {
       winningTickets.push((await stackOsNFT.winningTickets(i)).toNumber());
     }
     // // get NOT winning tickets
@@ -102,7 +104,7 @@ describe("StackOS NFT", function () {
     );
     await expect(stackOsNFT.returnStake(notWinning)).to.be.revertedWith(
       "Not Assigned Yet!"
-      );
+    );
   });
   it("Map out winners", async function () {
     await stackOsNFT.mapOutWinningTickets(0, 10);
@@ -137,7 +139,7 @@ describe("StackOS NFT", function () {
     expect(await stackOsNFT.balanceOf(owner.address)).to.be.equal(
       winningTickets.length
     );
-  })
+  });
   it("Partners can't mint", async function () {
     await expect(stackOsNFT.partnerMint(4)).to.be.revertedWith(
       "Sales not started"
@@ -149,7 +151,6 @@ describe("StackOS NFT", function () {
   });
 
   it("Partners mint", async function () {
-
     console.log(format(await currency.balanceOf(stackOsNFT.address)));
 
     await stackOsNFT.whitelistPartner(joe.address, true, 2);
@@ -178,8 +179,6 @@ describe("StackOS NFT", function () {
     await expect(stackOsNFT.placeBid(parse("1.0"))).to.be.revertedWith(
       "Auction closed!"
     );
-    await stackOsNFT.startPartnerSales();
-    await expect(stackOsNFT.partnerMint(4)).to.be.revertedWith("Can't Mint");
   });
 
   it("Open Auction for bidding", async function () {

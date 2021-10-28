@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "contracts/Interfaces/IStackOSNFT.sol";
+import "contracts/interfaces/IStackOSNFT.sol";
 import "hardhat/console.sol";
 
 contract Royalty is Ownable {

@@ -26,8 +26,10 @@ describe("Royalty", function () {
     SYMBOL = "SON";
     STACK_TOKEN_FOR_PAYMENT = currency.address;
     PRICE = parse("0.1");
-    MAX_SUPPLY = 15;
+    MAX_SUPPLY = 25;
     PRIZES = 10;
+    AUCTIONED_NFTS = 10;
+    TIMELOCK = deadline = Math.floor(Date.now() / 1000) + 2200;
     URI_LINK = "https://google.com/";
 
     const StackOS = await ethers.getContractFactory("StackOsNFT");
@@ -38,6 +40,8 @@ describe("Royalty", function () {
       PRICE,
       MAX_SUPPLY,
       PRIZES,
+      AUCTIONED_NFTS,
+      TIMELOCK,
       URI_LINK
     );
     await stackOsNFT.deployed();
@@ -49,6 +53,8 @@ describe("Royalty", function () {
       PRICE,
       MAX_SUPPLY,
       PRIZES,
+      AUCTIONED_NFTS,
+      TIMELOCK,
       URI_LINK
     );
     await stackOsNFTgen2.deployed();
@@ -60,6 +66,8 @@ describe("Royalty", function () {
       PRICE,
       MAX_SUPPLY,
       PRIZES,
+      AUCTIONED_NFTS,
+      TIMELOCK,
       URI_LINK
     );
     await stackOsNFTgen3.deployed();
