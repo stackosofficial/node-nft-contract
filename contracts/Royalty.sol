@@ -51,7 +51,7 @@ contract Royalty is Ownable {
 
         // this should be true for the first cycle only, even if there is already delegates exists, this cycle still dont know about it
         if(cycles[counter.current()].delegatedCount == 0) {
-            // we can't start cycle without delegated NFTs, so every time there is 0 delegates we just don't allow next ifs to do anything cycle related 
+            // we can't start cycle without delegated NFTs, so every time there is 0 delegates we just don't allow next ifs to do anything cycle related (except getting eth)
             cycles[counter.current()].startTimestamp = block.timestamp;
             // we can still get 0 here, then in next ifs we will just receive eth for cycle
             cycles[counter.current()].delegatedCount = getTotalDelegated();
