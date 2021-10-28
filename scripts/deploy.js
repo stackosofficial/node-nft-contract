@@ -9,6 +9,7 @@ async function main() {
 
   // TODO: write about VRF and LINK addresses in contract code to be replaced
   // and write some comments here
+  // and add royalty ddepllymened
 
   NAME = "STACK OS NFT";
   SYMBOL = "SON";

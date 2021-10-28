@@ -97,7 +97,6 @@ contract Royalty is Ownable {
         bankPercent = _percent;
     }
 
-    // TODO: should be there any checks?
     function addNextGeneration(StackOSInterface _stackOS) public onlyOwner {
         for(uint256 i; i < generationsCount; i++) {
             require(generations[i] != _stackOS, "This generation already exists");
@@ -183,7 +182,6 @@ contract Royalty is Ownable {
                                     delegationTimestamp < cycles[o].startTimestamp // TODO: can we have on 0 cycle, 1 delegate, with the same block.timestamp as cycle startTime? if so, we are in trouble, money for such cycly can never be taken
                                 ) {
                                     reward += cycles[o].perTokenReward;
-                                    // cycles[o].balance -= cycles[o].perTokenReward; // TODO: this is unnecessery ? it seems dont affect anything, all tests pass with or without it
                                     cycles[o].isClaimed[generationId][tokenId] = true;
                                 }
                             }
