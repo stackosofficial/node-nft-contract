@@ -2,6 +2,7 @@ const { ethers } = require("hardhat");
 const { use, expect } = require("chai");
 const { solidity } = require("ethereum-waffle");
 const { BigNumber } = require("@ethersproject/bignumber");
+// const timeMachine = require("@atixlabs/hardhat-time-n-mine");
 
 describe("StackOS NFT", function () {
   const parse = ethers.utils.parseEther;
@@ -33,8 +34,10 @@ describe("StackOS NFT", function () {
     SYMBOL = "SON";
     STACK_TOKEN_FOR_PAYMENT = currency.address;
     PRICE = parse("0.1");
-    MAX_SUPPLY = 15;
+    MAX_SUPPLY = 25;
     PRIZES = 10;
+    AUCTIONED_NFTS = 10;
+    TIMELOCK = deadline = Math.floor(Date.now() / 1000) + 2200;
     URI_LINK = "https://google.com/";
 
     const StackOS = await ethers.getContractFactory("StackOsNFT");
@@ -45,6 +48,8 @@ describe("StackOS NFT", function () {
       PRICE,
       MAX_SUPPLY,
       PRIZES,
+      AUCTIONED_NFTS,
+      TIMELOCK,
       URI_LINK
     );
     await stackOsNFT.deployed();
@@ -56,34 +61,45 @@ describe("StackOS NFT", function () {
       "Lottery inactive"
     );
     await stackOsNFT.activateLottery();
-    await stackOsNFT.stakeForTickets(10);
+    await stackOsNFT.stakeForTickets(14);
 
-    expect(await currency.balanceOf(owner.address)).to.be.equal(parse("999.0"));
+    expect(await currency.balanceOf(owner.address)).to.be.equal(parse("998.6"));
     expect(await currency.balanceOf(stackOsNFT.address)).to.be.equal(
-      parse("1.0")
+      parse("1.4")
     );
   });
   it("Start lottery", async function () {
     await link.transfer(stackOsNFT.address, parse("10.0"));
-    await stackOsNFT.announceLottery();
+    requestID = await stackOsNFT.callStatic.announceLottery();
+    await stackOsNFT.callStatic.announceLottery();
+    console.log(requestID);
     expect(await stackOsNFT.ticketOwner(1)).to.be.equal(owner.address);
   });
+
+  it("Start lottery", async function () {
+    await coordinator.callBackWithRandomness(
+      requestID,
+      89765,
+      stackOsNFT.address
+    );
+    var randomNumber = await stackOsNFT.randomNumber();
+    console.log(randomNumber.toString());
+  });
+
   it("Announce winners", async function () {
-    await stackOsNFT.announceWinners(1);
+    await stackOsNFT.announceWinners(100);
 
     winningTickets = [];
     for (let i = 0; i < PRIZES; i++) {
       winningTickets.push((await stackOsNFT.winningTickets(i)).toNumber());
     }
-    // get NOT winning tickets
-    notWinning = [...Array(10).keys()].filter(
+    // // get NOT winning tickets
+    notWinning = [...Array(14).keys()].filter(
       (e) => winningTickets.indexOf(e) == -1
     );
     console.log(winningTickets, notWinning);
-    // claimReward reverts when passing duplicates, so we get only unique indexes
-    uniqueWinning = [...new Set(winningTickets)];
 
-    await expect(stackOsNFT.claimReward(uniqueWinning)).to.be.revertedWith(
+    await expect(stackOsNFT.claimReward(winningTickets)).to.be.revertedWith(
       "Not Assigned Yet!"
     );
     await expect(stackOsNFT.returnStake(notWinning)).to.be.revertedWith(
@@ -91,37 +107,37 @@ describe("StackOS NFT", function () {
     );
   });
   it("Map out winners", async function () {
-    await stackOsNFT.mapOutWinningTickets();
+    await stackOsNFT.mapOutWinningTickets(0, 10);
   });
-  it("Return stake", async function () {
-    await expect(stackOsNFT.returnStake(winningTickets)).to.be.revertedWith(
-      "Ticket Stake Not Returnable"
-    );
-    await stackOsNFT.returnStake(notWinning);
-    await expect(stackOsNFT.returnStake(notWinning)).to.be.revertedWith(
-      "Ticket Stake Not Returnable"
-    );
 
-    // this should be calculated at runtime because there can be arbitrary amount of winning tickets
-    console.log(
-      format(parse("999.0").add(PRICE.mul(notWinning.length))),
-      format(parse("1.0").sub(PRICE.mul(notWinning.length))),
-      notWinning.length
-    );
-    expect(await currency.balanceOf(owner.address)).to.be.equal(
-      parse("999.0").add(PRICE.mul(notWinning.length))
-    );
-    expect(await currency.balanceOf(stackOsNFT.address)).to.be.equal(
-      parse("1.0").sub(PRICE.mul(notWinning.length))
+  it("changeTicketStatus()", async function () {
+    await stackOsNFT.changeTicketStatus();
+  });
+
+  it("Try to return stake of tickets that won!", async function () {
+    await expect(stackOsNFT.returnStake(winningTickets)).to.be.revertedWith(
+      "Stake Not Returnable"
     );
   });
+  it("Try to return stake of tickets that did not win won!", async function () {
+    var balanceBefore = await currency.balanceOf(owner.address);
+    console.log("Balance Before Return Stake: " + balanceBefore.toString());
+
+    await stackOsNFT.returnStake(notWinning);
+    var balanceAfter = await currency.balanceOf(owner.address);
+    console.log("Balance After Return Stake: " + balanceAfter.toString());
+    await expect(stackOsNFT.returnStake(notWinning)).to.be.revertedWith(
+      "Stake Not Returnable"
+    );
+  });
+  //   // this should be calculated at runtime because there can be arbitrary amount of winning tickets
   it("Claim reward", async function () {
     await expect(stackOsNFT.claimReward(notWinning)).to.be.revertedWith(
-      "Ticket Did not win!"
+      "Awarded Or Not Won"
     );
-    await stackOsNFT.claimReward(uniqueWinning);
+    await stackOsNFT.claimReward(winningTickets);
     expect(await stackOsNFT.balanceOf(owner.address)).to.be.equal(
-      uniqueWinning.length
+      winningTickets.length
     );
   });
   it("Partners can't mint", async function () {
@@ -129,38 +145,49 @@ describe("StackOS NFT", function () {
       "Sales not started"
     );
     await stackOsNFT.startPartnerSales();
-    await expect(stackOsNFT.partnerMint(4)).to.be.revertedWith("Can't Mint");
+    await expect(stackOsNFT.partnerMint(4)).to.be.revertedWith(
+      "Amount Too Big"
+    );
   });
+
   it("Partners mint", async function () {
     console.log(format(await currency.balanceOf(stackOsNFT.address)));
-    //admin withdraw currency, for simplicity of later tests
-    await stackOsNFT.adminWithdraw();
 
     await stackOsNFT.whitelistPartner(joe.address, true, 2);
     await currency.transfer(joe.address, parse("2.0"));
     await currency.connect(joe).approve(stackOsNFT.address, parse("2.0"));
     await expect(stackOsNFT.connect(joe).partnerMint(4)).to.be.revertedWith(
-      "Can't Mint"
+      "Amount Too Big"
     );
     await stackOsNFT.connect(joe).partnerMint(2);
     expect(await stackOsNFT.balanceOf(joe.address)).to.be.equal(2);
     expect(await currency.balanceOf(stackOsNFT.address)).to.be.equal(
-      parse("0.2")
+      parse("1.2")
     );
   });
+
   it("Owners can delegate their NFTs", async function () {
-    expect(await stackOsNFT.getDelegatee(owner.address, 0)).to.equal(
+    expect(await stackOsNFT.getDelegatee(0)).to.equal(
       ethers.constants.AddressZero
     );
     await stackOsNFT.delegate(joe.address, 0);
-    expect(await stackOsNFT.getDelegatee(owner.address, 0)).to.equal(
-      joe.address
+    expect(await stackOsNFT.getDelegatee(0)).to.equal(joe.address);
+  });
+
+  it("Bid on Auction before it's open", async function () {
+    await currency.approve(stackOsNFT.address, parse("100.0"));
+    await expect(stackOsNFT.placeBid(parse("1.0"))).to.be.revertedWith(
+      "Auction closed!"
     );
   });
+
+  it("Open Auction for bidding", async function () {
+    deadline = Math.floor(Date.now() / 1000) + 1200;
+    await stackOsNFT.adjustAuctionCloseTime(deadline);
+  });
+
   it("Auction", async function () {
-    // await expect(stackOsNFT.placeBid(1)).to.be.revertedWith("Auction closed!");
-    await currency.approve(stackOsNFT.address, parse("100.0"));
-    // console.log(format(await currency.balanceOf(owner.address)))
+    //   // console.log(format(await currency.balanceOf(owner.address)))
     await stackOsNFT.placeBid(parse("1.0"));
     await stackOsNFT.placeBid(parse("1.0"));
     await stackOsNFT.placeBid(parse("2.0"));
@@ -171,7 +198,27 @@ describe("StackOS NFT", function () {
     await stackOsNFT.placeBid(parse("5.0"));
     await stackOsNFT.placeBid(parse("1.0"));
     await stackOsNFT.placeBid(parse("9.0"));
+  });
+
+  it("Try to close auction before it has ended.", async function () {
+    await expect(stackOsNFT.finalizeAuction()).to.be.revertedWith(
+      "Auction still ongoing."
+    );
+  });
+
+  it("Close Auction Distribute NFT's", async function () {
+    await ethers.provider.send("evm_setNextBlockTimestamp", [deadline + 100]);
     await stackOsNFT.finalizeAuction();
-    console.log(format(await currency.balanceOf(owner.address)));
+  });
+
+  it("Admin tried to withdraw before time lock expires.", async function () {
+    var adminWithdrawableAmount = await stackOsNFT.adminWithdrawableAmount();
+    console.log(adminWithdrawableAmount.toString());
+    await expect(stackOsNFT.adminWithdraw()).to.be.revertedWith("Locked!");
+  });
+
+  it("Admin withdraws after time lock.", async function () {
+    await ethers.provider.send("evm_setNextBlockTimestamp", [TIMELOCK + 100]);
+    await stackOsNFT.adminWithdraw();
   });
 });
