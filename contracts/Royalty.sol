@@ -3,8 +3,8 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "contracts/Interfaces/IStackOSNFT.sol";
 import "hardhat/console.sol";
-import "./StackOsNFT.sol";
 
 contract Royalty is Ownable {
     using Counters for Counters.Counter;
@@ -17,7 +17,7 @@ contract Royalty is Ownable {
     uint256 private minEthToStartCycle; // cycle cannot end if its balance is less than this
     uint256 private constant CYCLE_DURATION = 30 days; // cycle cannot end if it started earlier than this
 
-    // StackOSInterface private stackOS; // NFTs contract
+    // StackOsNFT private stackOS; // NFTs contract
     bool private lockClaim; // anti-reentrancy for claim function
 
     struct Cycle {
@@ -31,12 +31,12 @@ contract Royalty is Ownable {
 
     mapping(uint256 => Cycle) private cycles; // a new cycle starts when two conditions met, `CYCLE_DURATION` time passed and `minEthToStartCycle` ether deposited
 
-    mapping(uint256 => StackOSInterface) private generations; // StackOS NFT contract different generations
+    mapping(uint256 => IStackOSNFT) private generations; // StackOS NFT contract different generations
     mapping(uint256 => uint256) private generationAddedTimestamp; 
     uint256 private generationsCount; // total stackOS generations added
 
     constructor(
-        StackOSInterface _stackOS,
+        IStackOSNFT _stackOS,
         uint256 _minEthToStartCycle,
         address payable _bank,
         uint256 _bankPercent
@@ -102,7 +102,7 @@ contract Royalty is Ownable {
         bankPercent = _percent;
     }
 
-    function addNextGeneration(StackOSInterface _stackOS) public onlyOwner {
+    function addNextGeneration(IStackOSNFT _stackOS) public onlyOwner {
         require(address(_stackOS) != address(0), "Must be not zero-address");
         for(uint256 i; i < generationsCount; i++) {
             require(generations[i] != _stackOS, "This generation already exists");
