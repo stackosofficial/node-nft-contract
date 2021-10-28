@@ -35,7 +35,7 @@ async function main() {
   await stackOsNFT.deployed();
   //^^^^^^^^^^^^^^^^^^^^^ DEPLOYMENT ^^^^^^^^^^^^^^^^^^^^^
 
-  //vvvvvvvvvvvvvvvvvv SETTINGS vvvvvvvvvvvvvvvvvv
+  //vvvvvvvvvvvvvvvvvv CONTRACT SETTINGS vvvvvvvvvvvvvvvvvv
   /** 
    * You can add more partners, just copy paste this function call and adjust params
    * 
@@ -55,7 +55,7 @@ async function main() {
    */
   await stackOsNFT.activateLottery();
 
-  //^^^^^^^^^^^^^^^^^^ SETTINGS ^^^^^^^^^^^^^^^^^^ 
+  //^^^^^^^^^^^^^^^^^^ CONTRACT SETTINGS ^^^^^^^^^^^^^^^^^^ 
 
   // vvvvvvvvvvvvvvvvvvvvvvvvv VERIFICATION vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
   console.log("Approve token!");
