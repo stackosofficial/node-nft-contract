@@ -32,6 +32,7 @@ contract Royalty is Ownable {
     mapping(uint256 => Cycle) private cycles; // a new cycle starts when two conditions met, `CYCLE_DURATION` time passed and `minEthToStartCycle` ether deposited
 
     mapping(uint256 => StackOSInterface) private generations; // StackOS NFT contract different generations
+    mapping(uint256 => uint256) private generationAddedTimestamp; 
     uint256 private generationsCount; // total stackOS generations added
 
     constructor(
@@ -79,10 +80,6 @@ contract Royalty is Ownable {
                 cycles[counter.current()].startTimestamp = block.timestamp;
                 // previous cycle already got enough balance, otherwise we wouldn't get here, thus we assign this deposit to the new cycle
                 cycles[counter.current()].balance += msg.value - bankPart;
-                if(counter.current() == 5) {
-                    // console.log(cycles[counter.current()].delegatedCount, cycles[counter.current()].balance);
-                }
-
             } else {
                 cycles[counter.current()].balance += msg.value - bankPart;
             }
@@ -105,7 +102,9 @@ contract Royalty is Ownable {
         for(uint256 i; i < generationsCount; i++) {
             require(generations[i] != _stackOS, "This generation already exists");
         }
-        generations[generationsCount++] = _stackOS;
+        generations[generationsCount] = _stackOS;
+        generationAddedTimestamp[generationsCount] = block.timestamp;
+        generationsCount += 1;
     }
 
     /*
@@ -175,18 +174,18 @@ contract Royalty is Ownable {
                 for (uint256 o = 0; o < counter.current(); o++) {
                     // only can get reward for ended cycle, so skip currently running cycle (last one)
                     if (cycles[o].perTokenReward > 0) {
-                        // reward for token in this cycle shouldn't be already claimed
-                if((counter.current() == 6) && o == 5) {
-                    // console.log(tokenId, cycles[o].delegatedCount, cycles[o].balance, cycles[o].perTokenReward);
-                }
-                        if (cycles[o].isClaimed[generationId][tokenId] == false) {
-                            // is this token delegated earlier than this cycle start?
-                            if (
-                                delegationTimestamp < cycles[o].startTimestamp // TODO: can we have on 0 cycle, 1 delegate, with the same block.timestamp as cycle startTime? if so, we are in trouble, money for such cycly can never be taken
-                            ) {
-                                reward += cycles[o].perTokenReward;
-                                cycles[o].balance -= cycles[o].perTokenReward; // TODO: this is unnecessery ? it seems dont affect anything, all tests pass with or without it
-                                cycles[o].isClaimed[generationId][tokenId] = true;
+                        // generation must be added before start of the cycle
+                        if(generationAddedTimestamp[generationId] < cycles[o].startTimestamp) {
+                            // reward for token in this cycle shouldn't be already claimed
+                            if (cycles[o].isClaimed[generationId][tokenId] == false) {
+                                // is this token delegated earlier than this cycle start?
+                                if (
+                                    delegationTimestamp < cycles[o].startTimestamp // TODO: can we have on 0 cycle, 1 delegate, with the same block.timestamp as cycle startTime? if so, we are in trouble, money for such cycly can never be taken
+                                ) {
+                                    reward += cycles[o].perTokenReward;
+                                    // cycles[o].balance -= cycles[o].perTokenReward; // TODO: this is unnecessery ? it seems dont affect anything, all tests pass with or without it
+                                    cycles[o].isClaimed[generationId][tokenId] = true;
+                                }
                             }
                         }
                     }
@@ -196,13 +195,9 @@ contract Royalty is Ownable {
 
         // TODO: should this be replaced with 'if' statement?
         require(reward > 0, "Nothing to claim");
-
         // finally send reward
         (bool success, ) = payable(msg.sender).call{value: reward}("");
         require(success, "Transfer failed");
         lockClaim = false;
-        for (uint256 o = 0; o <= counter.current(); o++) {
-            console.log(o, cycles[o].balance/10**16, counter.current());
-        }
     }
 }

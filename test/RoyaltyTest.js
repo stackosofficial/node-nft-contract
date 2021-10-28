@@ -207,16 +207,14 @@ describe("Royalty", function () {
     await stackOsNFTgen2.connect(vera).delegate(stackOsNFTgen2.address, 1);
     await stackOsNFTgen2.delegate(stackOsNFTgen2.address, 2);
 
-    
     await expect(dude.sendTransaction({ // sixth cycle start
         from: dude.address,
         to: royalty.address,
-        value: parse("6.0")
+        value: parse("2.0")
     })).to.be.not.reverted;
 
     await provider.send("evm_increaseTime", [CYCLE_DURATION]); // sixth cycle can end
     await provider.send("evm_mine");
-
 
     console.log(format(await owner.getBalance()), format(await bob.getBalance()), format(await vera.getBalance()))
     await royalty.connect(bob).claim(0, [6]); // seventh cycle start (should have zero-based index 6 internally)
@@ -225,32 +223,51 @@ describe("Royalty", function () {
     console.log(format(await owner.getBalance()), format(await bob.getBalance()), format(await vera.getBalance()))
 
     // For now, when this function called does matter
-    await royalty.addNextGeneration(stackOsNFTgen2.address);
+    await royalty.addNextGeneration(stackOsNFTgen2.address); //in past and current cycle delegates of gen2 not counted 
     console.log("balance after add generation: ", format(await provider.getBalance(royalty.address)));
-    
-    await royalty.connect(bob).claim(1, [0]);
-    await royalty.connect(vera).claim(1, [1]); 
-    await royalty.claim(1, [2]); 
 
-    console.log(format(await owner.getBalance()), format(await bob.getBalance()), format(await vera.getBalance()))
+    await expect(royalty.claim(1, [2])).to.be.revertedWith("Nothing to claim");
+
+    // console.log(format(await owner.getBalance()), format(await bob.getBalance()), format(await vera.getBalance()))
+    await royalty.claim(0, [5]); 
+    await royalty.connect(bob).claim(0, [3]);
+    await royalty.connect(vera).claim(0, [4]); 
+    await royalty.connect(partner).claim(0, [0, 1, 2]); 
+    // console.log(format(await owner.getBalance()), format(await bob.getBalance()), format(await vera.getBalance()));
+
+    await expect(dude.sendTransaction({
+        from: dude.address,
+        to: royalty.address,
+        value: parse("2.0")
+    })).to.be.not.reverted;
+
+    await provider.send("evm_increaseTime", [CYCLE_DURATION]);
+    await provider.send("evm_mine");
+
+    await royalty.connect(bob).claim(0, [6]); // 8 cycle start (index 7) // gen2 delegates counted, should be 12 total
+    await royalty.connect(vera).claim(0, [7]); 
+    await royalty.claim(0, [8]);
+
+    await expect(royalty.claim(1, [2])).to.be.revertedWith("Nothing to claim");
+    // await royalty.connect(bob).claim(1, [0]);
+    // await royalty.connect(vera).claim(1, [1]); 
+    // await royalty.claim(1, [2]); 
 
     await royalty.claim(0, [5]); 
     await royalty.connect(bob).claim(0, [3]);
     await royalty.connect(vera).claim(0, [4]); 
     await royalty.connect(partner).claim(0, [0, 1, 2]); 
 
-    console.log(format(await owner.getBalance()), format(await bob.getBalance()), format(await vera.getBalance()));
-
-    await expect(dude.sendTransaction({
+    await expect(dude.sendTransaction({ // this go in cycle 8
         from: dude.address,
         to: royalty.address,
-        value: parse("12.0")
+        value: parse("1000.0")
     })).to.be.not.reverted;
 
     await provider.send("evm_increaseTime", [CYCLE_DURATION]);
     await provider.send("evm_mine");
-
-    await royalty.connect(bob).claim(0, [6]); // 8 cycle start (zero-based index 7 internally)
+    
+    await royalty.connect(bob).claim(0, [6]); // 9 cycle start (index 8), now generation2 tokens can claim for cycle 8
     await royalty.connect(vera).claim(0, [7]); 
     await royalty.claim(0, [8]);
 
@@ -265,6 +282,7 @@ describe("Royalty", function () {
 
     // should be zero + last cycle unclaimed
     console.log(format(await provider.getBalance(royalty.address)));
+    console.log(format(await owner.getBalance()), format(await partner.getBalance()), format(await bob.getBalance()), format(await vera.getBalance()));
     await expect(royalty.addNextGeneration(stackOsNFTgen2.address)).to.be.revertedWith("This generation already exists");
   })
 });
