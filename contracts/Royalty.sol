@@ -42,7 +42,7 @@ contract Royalty is Ownable {
         uint256 _bankPercent
     ) {
         bank = _bank;
-        generations[generationsCount++] = _stackOS;
+        generations[generationsCount++] = _stackOS; // TODO: what if bad address passed? such as 0, should we revert ?
         bankPercent = _bankPercent;
         minEthToStartCycle = _minEthToStartCycle;
     }
@@ -69,7 +69,7 @@ contract Royalty is Ownable {
         ) {
             // is current cycle got enough ether?
             if (cycles[counter.current()].balance >= minEthToStartCycle) {
-                // before starting next cycle we calculate 'ETH per NFT' for current cycle
+                // at the end of cycle we calculate 'ETH per NFT' for it
                 cycles[counter.current()].perTokenReward = getUnitPayment(
                     cycles[counter.current()].balance
                 );
@@ -78,6 +78,7 @@ contract Royalty is Ownable {
                 // save count of delegates that exists on start of cycle
                 cycles[counter.current()].delegatedCount = getTotalDelegated();
                 cycles[counter.current()].startTimestamp = block.timestamp;
+
                 // previous cycle already got enough balance, otherwise we wouldn't get here, thus we assign this deposit to the new cycle
                 cycles[counter.current()].balance += msg.value - bankPart;
             } else {
@@ -98,6 +99,7 @@ contract Royalty is Ownable {
     }
 
     function addNextGeneration(StackOSInterface _stackOS) public onlyOwner {
+        require(address(_stackOS) != address(0), "Must be not zero-address");
         for(uint256 i; i < generationsCount; i++) {
             require(generations[i] != _stackOS, "This generation already exists");
         }
@@ -179,7 +181,7 @@ contract Royalty is Ownable {
                             if (cycles[o].isClaimed[generationId][tokenId] == false) {
                                 // is this token delegated earlier than this cycle start?
                                 if (
-                                    delegationTimestamp < cycles[o].startTimestamp // TODO: can we have on 0 cycle, 1 delegate, with the same block.timestamp as cycle startTime? if so, we are in trouble, money for such cycly can never be taken
+                                    delegationTimestamp < cycles[o].startTimestamp
                                 ) {
                                     reward += cycles[o].perTokenReward;
                                     cycles[o].isClaimed[generationId][tokenId] = true;
