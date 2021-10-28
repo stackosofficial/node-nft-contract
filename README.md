@@ -13,7 +13,7 @@ npm install
 ```
 
 ### Step 2: Testing locally
-1. Run tests `npx hardhat test --network localhost`
+1. Run tests `npx hardhat test`
 
 ### Step 3
 Copy and rename `.env.template` to `.env`, open it and then enter your:
