@@ -47,6 +47,8 @@ contract Royalty is Ownable {
         minEthToStartCycle = _minEthToStartCycle;
     }
 
+    // TODO: bug, if we 'delegate, then receive' in the same block.timestamp, then impossible to claim for that token, 
+    // the same applies for adding generations and their timestamps
     receive() external payable {
 
         // this should be true for the first cycle only, even if there is already delegates exists, this cycle still dont know about it
@@ -134,6 +136,7 @@ contract Royalty is Ownable {
         @title User take reward for delegated NFTs that he owns
         @param generationId StackOS generation id to get reward for
         @param tokenIds Token ids to get reward for
+        @dev TODO: maybe some requires unnecessery?
     */
     function claim(uint256 generationId, uint256[] calldata tokenIds) external payable {
         require(!lockClaim, "Reentrant call!");
@@ -176,12 +179,12 @@ contract Royalty is Ownable {
                     // only can get reward for ended cycle, so skip currently running cycle (last one)
                     if (cycles[o].perTokenReward > 0) {
                         // generation must be added before start of the cycle
-                        if(generationAddedTimestamp[generationId] < cycles[o].startTimestamp) {
+                        if(generationAddedTimestamp[generationId] < cycles[o].startTimestamp) { // TODO: bug
                             // reward for token in this cycle shouldn't be already claimed
                             if (cycles[o].isClaimed[generationId][tokenId] == false) {
                                 // is this token delegated earlier than this cycle start?
                                 if (
-                                    delegationTimestamp < cycles[o].startTimestamp
+                                    delegationTimestamp < cycles[o].startTimestamp // TODO: bug
                                 ) {
                                     reward += cycles[o].perTokenReward;
                                     cycles[o].isClaimed[generationId][tokenId] = true;
