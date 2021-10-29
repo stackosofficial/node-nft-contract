@@ -105,43 +105,49 @@ describe("Royalty", function () {
       to: royalty.address,
       value: parse("2.0")
     });
-    await expect(royalty.connect(partner).claim(0, [0])).to.be.revertedWith("Too early");
+    await royalty.connect(partner).claim(0, [0]); // just (re)sets first cycle's timestamp
     await provider.send("evm_increaseTime", [CYCLE_DURATION]); // at this point first cycle have enough royalty and passed time, but no delegates
     await provider.send("evm_mine");
-    await expect(royalty.connect(partner).claim(0, [0])).to.be.revertedWith("NFT should be delegated"); // cycle dont start since transaction reverted
+    await royalty.connect(partner).claim(0, [0]); // just (re)sets first cycle's timestamp, there is still no delegates
     await stackOsNFT.connect(partner).delegate(owner.address, 0); // first cycle is special, it won't start if delegates dont exist!
 
-    await expect(royalty.connect(partner).claim(0, [0])).to.be.revertedWith("Nothing to claim");
-    // first cycle start at this transfer, its startTimestamp resets to current block, 
-    // means we have enough delegates and eth, but not enough time to start next cycle (2)
-    // so to start cycle 2 we need time to pass
-    await expect(joe.sendTransaction({ // this will go in first cycle
+    await royalty.connect(partner).claim(0, [0]); // first cycle STARTed.
+    await provider.send("evm_increaseTime", [CYCLE_DURATION / 2]); 
+    await royalty.connect(partner).claim(0, [0]); // this will not reset cycle's timestamp, it's just 'empty call' 
+    await provider.send("evm_increaseTime", [CYCLE_DURATION / 2]); 
+    await provider.send("evm_mine");
+    await royalty.connect(partner).claim(0, [0]); // second cycle STARTed
+
+    console.log(format(await partner.getBalance()), format(await provider.getBalance(royalty.address)));
+    await expect(royalty.connect(partner).claim(0, [0])).to.be.revertedWith("No royalty");
+
+    await expect(joe.sendTransaction({ 
         from: joe.address,
         to: royalty.address,
         value: parse("2.0")
     })).to.be.not.reverted;
-    await provider.send("evm_increaseTime", [CYCLE_DURATION]); // first cycle can end in next claim or deposit
+    await provider.send("evm_increaseTime", [CYCLE_DURATION]); // second cycle can end in next claim or deposit
     await provider.send("evm_mine");
-    await stackOsNFT.connect(partner).delegate(owner.address, 2); // this delegate will go in cycle 2, because cycle 1 started earlier
+    await stackOsNFT.connect(partner).delegate(owner.address, 2); // this delegate will go in cycle 3, because cycle 2 started earlier
     console.log(format(await partner.getBalance()), format(await provider.getBalance(royalty.address)));
-    await expect(royalty.connect(partner).claim(0, [0])).to.be.not.reverted; //(claim 5.4 eth) second cycle starts, it counts 2 delegated tokens
+    await expect(royalty.connect(partner).claim(0, [0])).to.be.not.reverted; //(claim 5.4 eth) third cycle starts, it counts 2 delegated tokens
     console.log(format(await partner.getBalance()), format(await provider.getBalance(royalty.address)));
-    await expect(joe.sendTransaction({ // enough eth for cycle 2 to end
+    await expect(joe.sendTransaction({ // enough eth for cycle 3 to end
         from: joe.address,
         to: royalty.address,
         value: parse("2.0")
     })).to.be.not.reverted;
-    await provider.send("evm_increaseTime", [CYCLE_DURATION]); // enough time for cycle 2 to end
+    await provider.send("evm_increaseTime", [CYCLE_DURATION]); // enough time for cycle 3 to end
     await provider.send("evm_mine");
-    await stackOsNFT.connect(partner).delegate(stackOsNFT.address, 1); // will claim this later, this delegate will be counted from cycle 3
+    await stackOsNFT.connect(partner).delegate(stackOsNFT.address, 1); // will claim this later, this delegate will be counted from cycle 4
 
     expect(await partner.getBalance()).to.be.lt(parse("10006.0")); 
-    await expect(royalty.connect(partner).claim(0, [0])).to.be.not.reverted; // (claim 0.9 eth, 6.3 total) third cycle starts here
+    await expect(royalty.connect(partner).claim(0, [0])).to.be.not.reverted; // 4 cycle starts here (claim 0.9 eth, 6.3 total)
     expect(await partner.getBalance()).to.be.gt(parse("10006.0")); 
     console.log(format(await partner.getBalance()), format(await provider.getBalance(royalty.address)));
   })
   it("Can't claim claimed", async function () {
-    await expect(royalty.connect(partner).claim(0, [0])).to.be.revertedWith("Nothing to claim"); // claimed for 2 cycles, 3 is still growing
+    await royalty.connect(partner).claim(0, [0]); // 'empty call', already claimed for 3 cycles, 4 is still growing
   })
   it("Multiple claimers", async function () {
     await stackOsNFT.whitelistPartner(vera.address, true, 2);
@@ -162,25 +168,25 @@ describe("Royalty", function () {
     await currency.approve(stackOsNFT.address, parse("5.0"));
     await stackOsNFT.partnerMint(1);
 
-    await expect(royalty.claim(0, [0])).to.be.reverted;
+    await expect(royalty.claim(0, [0])).to.be.revertedWith("Not owner");
     await expect(royalty.connect(vera).claim(0, [4])).to.be.revertedWith("NFT should be delegated");
-    // these 3 delegates will be counted in 4 cycle
+    // +3 delegates for 5 cycle
     await stackOsNFT.connect(bob).delegate(stackOsNFT.address, 3); 
     await stackOsNFT.connect(vera).delegate(stackOsNFT.address, 4);
     await stackOsNFT.delegate(stackOsNFT.address, 5);
 
-    await provider.send("evm_increaseTime", [CYCLE_DURATION]); // third can end, with 100 eth
+    await provider.send("evm_increaseTime", [CYCLE_DURATION]); // 4 can end, with 100 eth
     await provider.send("evm_mine");
-    await expect(dude.sendTransaction({ // fourth cycle start with 2 eth
+    await expect(dude.sendTransaction({ // 5 cycle start with 2 eth
         from: dude.address,
         to: royalty.address,
         value: parse("2.0")
     })).to.be.not.reverted;
 
-    await provider.send("evm_increaseTime", [CYCLE_DURATION]); // fourth can end
+    await provider.send("evm_increaseTime", [CYCLE_DURATION]); // 5 can end
     await provider.send("evm_mine");
     console.log(format(await partner.getBalance()), format(await owner.getBalance()), format(await bob.getBalance()), format(await vera.getBalance()))
-    await royalty.claim(0, [5]); // fifth cycle start
+    await royalty.claim(0, [5]); // 6 cycle start
     await royalty.connect(bob).claim(0, [3]);
     await royalty.connect(vera).claim(0, [4]);
     await royalty.connect(partner).claim(0, [0, 1, 2]); 
@@ -192,13 +198,13 @@ describe("Royalty", function () {
   })
   it("StackOS generation 2 with multiple claimers", async function () {
 
-    await expect(dude.sendTransaction({ // fifth cycle get 6 eth
+    await expect(dude.sendTransaction({ // 6 cycle get 6 eth
         from: dude.address,
         to: royalty.address,
         value: parse("6.0")
     })).to.be.not.reverted;
 
-    await provider.send("evm_increaseTime", [CYCLE_DURATION]); // fifth cycle can end
+    await provider.send("evm_increaseTime", [CYCLE_DURATION]); // 6 cycle can end
     await provider.send("evm_mine");
 
     await stackOsNFT.connect(bob).partnerMint(1);
@@ -217,6 +223,7 @@ describe("Royalty", function () {
     await currency.approve(stackOsNFTgen2.address, parse("5.0"));
     await stackOsNFTgen2.partnerMint(1);
 
+    //+6 delegates for 7 cycle
     await stackOsNFT.connect(bob).delegate(stackOsNFT.address, 6); 
     await stackOsNFT.connect(vera).delegate(stackOsNFT.address, 7);
     await stackOsNFT.delegate(stackOsNFT.address, 8);
@@ -225,25 +232,25 @@ describe("Royalty", function () {
     await stackOsNFTgen2.connect(vera).delegate(stackOsNFTgen2.address, 1);
     await stackOsNFTgen2.delegate(stackOsNFTgen2.address, 2);
 
-    await expect(dude.sendTransaction({ // sixth cycle start
+    await expect(dude.sendTransaction({ // 7 cycle start
         from: dude.address,
         to: royalty.address,
         value: parse("2.0")
     })).to.be.not.reverted;
 
-    await provider.send("evm_increaseTime", [CYCLE_DURATION]); // sixth cycle can end
+    await provider.send("evm_increaseTime", [CYCLE_DURATION]); // 7 cycle can end
     await provider.send("evm_mine");
 
     console.log(format(await owner.getBalance()), format(await bob.getBalance()), format(await vera.getBalance()))
-    await royalty.connect(bob).claim(0, [6]); // seventh cycle start (should have zero-based index 6 internally)
+    await royalty.connect(bob).claim(0, [6]); // 8 cycle start 
     await royalty.connect(vera).claim(0, [7]); 
     await royalty.claim(0, [8]);
     console.log(format(await owner.getBalance()), format(await bob.getBalance()), format(await vera.getBalance()))
 
-    await royalty.addNextGeneration(stackOsNFTgen2.address); //in past and current cycle delegates of gen2 not counted 
+    await royalty.addNextGeneration(stackOsNFTgen2.address); //delegates of gen2 will be only counted in future cycles
     // console.log("balance after add generation: ", format(await provider.getBalance(royalty.address)));
 
-    await expect(royalty.claim(1, [2])).to.be.revertedWith("Nothing to claim");
+    await royalty.claim(1, [2]);
 
     // console.log(format(await owner.getBalance()), format(await bob.getBalance()), format(await vera.getBalance()))
     await royalty.claim(0, [5]); 
@@ -252,39 +259,42 @@ describe("Royalty", function () {
     await royalty.connect(partner).claim(0, [0, 1, 2]); 
     // console.log(format(await owner.getBalance()), format(await bob.getBalance()), format(await vera.getBalance()));
 
-    await expect(dude.sendTransaction({
+    await expect(dude.sendTransaction({ // for 8 cycle
         from: dude.address,
         to: royalty.address,
         value: parse("2.0")
     })).to.be.not.reverted;
 
-    await provider.send("evm_increaseTime", [CYCLE_DURATION]);
+    await provider.send("evm_increaseTime", [CYCLE_DURATION]); // 8 can end
     await provider.send("evm_mine");
 
-    await royalty.connect(bob).claim(0, [6]); // 8 cycle start (index 7) // gen2 delegates counted, should be 12 total
+    await royalty.connect(bob).claim(0, [6]); // 9 cycle start, gen2 delegates counted for it, should be 12 total
     await royalty.connect(vera).claim(0, [7]); 
     await royalty.claim(0, [8]);
 
-    await expect(royalty.claim(1, [2])).to.be.revertedWith("Nothing to claim");
-    // await royalty.connect(bob).claim(1, [0]);
-    // await royalty.connect(vera).claim(1, [1]); 
-    // await royalty.claim(1, [2]); 
+    // 9 cycle not ended, can't claim gen2 for it
+    let before = format(await provider.getBalance(royalty.address));
+    await royalty.claim(1, [2]);
+    await royalty.connect(bob).claim(1, [0]);
+    await royalty.connect(vera).claim(1, [1]); 
+    await royalty.claim(1, [2]); 
+    expect(before).to.be.equal(format(await provider.getBalance(royalty.address)));
 
     await royalty.claim(0, [5]); 
     await royalty.connect(bob).claim(0, [3]);
     await royalty.connect(vera).claim(0, [4]); 
     await royalty.connect(partner).claim(0, [0, 1, 2]); 
 
-    await expect(dude.sendTransaction({ // this go in cycle 8
+    await expect(dude.sendTransaction({ // for cycle 9
         from: dude.address,
         to: royalty.address,
         value: parse("1000.0")
     })).to.be.not.reverted;
 
-    await provider.send("evm_increaseTime", [CYCLE_DURATION]);
+    await provider.send("evm_increaseTime", [CYCLE_DURATION]); // 9 can end
     await provider.send("evm_mine");
     
-    await royalty.connect(bob).claim(0, [6]); // 9 cycle start (index 8), now generation2 tokens can claim for cycle 8
+    await royalty.connect(bob).claim(0, [6]); // 10 cycle start, now generation2 tokens can claim for cycle 9
     await royalty.connect(vera).claim(0, [7]); 
     await royalty.claim(0, [8]);
 
@@ -301,11 +311,11 @@ describe("Royalty", function () {
     console.log(format(await provider.getBalance(royalty.address)));
     expect(await provider.getBalance(royalty.address)).to.be.equal(parse("0.0"));
     console.log(format(await owner.getBalance()), format(await partner.getBalance()), format(await bob.getBalance()), format(await vera.getBalance()));
-    await expect(royalty.addNextGeneration(stackOsNFTgen2.address)).to.be.revertedWith("This generation already exists");
+    await expect(royalty.addNextGeneration(stackOsNFTgen2.address)).to.be.revertedWith("Address already added");
   })
   it("StackOS generation 3 with multiple claimers", async function () {
 
-    await royalty.addNextGeneration(stackOsNFTgen3.address);
+    await royalty.addNextGeneration(stackOsNFTgen3.address); // gen3 will be counted in 11 cycle
 
     await stackOsNFTgen3.whitelistPartner(vera.address, true, 1);
     await stackOsNFTgen3.whitelistPartner(bob.address, true, 1);
@@ -319,33 +329,34 @@ describe("Royalty", function () {
     await currency.approve(stackOsNFTgen3.address, parse("5.0"));
     await stackOsNFTgen3.partnerMint(1);
 
-    await stackOsNFTgen3.connect(bob).delegate(stackOsNFTgen3.address, 0);
+    // delegates for 11 cycle
+    await stackOsNFTgen3.connect(bob).delegate(stackOsNFTgen3.address, 0); 
     await stackOsNFTgen3.connect(vera).delegate(stackOsNFTgen3.address, 1);
     await stackOsNFTgen3.delegate(stackOsNFTgen3.address, 2);
 
-    await expect(dude.sendTransaction({ // this go in 9 cycle, gen3 can't claim
+    await expect(dude.sendTransaction({ // this go in 10 cycle, gen3 can't claim
         from: dude.address,
         to: royalty.address,
         value: parse("1000.0")
     })).to.be.not.reverted;
 
-    await provider.send("evm_increaseTime", [CYCLE_DURATION]);
+    await provider.send("evm_increaseTime", [CYCLE_DURATION]); // 10 can end
     await provider.send("evm_mine");
 
-    await expect(royalty.claim(2, [2])).to.be.revertedWith("Nothing to claim");
+    await royalty.claim(2, [2]); // 11 cycle started, though owner didn't get ether
 
-    await royalty.connect(bob).claim(0, [6]); // 10 cycle start, generation3 tokens can claim it when it end
+    await royalty.connect(bob).claim(0, [6]);
 
-    await expect(dude.sendTransaction({ // this go in 10 cycle, gen3 can claim it
+    await expect(dude.sendTransaction({ // this go in 11 cycle, gen3 can claim it
         from: dude.address,
         to: royalty.address,
         value: parse("1000.0")
     })).to.be.not.reverted;
 
-    await provider.send("evm_increaseTime", [CYCLE_DURATION]);
+    await provider.send("evm_increaseTime", [CYCLE_DURATION]); // 11 can end
     await provider.send("evm_mine");
 
-    await royalty.connect(bob).claim(2, [0]); // 11 cycle start
+    await royalty.connect(bob).claim(2, [0]); // 12 cycle start (zero-based index 11)
     await royalty.connect(vera).claim(2, [1]); 
     await royalty.claim(2, [2]);
 

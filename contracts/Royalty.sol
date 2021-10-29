@@ -49,23 +49,7 @@ contract Royalty is Ownable {
 
     receive() external payable {
 
-        // this should be true for the first cycle only, even if there is already delegates exists, this cycle still dont know about it
-        if(cycles[counter.current()].delegatedCount == 0) {
-            // we can't start first cycle without delegated NFTs, so with this we 'restart' first cycle,
-            // this dont allow to end first cycle with perTokenReward = 0 and balance > 0 
-            cycles[counter.current()].startTimestamp = block.timestamp;
-            /*
-                The following check is need to prevent ETH hang on first cycle forever.
-                If first ever delegation happens at the same block with receiving eth here,
-                then no one can claim for the first cycle, because when claiming royalty
-                there is check: tokenDelegationTime < cycleStartTime
-            */
-            uint256 totalDelegatedBeforeCurrentBlock = getTotalDelegatedBeforeCurrentBlock();
-            if(totalDelegatedBeforeCurrentBlock > 0) {
-                // we can still get 0 here, then in next ifs we will just receive eth for cycle
-                cycles[counter.current()].delegatedCount = totalDelegatedBeforeCurrentBlock;
-            }
-        }
+        checkDelegationsForFirstCycle();
 
         // take fee
         uint256 bankPart = ((msg.value * bankPercent) / 10000);
@@ -99,6 +83,26 @@ contract Royalty is Ownable {
         }
     }
 
+    function checkDelegationsForFirstCycle() private {
+        // this should be true for the first cycle only, even if there is already delegates exists, this cycle still dont know about it
+        if(cycles[counter.current()].delegatedCount == 0) {
+            // we can't start first cycle without delegated NFTs, so with this we 'restart' first cycle,
+            // this dont allow to end first cycle with perTokenReward = 0 and balance > 0 
+            cycles[counter.current()].startTimestamp = block.timestamp;
+            /*
+                The following check is need to prevent ETH hang on first cycle forever.
+                If first ever delegation happens at the same block with receiving eth here,
+                then no one can claim for the first cycle, because when claiming royalty
+                there is check: tokenDelegationTime < cycleStartTime
+            */
+            uint256 totalDelegatedBeforeCurrentBlock = getTotalDelegatedBeforeCurrentBlock();
+            if(totalDelegatedBeforeCurrentBlock > 0) {
+                // we can still get 0 here, then in next ifs we will just receive eth for cycle
+                cycles[counter.current()].delegatedCount = totalDelegatedBeforeCurrentBlock;
+            }
+        }
+    }
+
     function setBank(address payable _bank) external onlyOwner {
         require(_bank != address(0), "Must be not zero-address");
         bank = _bank;
@@ -111,7 +115,7 @@ contract Royalty is Ownable {
     function addNextGeneration(IStackOSNFT _stackOS) public onlyOwner {
         require(address(_stackOS) != address(0), "Must be not zero-address");
         for(uint256 i; i < generationsCount; i++) {
-            require(generations[i] != _stackOS, "This generation already exists");
+            require(generations[i] != _stackOS, "Address already added");
         }
         generations[generationsCount] = _stackOS;
         generationAddedTimestamp[generationsCount] = block.timestamp;
@@ -167,7 +171,10 @@ contract Royalty is Ownable {
         require(address(this).balance > 0, "No royalty");
         require(generations[generationId].balanceOf(msg.sender) > 0, "You dont have NFTs");
 
-        // same 'if' as in `receive()` function, except that here we don't receive ether, but simply start new cycle if it's time
+        checkDelegationsForFirstCycle();
+
+
+        // similar 'if' as in `receive()`
         if (
             cycles[counter.current()].startTimestamp + CYCLE_DURATION <
             block.timestamp
@@ -181,48 +188,50 @@ contract Royalty is Ownable {
                 cycles[counter.current()].startTimestamp = block.timestamp;
             }
         }
-        // we just deployed, cycle with 0 index still not ended, cant claim for it
-        require(counter.current() > 0, "Too early");
 
-        uint256 reward;
-        // iterate over passed tokens
-        for (uint256 i = 0; i < tokenIds.length; i++) {
-            uint256 tokenId = tokenIds[i];
-            require(generations[generationId].ownerOf(tokenId) == msg.sender, "Not owner");
-            require(
-                generations[generationId].getDelegatee(tokenId) != address(0),
-                "NFT should be delegated"
-            );
+        // first cycle still not ended, cant claim for it
+        if(counter.current() > 0) {
+            uint256 reward;
+            // iterate over passed tokens
+            for (uint256 i = 0; i < tokenIds.length; i++) {
+                uint256 tokenId = tokenIds[i];
+                require(generations[generationId].ownerOf(tokenId) == msg.sender, "Not owner");
+                require(
+                    generations[generationId].getDelegatee(tokenId) != address(0),
+                    "NFT should be delegated"
+                );
 
-            uint256 delegationTimestamp = generations[generationId].getDelegationTimestamp(tokenId);
-            if (delegationTimestamp > 0) {
-                // iterate over cycles
-                for (uint256 o = 0; o < counter.current(); o++) {
-                    // only can get reward for ended cycle, so skip currently running cycle (last one)
-                    if (cycles[o].perTokenReward > 0) {
-                        // generation must be added before start of the cycle
-                        if(generationAddedTimestamp[generationId] < cycles[o].startTimestamp) { // TODO: bug
-                            // reward for token in this cycle shouldn't be already claimed
-                            if (cycles[o].isClaimed[generationId][tokenId] == false) {
-                                // is this token delegated earlier than this cycle start?
-                                if (
-                                    delegationTimestamp < cycles[o].startTimestamp // TODO: bug
-                                ) {
-                                    reward += cycles[o].perTokenReward;
-                                    cycles[o].isClaimed[generationId][tokenId] = true;
+                uint256 delegationTimestamp = generations[generationId].getDelegationTimestamp(tokenId);
+                if (delegationTimestamp > 0) {
+                    // iterate over cycles, ignoring current one since its not ended
+                    for (uint256 o = 0; o < counter.current(); o++) {
+                        // only can get reward for ended cycle TODO: this check can be removed?
+                        if (cycles[o].perTokenReward > 0) {
+                            // generation must be added before start of the cycle (first generation's timestamp = 0)
+                            if(generationAddedTimestamp[generationId] < cycles[o].startTimestamp) { 
+                                // reward for token in this cycle shouldn't be already claimed
+                                if (cycles[o].isClaimed[generationId][tokenId] == false) {
+                                    // is this token delegated earlier than this cycle start?
+                                    if (
+                                        delegationTimestamp < cycles[o].startTimestamp // TODO: this can be moved to be first check?
+                                    ) {
+                                        reward += cycles[o].perTokenReward;
+                                        cycles[o].isClaimed[generationId][tokenId] = true;
+                                    }
                                 }
                             }
                         }
                     }
                 }
             }
+
+            if(reward > 0) {
+                // finally send reward
+                (bool success, ) = payable(msg.sender).call{value: reward}("");
+                require(success, "Transfer failed");
+            }
         }
 
-        // TODO: should this be replaced with 'if' statement?
-        require(reward > 0, "Nothing to claim");
-        // finally send reward
-        (bool success, ) = payable(msg.sender).call{value: reward}("");
-        require(success, "Transfer failed");
         lockClaim = false;
     }
 }
