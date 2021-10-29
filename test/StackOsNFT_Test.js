@@ -187,7 +187,9 @@ describe("StackOS NFT", function () {
   });
 
   it("Open Auction for bidding", async function () {
+
     deadline = Math.floor(Date.now() / 1000) + 1000;
+    console.log(deadline, Date.now());
     await stackOsNFT.adjustAuctionCloseTime(deadline);
   });
 

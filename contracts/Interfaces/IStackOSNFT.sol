@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 interface IStackOSNFT {
+
     function getTotalDelegated() external view returns (uint256);
 
     function getDelegationTimestamp(uint256 _tokenId)

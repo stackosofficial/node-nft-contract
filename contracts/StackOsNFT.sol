@@ -84,9 +84,18 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         auctionedNFTs = _auctionedNFTs;
     }
 
+    /*
+     * @title Get total delegated NFTs.
+     */
+
     function getTotalDelegated() public view returns (uint256) {
         return totalDelegated;
     }
+
+    /*
+     * @title Get timestamp of the block when token was delegated.
+     * @dev Returns zero if token not delegated.
+     */
 
     function getDelegationTimestamp(uint256 _tokenId)
         public
@@ -96,9 +105,19 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         return delegationTimestamp[_tokenId];
     }
 
+    /*
+     * @title Get token's delegatee.
+     * @dev Returns zero-address if token not delegated.
+     */
+
     function getDelegatee(uint256 _tokenId) public view returns (address) {
         return delegates[_tokenId];
     }
+
+    /*
+     * @title Get token's owner.
+     * @dev Token might be not delegated though.
+     */
 
     function getDelegator(uint256 _tokenId) public view returns (address) {
         return ownerOf(_tokenId);
@@ -362,6 +381,12 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         }
     }
 
+    /*
+     * @title Place bid on auction.
+     * @param Amount of ether to place.
+     * @dev Could only be invoked when the auction open and not finalized.
+     */
+
     function placeBid(uint256 _amount) public returns (uint256 i) {
         require(block.timestamp < auctionCloseTime, "Auction closed!");
         require(topBids[1] < _amount, "Bid too small");
@@ -389,6 +414,11 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         }
     }
 
+    /*
+     * @title Finalize auction and mint NFT for top biders.
+     * @dev Could only be invoked by the contract owner, when auction out of time and not finalized.
+     */
+
     function finalizeAuction() public onlyOwner {
         require(block.timestamp > auctionCloseTime, "Auction still ongoing.");
         require(auctionFinalized == false, "Auction Already Finalized");
@@ -399,6 +429,13 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
             }
         }
     }
+
+    /*
+     * @title Delegate NFT.
+     * @param _delegatee Address of delegatee.
+     * @param tokenId token id to delegate.
+     * @dev Caller must be owner of NFT, caller and delegatee must not be zero-address.
+     */
 
     function delegate(address _delegatee, uint256 tokenId) public {
         require(msg.sender != address(0), "Delegate is address-zero");
@@ -440,6 +477,10 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         return super.tokenURI(tokenId);
     }
 
+    /*
+     * @title Owner can withdraw collected fees.
+     * @dev Caller must be contract owner, timelock should be passed.
+     */
     function adminWithdraw() public onlyOwner {
         require(block.timestamp > timeLock, "Locked!");
         require(ticketStatusAssigned == false, "Already Assigned.");
