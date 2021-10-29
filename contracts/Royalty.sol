@@ -1,10 +1,8 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
-
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "contracts/interfaces/IStackOSNFT.sol";
-import "hardhat/console.sol";
+import "./interfaces/IStackOSNFT.sol";
 
 contract Royalty is Ownable {
     using Counters for Counters.Counter;
@@ -41,11 +39,15 @@ contract Royalty is Ownable {
         uint256 _bankPercent
     ) {
         bank = _bank;
-        generations[generationsCount++] = _stackOS;
+        generations[generationsCount++] = _stackOS; // TODO: what if bad address passed? such as 0, should we revert ?
         bankPercent = _bankPercent;
         minEthToStartCycle = _minEthToStartCycle;
     }
 
+    // TODO: bug, if we 'delegate, then receive' in the same block.timestamp, then impossible to claim for that token (this seems to be only bug for first cycle),
+    // the same applies for adding generations and their timestamps
+    // one fix come in mind is to start first cycle only if firstDelegationTimestamp < block.timestamp
+    // maybe something similar for generations...
     receive() external payable {
 
         checkDelegationsForFirstCycle();

@@ -1,7 +1,5 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
-
-import "hardhat/console.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
@@ -27,7 +25,8 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
     IERC20 private stackOSToken;
 
     uint256[] public winningTickets;
-    uint256 public timeLock;
+    // SET TIMELOCK!
+    uint256 public timeLock = block.timestamp + 60 minutes;
     uint256 public randomNumber;
     uint256 public auctionedNFTs;
     uint256 public auctionCloseTime;
@@ -54,7 +53,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
     bool private ticketStatusAssigned;
     bool private salesStarted;
     bool private lotteryActive;
-    string private URI;
+    string private URI = "https://google.com/";
     bytes32 internal keyHash;
 
     constructor(
@@ -65,24 +64,24 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         uint256 _maxSupply,
         uint256 _prizes,
         uint256 _auctionedNFTs,
-        uint256 _timeLock,
-        string memory uriLink
+        address _vrfCoordinator,
+        address _linkToken,
+        bytes32 _keyHash,
+        uint256 _fee
     )
         ERC721(_name, _symbol)
         VRFConsumerBase(
-            0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0, // VRF Coordinator
-            0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512 // LINK Token
+            _vrfCoordinator, // VRF Coordinator
+            _linkToken // LINK Token
         )
     {
         stackOSToken = _stackOSTokenToken;
         participationFee = _participationFee;
         maxSupply = _maxSupply;
         prizes = _prizes;
-        URI = uriLink;
-        keyHash = 0x2ed0feb3e7fd2022120aa84fab1945545a9f2ffc9076fd6156fa96eaff4c1311;
-        fee = 1 * 10**17; // 0.1 LINK (Varies by network)
+        keyHash = _keyHash;
+        fee = _fee;
         auctionedNFTs = _auctionedNFTs;
-        timeLock = _timeLock;
     }
 
     function getTotalDelegated() public view returns (uint256) {
@@ -113,9 +112,13 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         return _exists(tokenId);
     }
 
-    // Next generation ticket multiplier. The multiplier will only take effect if NFT 1 gen is sent to NFT 2
+    /*
+     * @title Wallets choose how many tickets they want to stake for.
+     * @title Each ticket has a number which can can be selected in the lottery.
+     * @param Amount on of tickets you stake for.
+     * @dev Lottery has to be active
+     */
 
-    // Strategic Have to pay the same floor price , but must be whitelisted.
     function stakeForTickets(uint256 _ticketAmount) public {
         require(lotteryActive, "Lottery inactive");
         require(randomNumber == 0, "Random Number already assigned!");
@@ -129,6 +132,12 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         participationTickets += _ticketAmount;
     }
 
+    /*
+     * @title Request a random number from chainlink!
+     * @dev Could only be invoked by the contract owner.
+     * @dev Has to have more tickets than the prizes will be given.
+     */
+
     function announceLottery() public onlyOwner returns (bytes32 requestId) {
         require(randomNumber == 0, "Random Number already assigned!");
         require(participationTickets > prizes, "No enough participants.");
@@ -140,12 +149,22 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         return requestRandomness(keyHash, fee);
     }
 
+    /*
+     * @title Chainlink callback set's random number.
+     */
+
     function fulfillRandomness(bytes32 requestId, uint256 randomness)
         internal
         override
     {
         randomNumber = randomness;
     }
+
+    /*
+     * @title Request random numbers. Might have to call multiple times as not unique numbers will be ignored.
+     * @param Amount of unique random numbers expected to receive.
+     * @dev Could only be invoked by the contract owner.
+     */
 
     function announceWinners(uint256 _numbers) public onlyOwner {
         for (uint256 i; i < _numbers; i++) {
@@ -166,6 +185,13 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         }
     }
 
+    /*
+     * @title Map out the winning tickets.
+     * @param From ID
+     * @param To ID
+     * @dev Could only be invoked by the contract owner.
+     */
+
     function mapOutWinningTickets(uint256 _startingIndex, uint256 _endingIndex)
         public
         onlyOwner
@@ -178,11 +204,24 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         }
     }
 
+    /*
+     * @title Once we change ticket assigned Status. People will be start being able to withdraw and claim their NFT
+     * @title Assigns admin withdrawable amount == winning numbers.
+     * @dev Could only be invoked by the contract owner. All prizes have to be assigned.
+     */
+
     function changeTicketStatus() public onlyOwner {
         require(ticketStatusAssigned == false, "Already Assigned.");
+        require(winningTickets.length == prizes);
         ticketStatusAssigned = true;
         adminWithdrawableAmount += winningTickets.length.mul(participationFee);
     }
+
+    /*
+     * @title Winning NFT tickets will be able to withdraw their NFT prize
+     * @param List of Ticket Numbers that were winners.
+     * @dev Could only be invoked by the contract owner.
+     */
 
     function claimReward(uint256[] calldata _ticketID) public {
         require(winningTickets.length > 0, "Not Decided Yet.");
@@ -201,8 +240,12 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         }
     }
 
+    /*
+     * @title Tickets that did not will be able to withdraw their stake.
+     * @param List of Ticket Numbers that did not win.
+     */
+
     function returnStake(uint256[] calldata _ticketID) public {
-        require(winningTickets.length > 0, "Not Decided Yet.");
         require(ticketStatusAssigned == true, "Not Assigned Yet!");
         for (uint256 i; i < _ticketID.length; i++) {
             require(
@@ -224,6 +267,11 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
             _ticketID.length.mul(participationFee)
         );
     }
+
+    /*
+     * @title Transfer out stake to the next generation, and receive a bonus.
+     * @param List of Ticket Numbers that are transferable.
+     */
 
     function transferTicket(uint256[] calldata _ticketID, address _address)
         public
@@ -250,6 +298,13 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         IStackOSNFT(_address).transferFromLastGen(msg.sender, amount);
     }
 
+    /*
+     * @title Whitelist and address that will be able to do strategy purchaise.
+     * @param Address of the partner.
+     * @param Whitelist - TRUE/FALSE
+     * @param Number of tokens will be able to mint.
+     */
+
     function whitelistPartner(
         address _address,
         bool _whitelist,
@@ -258,23 +313,42 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         strategicPartner[_address][_whitelist] = _amount;
     }
 
+    /*
+     * @title Allow partners to buy NFT's
+     */
+
     function startPartnerSales() public onlyOwner {
         salesStarted = true;
     }
 
+    /*
+     * @title Allow wallets to start staking for lottery tickets.
+     */
+
     function activateLottery() public onlyOwner {
         lotteryActive = true;
     }
+
+    /*
+     * @title Adjust auction closing time.
+     * @param Timestamp when it closes.
+     * @dev Could only be invoked by the contract owner and when the auction has not been finalized.
+     */
 
     function adjustAuctionCloseTime(uint256 _time) public onlyOwner {
         require(auctionFinalized == false, "Auction Already Finalized");
         auctionCloseTime = _time;
     }
 
+    /*
+     * @title Partner can mint a token amount that he has been allowed to mint. Partner sales have to be activated.
+     * @param Number of tokens to mint.
+     */
+
     function partnerMint(uint256 _nftAmount) public {
         require(salesStarted, "Sales not started");
         require(
-            strategicPartner[msg.sender][true] >= _nftAmount,
+            strategicPartner[msg.sender][true] <= _nftAmount,
             "Amount Too Big"
         );
         stackOSToken.transferFrom(
@@ -289,9 +363,9 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         }
     }
 
-    // Auction
     function placeBid(uint256 _amount) public returns (uint256 i) {
         require(block.timestamp < auctionCloseTime, "Auction closed!");
+        require(topBids[1] < _amount, "Bid too small");
         stackOSToken.transferFrom(msg.sender, address(this), _amount);
         for (i = auctionedNFTs; i != 0; i--) {
             if (topBids[i] < _amount) {
@@ -369,6 +443,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
 
     function adminWithdraw() public onlyOwner {
         require(block.timestamp > timeLock, "Locked!");
+        require(ticketStatusAssigned == false, "Already Assigned.");
         stackOSToken.transfer(msg.sender, adminWithdrawableAmount);
         adminWithdrawableAmount.sub(adminWithdrawableAmount);
     }

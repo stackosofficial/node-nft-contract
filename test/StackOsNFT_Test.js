@@ -37,8 +37,11 @@ describe("StackOS NFT", function () {
     MAX_SUPPLY = 25;
     PRIZES = 10;
     AUCTIONED_NFTS = 10;
-    TIMELOCK = deadline = Math.floor(Date.now() / 1000) + 2200;
-    URI_LINK = "https://google.com/";
+    VRF_COORDINATOR = coordinator.address;
+    LINK_TOKEN = link.address;
+    KEY_HASH =
+      "0x2ed0feb3e7fd2022120aa84fab1945545a9f2ffc9076fd6156fa96eaff4c1311";
+    FEE = parse("0.1");
 
     const StackOS = await ethers.getContractFactory("StackOsNFT");
     stackOsNFT = await StackOS.deploy(
@@ -49,8 +52,10 @@ describe("StackOS NFT", function () {
       MAX_SUPPLY,
       PRIZES,
       AUCTIONED_NFTS,
-      TIMELOCK,
-      URI_LINK
+      VRF_COORDINATOR,
+      LINK_TOKEN,
+      KEY_HASH,
+      FEE
     );
     await stackOsNFT.deployed();
   });
@@ -182,7 +187,7 @@ describe("StackOS NFT", function () {
   });
 
   it("Open Auction for bidding", async function () {
-    deadline = Math.floor(Date.now() / 1000) + 1200;
+    deadline = Math.floor(Date.now() / 1000) + 1000;
     await stackOsNFT.adjustAuctionCloseTime(deadline);
   });
 
@@ -207,7 +212,7 @@ describe("StackOS NFT", function () {
   });
 
   it("Close Auction Distribute NFT's", async function () {
-    await ethers.provider.send("evm_setNextBlockTimestamp", [deadline + 100]);
+    await ethers.provider.send("evm_setNextBlockTimestamp", [deadline + 1]);
     await stackOsNFT.finalizeAuction();
   });
 
@@ -218,7 +223,7 @@ describe("StackOS NFT", function () {
   });
 
   it("Admin withdraws after time lock.", async function () {
-    await ethers.provider.send("evm_setNextBlockTimestamp", [TIMELOCK + 100]);
+    await ethers.provider.send("evm_setNextBlockTimestamp", [deadline + 3600]);
     await stackOsNFT.adminWithdraw();
   });
 });

@@ -7,19 +7,18 @@ async function main() {
 
   //vvvvvvvvvvvvvvvvvv SETTINGS vvvvvvvvvvvvvvvvvv
 
-  // TODO: write about VRF and LINK addresses in contract code to be replaced
-  // and write some comments here
-  // and add royalty ddepllymened
-
   NAME = "STACK OS NFT";
   SYMBOL = "SON";
-  STACK_TOKEN_FOR_PAYMENT = "0x47ef611fcb6480fa4bc74522f2ea2b5812352ae5";
+  STACK_TOKEN_FOR_PAYMENT = "0x641f40c85e070b92ce14b25c21609a68cd2d8a53";
   PRICE = parseEther("0.1");
   MAX_SUPPLY = 25;
   PRIZES = 10;
   AUCTIONED_NFTS = 10;
-  TIMELOCK = deadline = Math.floor(Date.now() / 1000) + 2200;
-  URI_LINK = "https://google.com/";
+  VRF_COORDINATOR = "0xb3dCcb4Cf7a26f6cf6B120Cf5A73875B7BBc655B";
+  LINK_TOKEN = "0x01BE23585060835E02B77ef475b0Cc51aA1e0709";
+  KEY_HASH =
+    "0x2ed0feb3e7fd2022120aa84fab1945545a9f2ffc9076fd6156fa96eaff4c1311";
+  FEE = parseEther("0.1");
   /**
    * Set to true if you want partners to be able to mint for themselves (can be started later, after deployment)
    */
@@ -35,7 +34,7 @@ async function main() {
    * Address - address who will be allowed to mint for themselves
    * Bool - set true for whitelisted
    * Uint256 - amount of NFTs allowed for this address to mint
-  */
+   */
   WHITELISTED_PARTNERS = [
     ["0x47ef611fcb6480fa4bc74522f2ea2b5812352ae5", true, 4], // remove or copy-paste this line and adjust parameters
   ];
@@ -44,10 +43,9 @@ async function main() {
   ROYALTY_DEPOSIT_FEE_ADDRESS = "0x47ef611fcb6480fa4bc74522f2ea2b5812352ae5";
   ROYALTY_DEPOSIT_FEE_PERCENT = 1000;
 
-  //^^^^^^^^^^^^^^^^^^ SETTINGS ^^^^^^^^^^^^^^^^^^ 
+  //^^^^^^^^^^^^^^^^^^ SETTINGS ^^^^^^^^^^^^^^^^^^
 
   //vvvvvvvvvvvvvvvvvvvvv DEPLOYMENT vvvvvvvvvvvvvvvvvvvvv
-
   const StackOS = await ethers.getContractFactory("StackOsNFT");
   stackOsNFT = await StackOS.deploy(
     NAME,
@@ -57,17 +55,21 @@ async function main() {
     MAX_SUPPLY,
     PRIZES,
     AUCTIONED_NFTS,
-    TIMELOCK,
-    URI_LINK
+    VRF_COORDINATOR,
+    LINK_TOKEN,
+    KEY_HASH,
+    FEE
   );
   await stackOsNFT.deployed();
   console.log("StackOS deployed at: ", stackOsNFT.address);
 
   //vvvvvvvvvvvvvvvvvv CONTRACT SETTINGS vvvvvvvvvvvvvvvvvv
   if (WHITELISTED_PARTNERS.length > 0) {
-    await Promise.all(WHITELISTED_PARTNERS.map(args => {
-      return stackOsNFT.whitelistPartner(...args);
-    }));
+    await Promise.all(
+      WHITELISTED_PARTNERS.map((args) => {
+        return stackOsNFT.whitelistPartner(...args);
+      })
+    );
   }
 
   if (START_PARTNER_SALES) {
@@ -77,7 +79,7 @@ async function main() {
   if (ACTIVATE_LOTTERY) {
     await stackOsNFT.activateLottery();
   }
-  //^^^^^^^^^^^^^^^^^^ CONTRACT SETTINGS ^^^^^^^^^^^^^^^^^^ 
+  //^^^^^^^^^^^^^^^^^^ CONTRACT SETTINGS ^^^^^^^^^^^^^^^^^^
 
   const Royalty = await ethers.getContractFactory("Royalty");
   royalty = await Royalty.deploy(
@@ -93,8 +95,8 @@ async function main() {
 
   // vvvvvvvvvvvvvvvvvvvvvvvvv VERIFICATION vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
   console.log("Approve token!");
-  await delay(26000);
-  console.log("Waited 26s");
+  await delay(46000);
+  console.log("Waited 46s");
 
   await hre.run("verify:verify", {
     address: stackOsNFT.address,
@@ -106,11 +108,12 @@ async function main() {
       MAX_SUPPLY,
       PRIZES,
       AUCTIONED_NFTS,
-      TIMELOCK,
-      URI_LINK
+      VRF_COORDINATOR,
+      LINK_TOKEN,
+      KEY_HASH,
+      FEE,
     ],
   });
-
 
   await hre.run("verify:verify", {
     address: royalty.address,
@@ -118,7 +121,7 @@ async function main() {
       stackOsNFT.address,
       ROYALTY_MIN_CYCLE_ETHER,
       ROYALTY_DEPOSIT_FEE_ADDRESS,
-      ROYALTY_DEPOSIT_FEE_PERCENT
+      ROYALTY_DEPOSIT_FEE_PERCENT,
     ],
   });
 
