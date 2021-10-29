@@ -1,11 +1,8 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
-
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "contracts/Interfaces/IStackOSNFT.sol";
-import "hardhat/console.sol";
-import "./StackOsNFT.sol";
+import "./interfaces/IStackOSNFT.sol";
 
 contract Royalty is Ownable {
     using Counters for Counters.Counter;
@@ -18,7 +15,7 @@ contract Royalty is Ownable {
     uint256 private minEthToStartCycle; // cycle cannot end if its balance is less than this
     uint256 private constant CYCLE_DURATION = 30 days; // cycle cannot end if it started earlier than this
 
-    // StackOSInterface private stackOS; // NFTs contract
+    // StackOsNFT private stackOS; // NFTs contract
     bool private lockClaim; // anti-reentrancy for claim function
 
     struct Cycle {
@@ -26,12 +23,14 @@ contract Royalty is Ownable {
         uint256 perTokenReward; // price of NFT in cycle, calculated when cycle ends
         uint256 balance; // how much deposited during cycle
         uint256 delegatedCount; // how much tokens delegated when cycle starts
-        mapping(uint256 => bool) isClaimed; // whether or not reward is claimed for certain NFT (the same token can have true and false in different cycles)
+        // [generation][tokenId] = true/false
+        mapping(uint256 => mapping(uint256 => bool)) isClaimed; // whether or not reward is claimed for certain NFT (the same token can have true and false in different cycles)
     }
 
     mapping(uint256 => Cycle) private cycles; // a new cycle starts when two conditions met, `CYCLE_DURATION` time passed and `minEthToStartCycle` ether deposited
 
     mapping(uint256 => IStackOSNFT) private generations; // StackOS NFT contract different generations
+    mapping(uint256 => uint256) private generationAddedTimestamp;
     uint256 private generationsCount; // total stackOS generations added
 
     constructor(
@@ -41,18 +40,21 @@ contract Royalty is Ownable {
         uint256 _bankPercent
     ) {
         bank = _bank;
-        generations[generationsCount++] = _stackOS;
+        generations[generationsCount++] = _stackOS; // TODO: what if bad address passed? such as 0, should we revert ?
         bankPercent = _bankPercent;
         minEthToStartCycle = _minEthToStartCycle;
     }
 
+    // TODO: bug, if we 'delegate, then receive' in the same block.timestamp, then impossible to claim for that token (this seems to be only bug for first cycle),
+    // the same applies for adding generations and their timestamps
+    // one fix come in mind is to start first cycle only if firstDelegationTimestamp < block.timestamp
+    // maybe something similar for generations...
     receive() external payable {
-        require(msg.value > 0, "Nothing to receive");
-        require(getTotalDelegated() > 0, "There is no one with delegated NFTs");
-
-        // this should be true for the first cycle only
-        if (cycles[counter.current()].startTimestamp == 0) {
+        // this should be true for the first cycle only, even if there is already delegates exists, this cycle still dont know about it
+        if (cycles[counter.current()].delegatedCount == 0) {
+            // we can't start cycle without delegated NFTs, so every time there is 0 delegates we just don't allow next ifs to do anything cycle related (except getting eth)
             cycles[counter.current()].startTimestamp = block.timestamp;
+            // we can still get 0 here, then in next ifs we will just receive eth for cycle
             cycles[counter.current()].delegatedCount = getTotalDelegated();
         }
 
@@ -60,7 +62,6 @@ contract Royalty is Ownable {
         uint256 bankPart = ((msg.value * bankPercent) / 10000);
         if (bankPart > 0) {
             (bool success, ) = bank.call{value: bankPart}("");
-            require(success, "Re-route to bank failed");
         }
         // is current cycle lasts enough?
         if (
@@ -69,7 +70,7 @@ contract Royalty is Ownable {
         ) {
             // is current cycle got enough ether?
             if (cycles[counter.current()].balance >= minEthToStartCycle) {
-                // before starting next cycle we calculate 'ETH per NFT' for current cycle
+                // at the end of cycle we calculate 'ETH per NFT' for it
                 cycles[counter.current()].perTokenReward = getUnitPayment(
                     cycles[counter.current()].balance
                 );
@@ -78,6 +79,7 @@ contract Royalty is Ownable {
                 // save count of delegates that exists on start of cycle
                 cycles[counter.current()].delegatedCount = getTotalDelegated();
                 cycles[counter.current()].startTimestamp = block.timestamp;
+
                 // previous cycle already got enough balance, otherwise we wouldn't get here, thus we assign this deposit to the new cycle
                 cycles[counter.current()].balance += msg.value - bankPart;
             } else {
@@ -97,15 +99,17 @@ contract Royalty is Ownable {
         bankPercent = _percent;
     }
 
-    // TODO: should be there any checks?
     function addNextGeneration(IStackOSNFT _stackOS) public onlyOwner {
+        require(address(_stackOS) != address(0), "Must be not zero-address");
         for (uint256 i; i < generationsCount; i++) {
             require(
                 generations[i] != _stackOS,
                 "This generation already exists"
             );
         }
-        generations[generationsCount++] = _stackOS;
+        generations[generationsCount] = _stackOS;
+        generationAddedTimestamp[generationsCount] = block.timestamp;
+        generationsCount += 1;
     }
 
     /*
@@ -134,6 +138,7 @@ contract Royalty is Ownable {
         @title User take reward for delegated NFTs that he owns
         @param generationId StackOS generation id to get reward for
         @param tokenIds Token ids to get reward for
+        @dev TODO: maybe some requires unnecessery?
     */
     function claim(uint256 generationId, uint256[] calldata tokenIds)
         external
@@ -185,15 +190,27 @@ contract Royalty is Ownable {
                 for (uint256 o = 0; o < counter.current(); o++) {
                     // only can get reward for ended cycle, so skip currently running cycle (last one)
                     if (cycles[o].perTokenReward > 0) {
-                        // reward for token in this cycle shouldn't be already claimed
-                        if (cycles[o].isClaimed[tokenId] == false) {
-                            // is this token delegated earlier than this cycle start?
+                        // generation must be added before start of the cycle
+                        if (
+                            generationAddedTimestamp[generationId] <
+                            cycles[o].startTimestamp
+                        ) {
+                            // TODO: bug
+                            // reward for token in this cycle shouldn't be already claimed
                             if (
-                                delegationTimestamp < cycles[o].startTimestamp // TODO: can we have on 0 cycle, 1 delegate, with the same block.timestamp as cycle startTime? if so, we are in trouble, money for such cycly can never be taken
+                                cycles[o].isClaimed[generationId][tokenId] ==
+                                false
                             ) {
-                                reward += cycles[o].perTokenReward;
-                                cycles[o].balance -= cycles[o].perTokenReward; // TODO: this is unnecessery ? it seems dont affect anything, all tests pass with or without it
-                                cycles[o].isClaimed[tokenId] = true;
+                                // is this token delegated earlier than this cycle start?
+                                if (
+                                    delegationTimestamp <
+                                    cycles[o].startTimestamp // TODO: bug
+                                ) {
+                                    reward += cycles[o].perTokenReward;
+                                    cycles[o].isClaimed[generationId][
+                                        tokenId
+                                    ] = true;
+                                }
                             }
                         }
                     }
@@ -203,7 +220,6 @@ contract Royalty is Ownable {
 
         // TODO: should this be replaced with 'if' statement?
         require(reward > 0, "Nothing to claim");
-
         // finally send reward
         (bool success, ) = payable(msg.sender).call{value: reward}("");
         require(success, "Transfer failed");
