@@ -483,7 +483,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
      */
     function adminWithdraw() public onlyOwner {
         require(block.timestamp > timeLock, "Locked!");
-        require(ticketStatusAssigned == false, "Already Assigned.");
+        require(ticketStatusAssigned == true, "Already Assigned.");
         stackOSToken.transfer(msg.sender, adminWithdrawableAmount);
         adminWithdrawableAmount.sub(adminWithdrawableAmount);
     }
