@@ -47,18 +47,24 @@ contract Royalty is Ownable {
         minEthToStartCycle = _minEthToStartCycle;
     }
 
-    // TODO: bug, if we 'delegate, then receive' in the same block.timestamp, then impossible to claim for that token (this seems to be only bug for first cycle), 
-    // the same applies for adding generations and their timestamps
-    // one fix come in mind is to start first cycle only if firstDelegationTimestamp < block.timestamp
-    // maybe something similar for generations...
     receive() external payable {
 
         // this should be true for the first cycle only, even if there is already delegates exists, this cycle still dont know about it
         if(cycles[counter.current()].delegatedCount == 0) {
-            // we can't start cycle without delegated NFTs, so every time there is 0 delegates we just don't allow next ifs to do anything cycle related (except getting eth)
+            // we can't start first cycle without delegated NFTs, so with this we 'restart' first cycle,
+            // this dont allow to end first cycle with perTokenReward = 0 and balance > 0 
             cycles[counter.current()].startTimestamp = block.timestamp;
-            // we can still get 0 here, then in next ifs we will just receive eth for cycle
-            cycles[counter.current()].delegatedCount = getTotalDelegated();
+            /*
+                The following check is need to prevent ETH hang on first cycle forever.
+                If first ever delegation happens at the same block with receiving eth here,
+                then no one can claim for the first cycle, because when claiming royalty
+                there is check: tokenDelegationTime < cycleStartTime
+            */
+            uint256 totalDelegatedBeforeCurrentBlock = getTotalDelegatedBeforeCurrentBlock();
+            if(totalDelegatedBeforeCurrentBlock > 0) {
+                // we can still get 0 here, then in next ifs we will just receive eth for cycle
+                cycles[counter.current()].delegatedCount = totalDelegatedBeforeCurrentBlock;
+            }
         }
 
         // take fee
@@ -110,6 +116,20 @@ contract Royalty is Ownable {
         generations[generationsCount] = _stackOS;
         generationAddedTimestamp[generationsCount] = block.timestamp;
         generationsCount += 1;
+    }
+
+    function getTotalDelegatedBeforeCurrentBlock() public view returns (uint256) {
+        uint256 result = 0;
+        for(uint256 i = 0; i < generationsCount; i++) {
+            uint256 generationTotalDelegated = generations[i].getTotalDelegated();
+            for(uint256 tokenId; tokenId < generationTotalDelegated; tokenId ++) {
+                uint256 delegationTimestamp = generations[i].getDelegationTimestamp(tokenId);
+                if(delegationTimestamp > 0 && delegationTimestamp < block.timestamp) {
+                    result += 1;
+                }
+            }
+        }
+        return result;
     }
 
     /*
