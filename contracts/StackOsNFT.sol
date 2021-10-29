@@ -383,8 +383,8 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
 
     /*
      * @title Place bid on auction.
-     * @param Amount of ether to place.
-     * @dev Could only be invoked when the auction open and not finalized.
+     * @param Amount to place.
+     * @dev Could only be invoked when the auction is open.
      */
 
     function placeBid(uint256 _amount) public returns (uint256 i) {
