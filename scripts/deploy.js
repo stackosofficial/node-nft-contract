@@ -36,7 +36,7 @@ async function main() {
    * Uint256 - amount of NFTs allowed for this address to mint
    */
   WHITELISTED_PARTNERS = [
-    ["0x47ef611fcb6480fa4bc74522f2ea2b5812352ae5", true, 4], // remove or copy-paste this line and adjust parameters
+    ["0x47ef611fcb6480fa4bc74522f2ea2b5812352ae5", 4], // remove or copy-paste this line and adjust parameters
   ];
 
   ROYALTY_MIN_CYCLE_ETHER = parseEther("1");

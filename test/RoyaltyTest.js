@@ -112,7 +112,7 @@ describe("Royalty", function () {
   it("Mint some NFTs", async function () {
     await currency.transfer(partner.address, parse("100.0"));
     await stackOsNFT.startPartnerSales();
-    await stackOsNFT.whitelistPartner(partner.address, true, 3);
+    await stackOsNFT.whitelistPartner(partner.address, 3);
     await currency.connect(partner).approve(stackOsNFT.address, parse("10.0"));
     await stackOsNFT.connect(partner).partnerMint(3);
   })
@@ -176,9 +176,9 @@ describe("Royalty", function () {
     await royalty.connect(partner).claim(0, [0]); // 'empty call', already claimed for 3 cycles, 4 is still growing
   })
   it("Multiple claimers", async function () {
-    await stackOsNFT.whitelistPartner(vera.address, true, 2);
-    await stackOsNFT.whitelistPartner(bob.address, true, 2);
-    await stackOsNFT.whitelistPartner(owner.address, true, 2);
+    await stackOsNFT.whitelistPartner(vera.address, 2);
+    await stackOsNFT.whitelistPartner(bob.address, 2);
+    await stackOsNFT.whitelistPartner(owner.address, 2);
 
     await currency.transfer(vera.address, parse("100.0"));
     await currency.transfer(bob.address, parse("100.0"));
@@ -237,9 +237,9 @@ describe("Royalty", function () {
     await stackOsNFT.connect(vera).partnerMint(1);
     await stackOsNFT.partnerMint(1);
 
-    await stackOsNFTgen2.whitelistPartner(vera.address, true, 2);
-    await stackOsNFTgen2.whitelistPartner(bob.address, true, 2);
-    await stackOsNFTgen2.whitelistPartner(owner.address, true, 2);
+    await stackOsNFTgen2.whitelistPartner(vera.address, 2);
+    await stackOsNFTgen2.whitelistPartner(bob.address, 2);
+    await stackOsNFTgen2.whitelistPartner(owner.address, 2);
     await stackOsNFTgen2.startPartnerSales();
 
     await currency.connect(bob).approve(stackOsNFTgen2.address, parse("5.0"));
@@ -343,9 +343,9 @@ describe("Royalty", function () {
 
     await royalty.addNextGeneration(stackOsNFTgen3.address); // gen3 will be counted in 11 cycle
 
-    await stackOsNFTgen3.whitelistPartner(vera.address, true, 1);
-    await stackOsNFTgen3.whitelistPartner(bob.address, true, 1);
-    await stackOsNFTgen3.whitelistPartner(owner.address, true, 1);
+    await stackOsNFTgen3.whitelistPartner(vera.address, 1);
+    await stackOsNFTgen3.whitelistPartner(bob.address, 1);
+    await stackOsNFTgen3.whitelistPartner(owner.address, 1);
     await stackOsNFTgen3.startPartnerSales();
 
     await currency.connect(bob).approve(stackOsNFTgen3.address, parse("5.0"));

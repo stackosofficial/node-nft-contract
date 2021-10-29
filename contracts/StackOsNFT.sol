@@ -47,7 +47,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
     mapping(uint256 => address) public topBiders;
     mapping(uint256 => uint256) private delegationTimestamp;
     mapping(uint256 => address) private delegates;
-    mapping(address => mapping(bool => uint256)) private strategicPartner;
+    mapping(address => uint256) private strategicPartner;
 
     bool private auctionFinalized;
     bool private ticketStatusAssigned;
@@ -307,10 +307,9 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
 
     function whitelistPartner(
         address _address,
-        bool _whitelist,
         uint256 _amount
     ) public onlyOwner {
-        strategicPartner[_address][_whitelist] = _amount;
+        strategicPartner[_address] = _amount;
     }
 
     /*
@@ -348,7 +347,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
     function partnerMint(uint256 _nftAmount) public {
         require(salesStarted, "Sales not started");
         require(
-            strategicPartner[msg.sender][true] >= _nftAmount,
+            strategicPartner[msg.sender] >= _nftAmount,
             "Amount Too Big"
         );
         stackOSToken.transferFrom(
@@ -358,7 +357,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         );
         adminWithdrawableAmount += participationFee.mul(_nftAmount);
         for (uint256 i; i < _nftAmount; i++) {
-            strategicPartner[msg.sender][true]--;
+            strategicPartner[msg.sender] --;
             mint(msg.sender);
         }
     }
