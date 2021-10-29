@@ -25,19 +25,35 @@ module.exports = {
   solidity: {
     compilers: [
       {
-        version: "0.8.4",
-        optimizer: {
-          enabled: true,
-          runs: 40,
-        }
+        version: "0.8.0",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 200,
+          },
+          evmVersion: "istanbul",
+          outputSelection: {
+            "*": {
+              "": ["ast"],
+              "*": [
+                "evm.bytecode.object",
+                "evm.deployedBytecode.object",
+                "abi",
+                "evm.bytecode.sourceMap",
+                "evm.deployedBytecode.sourceMap",
+                "metadata",
+              ],
+            },
+          },
+        },
       },
       {
         version: "0.6.6",
       },
       {
         version: "0.4.24",
-      }
-    ]
+      },
+    ],
   },
   networks: {
     hardhat: {
@@ -45,6 +61,11 @@ module.exports = {
     },
     rinkeby: {
       url: process.env.RINKEBY_URL || "",
+      accounts:
+        process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+    },
+    mainnet: {
+      url: process.env.MAINNET_URL || "",
       accounts:
         process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },

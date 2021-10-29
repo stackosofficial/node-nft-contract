@@ -1,7 +1,5 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
-
-import "hardhat/console.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
@@ -10,6 +8,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@chainlink/contracts/src/v0.8/VRFConsumerBase.sol";
+import "./interfaces/IStackOSNFT.sol";
 
 contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
     using Counters for Counters.Counter;
@@ -25,32 +24,36 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
     Counters.Counter private _tokenIdCounter;
     IERC20 private stackOSToken;
 
+    uint256[] public winningTickets;
+    // SET TIMELOCK!
+    uint256 public timeLock = block.timestamp + 60 minutes;
+    uint256 public randomNumber;
+    uint256 public auctionedNFTs;
+    uint256 public auctionCloseTime;
+    uint256 public adminWithdrawableAmount;
     uint256 private maxSupply;
     uint256 private totalSupply;
     uint256 private participationFee;
     uint256 private participationTickets;
     uint256 private prizes;
-    uint256 public randomNumber;
+    uint256 private totalDelegated;
+    uint256 private iterationCount;
     uint256 internal fee;
-    uint256 public timeLock;
-    uint256 internal adminWithdrawableAmount;
-    uint256 private totalDelegators;
-    uint256 public auctionCloseTime;
-    uint256[] public winningTickets;
 
+    mapping(uint256 => bool) public randomUniqueNumbers;
     mapping(uint256 => address) public ticketOwner;
     mapping(uint256 => TicketStatus) public ticketStatus;
-    mapping(address => mapping(bool => uint256)) internal strategicPartner;
+    mapping(uint256 => uint256) public topBids;
+    mapping(uint256 => address) public topBiders;
     mapping(uint256 => uint256) private delegationTimestamp;
-    mapping(address => mapping(uint256 => address)) private delegates;
-    mapping(uint256 => uint256) public top10Bids;
-    mapping(uint256 => address) public top10Biders;
-    mapping(address => uint256) public bidderBalance;
+    mapping(uint256 => address) private delegates;
+    mapping(address => mapping(bool => uint256)) private strategicPartner;
 
-    bool public ticketStatusAssigned;
+    bool private auctionFinalized;
+    bool private ticketStatusAssigned;
     bool private salesStarted;
     bool private lotteryActive;
-    string private URI;
+    string private URI = "https://google.com/";
     bytes32 internal keyHash;
 
     constructor(
@@ -60,25 +63,29 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         uint256 _participationFee,
         uint256 _maxSupply,
         uint256 _prizes,
-        string memory uriLink
+        uint256 _auctionedNFTs,
+        address _vrfCoordinator,
+        address _linkToken,
+        bytes32 _keyHash,
+        uint256 _fee
     )
         ERC721(_name, _symbol)
         VRFConsumerBase(
-            0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0, // VRF Coordinator
-            0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512 // LINK Token
+            _vrfCoordinator, // VRF Coordinator
+            _linkToken // LINK Token
         )
     {
         stackOSToken = _stackOSTokenToken;
         participationFee = _participationFee;
         maxSupply = _maxSupply;
         prizes = _prizes;
-        URI = uriLink;
-        keyHash = 0x2ed0feb3e7fd2022120aa84fab1945545a9f2ffc9076fd6156fa96eaff4c1311;
-        fee = 1 * 10**17; // 0.1 LINK (Varies by network)
+        keyHash = _keyHash;
+        fee = _fee;
+        auctionedNFTs = _auctionedNFTs;
     }
 
-    function getTotalDelegators() public view returns (uint256) {
-        return totalDelegators;
+    function getTotalDelegated() public view returns (uint256) {
+        return totalDelegated;
     }
 
     function getDelegationTimestamp(uint256 _tokenId)
@@ -89,12 +96,12 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         return delegationTimestamp[_tokenId];
     }
 
-    function getDelegatee(address _delegate, uint256 _tokenId)
-        public
-        view
-        returns (address)
-    {
-        return delegates[_delegate][_tokenId];
+    function getDelegatee(uint256 _tokenId) public view returns (address) {
+        return delegates[_tokenId];
+    }
+
+    function getDelegator(uint256 _tokenId) public view returns (address) {
+        return ownerOf(_tokenId);
     }
 
     function _baseURI() internal pure override returns (string memory) {
@@ -121,10 +128,10 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         participationTickets += _ticketAmount;
     }
 
-    function announceLottery() public onlyOwner {
+    function announceLottery() public onlyOwner returns (bytes32 requestId) {
         require(randomNumber == 0, "Random Number already assigned!");
-        require(participationTickets > 10, "No enough participants.");
-        getRandomNumber();
+        require(participationTickets > prizes, "No enough participants.");
+        requestId = getRandomNumber();
     }
 
     function getRandomNumber() internal returns (bytes32 requestId) {
@@ -137,31 +144,41 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         override
     {
         randomNumber = randomness;
-        announceWinners();
     }
 
-    function announceWinners() internal {
-        for (uint256 i; i < prizes; i++) {
-            winningTickets.push(
-                uint256(
-                    keccak256(
-                        abi.encodePacked(
-                            block.difficulty,
-                            block.timestamp,
-                            randomNumber + i
-                        )
-                    )
-                ) % participationTickets
-            );
+    function announceWinners(uint256 _numbers) public onlyOwner {
+        for (uint256 i; i < _numbers; i++) {
+            if (winningTickets.length < prizes) {
+                uint256 nr = uint256(
+                    keccak256(abi.encode(randomNumber + iterationCount))
+                ) % participationTickets;
+                iterationCount++;
+                bool hasDuplicate;
+                if (randomUniqueNumbers[nr] == true) {
+                    hasDuplicate = true;
+                }
+                if (hasDuplicate == false) {
+                    winningTickets.push(nr);
+                    randomUniqueNumbers[nr] = true;
+                }
+            }
         }
     }
 
-    function mapOutWinningTickets() public {
-        require(winningTickets.length > 0, "Not Decided Yet.");
+    function mapOutWinningTickets(uint256 _startingIndex, uint256 _endingIndex)
+        public
+        onlyOwner
+    {
+        require(winningTickets.length == prizes, "Not Decided Yet.");
         require(ticketStatusAssigned == false, "Already Assigned.");
-        for (uint256 i; i < winningTickets.length; i++) {
+        require(_endingIndex <= prizes);
+        for (uint256 i = _startingIndex; i < _endingIndex; i++) {
             ticketStatus[winningTickets[i]] = TicketStatus.Won;
         }
+    }
+
+    function changeTicketStatus() public onlyOwner {
+        require(ticketStatusAssigned == false, "Already Assigned.");
         ticketStatusAssigned = true;
         adminWithdrawableAmount += winningTickets.length.mul(participationFee);
     }
@@ -178,7 +195,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
                 ticketStatus[_ticketID[i]] = TicketStatus.Rewarded;
                 mint(msg.sender);
             } else {
-                revert("Ticket Did not win or awarded already!");
+                revert("Awarded Or Not Won");
             }
         }
     }
@@ -196,7 +213,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
                 ticketStatus[_ticketID[i]] == TicketStatus.Withdrawn ||
                 ticketStatus[_ticketID[i]] == TicketStatus.Won
             ) {
-                revert("Ticket Stake Not Returnable");
+                revert("Stake Not Returnable");
             } else {
                 ticketStatus[_ticketID[i]] = TicketStatus.Withdrawn;
             }
@@ -207,6 +224,31 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         );
     }
 
+    function transferTicket(uint256[] calldata _ticketID, address _address)
+        public
+    {
+        require(winningTickets.length > 0, "Not Decided Yet.");
+        require(ticketStatusAssigned == true, "Not Assigned Yet!");
+        for (uint256 i; i < _ticketID.length; i++) {
+            require(
+                ticketOwner[_ticketID[i]] == msg.sender,
+                "Not your ticket."
+            );
+            if (
+                ticketStatus[_ticketID[i]] == TicketStatus.Rewarded ||
+                ticketStatus[_ticketID[i]] == TicketStatus.Withdrawn ||
+                ticketStatus[_ticketID[i]] == TicketStatus.Won
+            ) {
+                revert("Stake Not Returnable");
+            } else {
+                ticketStatus[_ticketID[i]] = TicketStatus.Withdrawn;
+            }
+        }
+        uint256 amount = _ticketID.length.mul(participationFee);
+        stackOSToken.approve(_address, amount);
+        IStackOSNFT(_address).transferFromLastGen(msg.sender, amount);
+    }
+
     function whitelistPartner(
         address _address,
         bool _whitelist,
@@ -215,20 +257,32 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         strategicPartner[_address][_whitelist] = _amount;
     }
 
+    function startPartnerSales() public onlyOwner {
+        salesStarted = true;
+    }
+
+    function activateLottery() public onlyOwner {
+        lotteryActive = true;
+    }
+
     function adjustAuctionCloseTime(uint256 _time) public onlyOwner {
+        require(auctionFinalized == false, "Auction Already Finalized");
         auctionCloseTime = _time;
     }
 
-    function partnerMint(uint256 _amount) public {
+    function partnerMint(uint256 _nftAmount) public {
         require(salesStarted, "Sales not started");
-        require(strategicPartner[msg.sender][true] >= _amount, "Can't Mint");
+        require(
+            strategicPartner[msg.sender][true] >= _nftAmount,
+            "Amount Too Big"
+        );
         stackOSToken.transferFrom(
             msg.sender,
             address(this),
-            participationFee.mul(_amount)
+            participationFee.mul(_nftAmount)
         );
-        adminWithdrawableAmount += participationFee.mul(_amount);
-        for (uint256 i; i < _amount; i++) {
+        adminWithdrawableAmount += participationFee.mul(_nftAmount);
+        for (uint256 i; i < _nftAmount; i++) {
             strategicPartner[msg.sender][true]--;
             mint(msg.sender);
         }
@@ -238,25 +292,24 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
     function placeBid(uint256 _amount) public returns (uint256 i) {
         require(block.timestamp < auctionCloseTime, "Auction closed!");
         stackOSToken.transferFrom(msg.sender, address(this), _amount);
-        for (i = 10; i != 0; i--) {
-            if (top10Bids[i] < _amount) {
+        for (i = auctionedNFTs; i != 0; i--) {
+            if (topBids[i] < _amount) {
                 if (i > 1) {
                     for (uint256 b; b < i; b++) {
-                        if (b == 0 && top10Bids[b + 1] != 0) {
+                        if (b == 0 && topBids[b + 1] != 0) {
                             stackOSToken.transfer(
-                                top10Biders[b + 1],
-                                top10Bids[b + 1]
+                                topBiders[b + 1],
+                                topBids[b + 1]
                             );
-                            adminWithdrawableAmount -= top10Bids[b + 1];
+                            adminWithdrawableAmount -= topBids[b + 1];
                         }
-                        top10Bids[b] = top10Bids[b + 1];
-                        top10Biders[b] = top10Biders[b + 1];
+                        topBids[b] = topBids[b + 1];
+                        topBiders[b] = topBiders[b + 1];
                     }
                 }
-                top10Bids[i] = _amount;
+                topBids[i] = _amount;
                 adminWithdrawableAmount += _amount;
-                top10Biders[i] = msg.sender;
-                i = 0;
+                topBiders[i] = msg.sender;
                 return i;
             }
         }
@@ -264,33 +317,22 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
 
     function finalizeAuction() public onlyOwner {
         require(block.timestamp > auctionCloseTime, "Auction still ongoing.");
+        require(auctionFinalized == false, "Auction Already Finalized");
+        auctionFinalized = true;
         for (uint256 i = 1; i < 10; i++) {
-            if (top10Biders[i] != address(0)) {
-                mint(top10Biders[i]);
+            if (topBiders[i] != address(0)) {
+                mint(topBiders[i]);
             }
         }
     }
 
     function delegate(address _delegatee, uint256 tokenId) public {
-        require(msg.sender != address(0), "Delegate to address-zero");
+        require(msg.sender != address(0), "Delegate is address-zero");
         require(msg.sender == ownerOf(tokenId), "Not owner");
-        require(
-            delegates[msg.sender][tokenId] != _delegatee,
-            "The same delegatee"
-        );
-        require(exists(tokenId), "Token must exists");
-
-        delegates[msg.sender][tokenId] = _delegatee;
-        if (delegationTimestamp[tokenId] == 0) totalDelegators += 1;
+        require(delegates[tokenId] == address(0), "Already delegated");
+        delegates[tokenId] = _delegatee;
+        if (delegationTimestamp[tokenId] == 0) totalDelegated += 1;
         delegationTimestamp[tokenId] = block.timestamp;
-    }
-
-    function startPartnerSales() public onlyOwner {
-        salesStarted = true;
-    }
-
-    function activateLottery() public onlyOwner {
-        lotteryActive = true;
     }
 
     function mint(address _address) internal {
@@ -310,8 +352,8 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         super._burn(tokenId);
 
         totalSupply -= 1;
-        totalDelegators -= 1;
-        delegates[msg.sender][tokenId] = address(0);
+        totalDelegated -= 1;
+        delegates[tokenId] = address(0);
         delegationTimestamp[tokenId] = 0;
     }
 
@@ -325,8 +367,8 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
     }
 
     function adminWithdraw() public onlyOwner {
-        require(block.timestamp > timeLock);
-        // console.log("0.", adminWithdrawableAmount / 10**17);
+        require(block.timestamp > timeLock, "Locked!");
         stackOSToken.transfer(msg.sender, adminWithdrawableAmount);
+        adminWithdrawableAmount.sub(adminWithdrawableAmount);
     }
 }
