@@ -201,12 +201,12 @@ contract Royalty is Ownable {
                     // only can get reward for ended cycle, so skip currently running cycle (last one)
                     if (cycles[o].perTokenReward > 0) {
                         // generation must be added before start of the cycle
-                        if(generationAddedTimestamp[generationId] < cycles[o].startTimestamp) { // TODO: bug
+                        if(generationAddedTimestamp[generationId] < cycles[o].startTimestamp) { 
                             // reward for token in this cycle shouldn't be already claimed
                             if (cycles[o].isClaimed[generationId][tokenId] == false) {
                                 // is this token delegated earlier than this cycle start?
                                 if (
-                                    delegationTimestamp < cycles[o].startTimestamp // TODO: bug
+                                    delegationTimestamp < cycles[o].startTimestamp
                                 ) {
                                     reward += cycles[o].perTokenReward;
                                     cycles[o].isClaimed[generationId][tokenId] = true;
