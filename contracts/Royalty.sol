@@ -223,8 +223,8 @@ contract Royalty is Ownable {
                         if(generationAddedTimestamp[generationId] < cycles[o].startTimestamp) { 
                             // reward for token in this cycle shouldn't be already claimed
                             if (cycles[o].isClaimed[generationId][tokenId] == false) {
-                                if ( delegationTimestamp < cycles[o].startTimestamp) {
                                 // is this token delegated earlier than this cycle start?
+                                if ( delegationTimestamp < cycles[o].startTimestamp) {
                                     reward += cycles[o].perTokenReward;
                                     cycles[o].isClaimed[generationId][tokenId] = true;
                                 }
