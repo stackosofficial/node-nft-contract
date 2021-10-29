@@ -162,7 +162,6 @@ contract Royalty is Ownable {
         @title User take reward for delegated NFTs that he owns
         @param generationId StackOS generation id to get reward for
         @param tokenIds Token ids to get reward for
-        @dev TODO: maybe some requires unnecessery?
     */
     function claim(uint256 generationId, uint256[] calldata tokenIds) external payable {
         require(!lockClaim, "Reentrant call!");
@@ -172,7 +171,6 @@ contract Royalty is Ownable {
         require(generations[generationId].balanceOf(msg.sender) > 0, "You dont have NFTs");
 
         checkDelegationsForFirstCycle();
-
 
         // similar 'if' as in `receive()`
         if (
@@ -206,7 +204,7 @@ contract Royalty is Ownable {
                     // iterate over cycles, ignoring current one since its not ended
                     for (uint256 o = 0; o < counter.current(); o++) {
                         // only can get reward for ended cycle TODO: this check can be removed?
-                        if (cycles[o].perTokenReward > 0) {
+                        // if (cycles[o].perTokenReward > 0) {
                             // generation must be added before start of the cycle (first generation's timestamp = 0)
                             if(generationAddedTimestamp[generationId] < cycles[o].startTimestamp) { 
                                 // reward for token in this cycle shouldn't be already claimed
@@ -220,7 +218,7 @@ contract Royalty is Ownable {
                                     }
                                 }
                             }
-                        }
+                        // }
                     }
                 }
             }
