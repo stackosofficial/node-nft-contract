@@ -478,7 +478,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
     }
 
     /*
-     * @title Owner can withdraw collected fees.
+     * @title Contract owner can withdraw collected fees.
      * @dev Caller must be contract owner, timelock should be passed.
      */
     function adminWithdraw() public onlyOwner {
