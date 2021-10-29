@@ -203,19 +203,14 @@ contract Royalty is Ownable {
                 if (delegationTimestamp > 0) {
                     // iterate over cycles, ignoring current one since its not ended
                     for (uint256 o = 0; o < counter.current(); o++) {
-                        // only can get reward for ended cycle TODO: this check can be removed?
-                        if (cycles[o].perTokenReward > 0) {
-                            // generation must be added before start of the cycle (first generation's timestamp = 0)
-                            if(generationAddedTimestamp[generationId] < cycles[o].startTimestamp) { 
-                                // reward for token in this cycle shouldn't be already claimed
-                                if (cycles[o].isClaimed[generationId][tokenId] == false) {
-                                    // is this token delegated earlier than this cycle start?
-                                    if (
-                                        delegationTimestamp < cycles[o].startTimestamp // TODO: this can be moved to be first check?
-                                    ) {
-                                        reward += cycles[o].perTokenReward;
-                                        cycles[o].isClaimed[generationId][tokenId] = true;
-                                    }
+                        // generation must be added before start of the cycle (first generation's timestamp = 0)
+                        if(generationAddedTimestamp[generationId] < cycles[o].startTimestamp) { 
+                            // reward for token in this cycle shouldn't be already claimed
+                            if (cycles[o].isClaimed[generationId][tokenId] == false) {
+                                if ( delegationTimestamp < cycles[o].startTimestamp) {
+                                // is this token delegated earlier than this cycle start?
+                                    reward += cycles[o].perTokenReward;
+                                    cycles[o].isClaimed[generationId][tokenId] = true;
                                 }
                             }
                         }
