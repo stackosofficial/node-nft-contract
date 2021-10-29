@@ -348,7 +348,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
     function partnerMint(uint256 _nftAmount) public {
         require(salesStarted, "Sales not started");
         require(
-            strategicPartner[msg.sender][true] <= _nftAmount,
+            strategicPartner[msg.sender][true] >= _nftAmount,
             "Amount Too Big"
         );
         stackOSToken.transferFrom(

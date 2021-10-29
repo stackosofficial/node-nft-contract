@@ -21,6 +21,18 @@ describe("Royalty", function () {
     currency2 = await ERC20_2.deploy(parse("1000.0"));
     await currency2.deployed();
   })
+  it("Deploy fake LINK", async function () {
+    const ERC20_2 = await ethers.getContractFactory("LinkToken");
+    link = await ERC20_2.deploy();
+    await link.deployed();
+    console.log(link.address);
+  });
+  it("Deploy VRF Coordinator", async function () {
+    const Coordinator = await ethers.getContractFactory("VRFCoordinatorMock");
+    coordinator = await Coordinator.deploy(link.address);
+    await coordinator.deployed();
+    console.log(coordinator.address);
+  });
   it("Deploy StackOS NFT", async function () {
     NAME = "STACK OS NFT";
     SYMBOL = "SON";
@@ -29,8 +41,11 @@ describe("Royalty", function () {
     MAX_SUPPLY = 25;
     PRIZES = 10;
     AUCTIONED_NFTS = 10;
-    TIMELOCK = deadline = Math.floor(Date.now() / 1000) + 2200;
-    URI_LINK = "https://google.com/";
+    VRF_COORDINATOR = coordinator.address;
+    LINK_TOKEN = link.address;
+    KEY_HASH =
+      "0x2ed0feb3e7fd2022120aa84fab1945545a9f2ffc9076fd6156fa96eaff4c1311";
+    FEE = parse("0.1");
 
     const StackOS = await ethers.getContractFactory("StackOsNFT");
     stackOsNFT = await StackOS.deploy(
@@ -41,8 +56,10 @@ describe("Royalty", function () {
       MAX_SUPPLY,
       PRIZES,
       AUCTIONED_NFTS,
-      TIMELOCK,
-      URI_LINK
+      VRF_COORDINATOR,
+      LINK_TOKEN,
+      KEY_HASH,
+      FEE
     );
     await stackOsNFT.deployed();
     // generation 2
@@ -54,8 +71,10 @@ describe("Royalty", function () {
       MAX_SUPPLY,
       PRIZES,
       AUCTIONED_NFTS,
-      TIMELOCK,
-      URI_LINK
+      VRF_COORDINATOR,
+      LINK_TOKEN,
+      KEY_HASH,
+      FEE
     );
     await stackOsNFTgen2.deployed();
     // gen3
@@ -67,19 +86,26 @@ describe("Royalty", function () {
       MAX_SUPPLY,
       PRIZES,
       AUCTIONED_NFTS,
-      TIMELOCK,
-      URI_LINK
+      VRF_COORDINATOR,
+      LINK_TOKEN,
+      KEY_HASH,
+      FEE
     );
     await stackOsNFTgen3.deployed();
   });
   it("Deploy royalty", async function () {
+    
+    STACKOS_NFT_ADDRESS = stackOsNFT.address;
+    MIN_CYCLE_ETHER = parse("1");
+    DEPOSIT_FEE_ADDRESS = bank.address;
+    DEPOSIT_FEE_PERCENT = 1000;
+    
     const Royalty = await ethers.getContractFactory("Royalty");
-
     royalty = await Royalty.deploy(
-      stackOsNFT.address, 
-      parse("1"),
-      bank.address,
-      1000
+      STACKOS_NFT_ADDRESS,
+      MIN_CYCLE_ETHER,
+      DEPOSIT_FEE_ADDRESS,
+      DEPOSIT_FEE_PERCENT
     );
     await royalty.deployed();
   });
