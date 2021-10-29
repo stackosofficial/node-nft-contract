@@ -9,6 +9,7 @@ describe("StackOS NFT", function () {
   const format = ethers.utils.formatEther;
   it("Defining Generals", async function () {
     // General
+    await network.provider.request({ method: "hardhat_reset", params: [] });
     provider = ethers.provider;
     [owner, joe] = await hre.ethers.getSigners();
   });
@@ -187,7 +188,6 @@ describe("StackOS NFT", function () {
   });
 
   it("Open Auction for bidding", async function () {
-
     deadline = Math.floor(Date.now() / 1000) + 1000;
     await stackOsNFT.adjustAuctionCloseTime(deadline);
   });

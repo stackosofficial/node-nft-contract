@@ -8,6 +8,7 @@ describe("Royalty", function () {
   const format = ethers.utils.formatEther;
   const CYCLE_DURATION = 60*60*24*31;
   it("Defining Generals", async function () {
+    await network.provider.request({ method: "hardhat_reset", params: [] });
     // General
     provider = ethers.provider;
     [owner, partner, joe, bank, bob, vera, dude]= await hre.ethers.getSigners();
