@@ -3,19 +3,20 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./interfaces/IStackOSNFT.sol";
+import "hardhat/console.sol";
 
 contract Royalty is Ownable {
     using Counters for Counters.Counter;
 
     Counters.Counter private counter; // counting cycles
 
-    address payable private bank; // fee from deposits goes here
-    uint256 private bankPercent; // amount of fee from deposits
+    uint256 private constant HUNDRED_PERCENT = 10000;
+
+    address payable private feeAddress; // fee from deposits goes here
+    uint256 private feePercent; // fee percent taken from deposits
 
     uint256 private minEthToStartCycle; // minimal cycle's balance required to end it
     uint256 private constant CYCLE_DURATION = 30 days; // minimal cycle's duration required to end it
-
-    bool private lockClaim; // anti-reentrancy for claim function
 
     struct Cycle {
         uint256 startTimestamp; // when cycle started
@@ -35,12 +36,10 @@ contract Royalty is Ownable {
     constructor(
         IStackOSNFT _stackOS,
         uint256 _minEthToStartCycle,
-        address payable _bank,
-        uint256 _bankPercent
+        address payable _feeAddress
     ) {
-        bank = _bank;
+        feeAddress = _feeAddress;
         generations[generationsCount++] = _stackOS;
-        bankPercent = _bankPercent;
         minEthToStartCycle = _minEthToStartCycle;
     }
 
@@ -49,13 +48,12 @@ contract Royalty is Ownable {
      */
     receive() external payable {
 
+
         checkDelegationsForFirstCycle();
 
-        // take fee
-        uint256 bankPart = ((msg.value * bankPercent) / 10000);
-        if (bankPart > 0) {
-            (bool success, ) = bank.call{value: bankPart}("");
-        }
+        // take fee from deposits
+        uint256 feePart = ((msg.value * feePercent) / HUNDRED_PERCENT);
+
         // is current cycle lasts enough?
         if (
             cycles[counter.current()].startTimestamp + CYCLE_DURATION <
@@ -72,12 +70,16 @@ contract Royalty is Ownable {
                 cycles[counter.current()].startTimestamp = block.timestamp;
 
                 // previous cycle already got enough balance, otherwise we wouldn't get here, thus we assign this deposit to the new cycle
-                cycles[counter.current()].balance += msg.value - bankPart;
+                cycles[counter.current()].balance += msg.value - feePart;
             } else {
-                cycles[counter.current()].balance += msg.value - bankPart;
+                cycles[counter.current()].balance += msg.value - feePart;
             }
         } else {
-            cycles[counter.current()].balance += msg.value - bankPart;
+            cycles[counter.current()].balance += msg.value - feePart;
+        }
+
+        if(feePart > 0) {
+            feeAddress.call{value: feePart}("");
         }
     }
 
@@ -109,9 +111,9 @@ contract Royalty is Ownable {
      * @param fee address
      * @dev Could only be invoked by the contract owner.
      */
-    function setBank(address payable _bank) external onlyOwner {
-        require(_bank != address(0), "Must be not zero-address");
-        bank = _bank;
+    function setFeeAddress(address payable _feeAddress) external onlyOwner {
+        require(_feeAddress != address(0), "Must be not zero-address");
+        feeAddress = _feeAddress;
     }
 
     /*
@@ -119,8 +121,9 @@ contract Royalty is Ownable {
      * @param fee percent
      * @dev Could only be invoked by the contract owner.
      */
-    function setBankPercent(uint256 _percent) external onlyOwner {
-        bankPercent = _percent;
+    function setFeePercent(uint256 _percent) external onlyOwner {
+        require(feePercent <= HUNDRED_PERCENT, "invalid fee basis points");
+        feePercent = _percent;
     }
 
     /*
@@ -169,7 +172,7 @@ contract Royalty is Ownable {
     /*
      * @title Get how much current cycle can pay for 1 NFT.
      * @return Amount that can be claimed in current cycle per 1 NFT
-     * @dev Make sure cycle's balance is not zero and delegates exists, if its 1 cycle then delegates must exist prior start of the cycle
+     * @dev Make sure cycle's balance is not zero and delegates exists, if it first cycle then delegates must exist prior start of that cycle
      */
     function getUnitPayment() private view returns (uint256) {
         uint256 delegatedCount = cycles[counter.current()].delegatedCount;
@@ -183,8 +186,6 @@ contract Royalty is Ownable {
      * @dev tokens must be delegated and owned by the caller, otherwise transaction reverted
      */
     function claim(uint256 generationId, uint256[] calldata tokenIds) external payable {
-        require(!lockClaim, "Reentrant call!");
-        lockClaim = true;
         require(generationId < generationsCount, "Generation doesn't exist");
         require(address(this).balance > 0, "No royalty");
         require(generations[generationId].balanceOf(msg.sender) > 0, "You dont have NFTs");
@@ -241,7 +242,5 @@ contract Royalty is Ownable {
                 require(success, "Transfer failed");
             }
         }
-
-        lockClaim = false;
     }
 }

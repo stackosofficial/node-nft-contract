@@ -28,7 +28,8 @@ async function main() {
    */
   ACTIVATE_LOTTERY = false
   /** 
-   * You can add more partners, just copy-paste inner array (its marked)
+   * You can add more partners, just copy-paste inner array and adjust parameters for each partner.
+   * Or remove that inner array for no whitelisted partners initially.
    * 
    * Params
    * Address - address who will be allowed to mint for themselves
@@ -36,7 +37,7 @@ async function main() {
    * Uint256 - amount of NFTs allowed for this address to mint
    */
   WHITELISTED_PARTNERS = [
-    ["0x47ef611fcb6480fa4bc74522f2ea2b5812352ae5", 4], // remove or copy-paste this line and adjust parameters
+    ["0x47ef611fcb6480fa4bc74522f2ea2b5812352ae5", 4], // remove or copy-paste this line
   ];
 
   ROYALTY_MIN_CYCLE_ETHER = parseEther("1");
@@ -86,10 +87,10 @@ async function main() {
     stackOsNFT.address,
     ROYALTY_MIN_CYCLE_ETHER,
     ROYALTY_DEPOSIT_FEE_ADDRESS,
-    ROYALTY_DEPOSIT_FEE_PERCENT
   );
   await royalty.deployed();
   console.log("Royalty deployed at: ", royalty.address);
+  await royalty.setFeePercent(ROYALTY_DEPOSIT_FEE_PERCENT);
 
   //^^^^^^^^^^^^^^^^^^^^^ DEPLOYMENT ^^^^^^^^^^^^^^^^^^^^^
 

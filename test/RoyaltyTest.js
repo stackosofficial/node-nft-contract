@@ -106,9 +106,9 @@ describe("Royalty", function () {
       STACKOS_NFT_ADDRESS,
       MIN_CYCLE_ETHER,
       DEPOSIT_FEE_ADDRESS,
-      DEPOSIT_FEE_PERCENT
     );
     await royalty.deployed();
+    await royalty.setFeePercent(DEPOSIT_FEE_PERCENT);
   });
   it("Mint some NFTs", async function () {
     await currency.transfer(partner.address, parse("100.0"));

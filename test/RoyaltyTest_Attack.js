@@ -107,10 +107,10 @@ describe("Royalty", function () {
       STACKOS_NFT_ADDRESS,
       MIN_CYCLE_ETHER,
       DEPOSIT_FEE_ADDRESS,
-      DEPOSIT_FEE_PERCENT
     );
     await ethers.provider.send("evm_mine");
     await royalty.deployed();
+    await royalty.setFeePercent(DEPOSIT_FEE_PERCENT);
   });
   it("Mint NFT", async function () {
     await stackOsNFT.startPartnerSales();
