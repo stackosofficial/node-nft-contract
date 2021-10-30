@@ -133,8 +133,8 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
 
     /*
      * @title Wallets choose how many tickets they want to stake for.
-     * @title Each ticket has a number which can can be selected in the lottery.
-     * @param Amount on of tickets you stake for.
+     * @title Each ticket has a number which can be selected in the lottery.
+     * @param Amount of tickets you stake for.
      * @dev Lottery has to be active
      */
 
@@ -192,11 +192,8 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
                     keccak256(abi.encode(randomNumber + iterationCount))
                 ) % participationTickets;
                 iterationCount++;
-                bool hasDuplicate;
-                if (randomUniqueNumbers[nr] == true) {
-                    hasDuplicate = true;
-                }
-                if (hasDuplicate == false) {
+                
+                if (randomUniqueNumbers[nr] == false) {
                     winningTickets.push(nr);
                     randomUniqueNumbers[nr] = true;
                 }

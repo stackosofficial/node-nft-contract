@@ -84,7 +84,7 @@ contract Royalty is Ownable {
     }
 
     /**
-     * @dev this is for first cycle, safety checks
+     * @dev Ensures that a cycle cannot start if there is no delegated StackOS NFTs.
      */
     function checkDelegationsForFirstCycle() private {
         // this should be true for the first cycle only, even if there is already delegates exists, this cycle still dont know about it
@@ -180,7 +180,7 @@ contract Royalty is Ownable {
     }
 
     /*
-     * @title User can take royalty for delegated NFTs that he owns
+     * @title User can take royalty for holding delegated NFTs that he owns
      * @param generationId StackOS generation id to get royalty for
      * @param tokenIds Token ids to get royalty for
      * @dev tokens must be delegated and owned by the caller, otherwise transaction reverted
