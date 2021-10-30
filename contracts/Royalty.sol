@@ -3,7 +3,6 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./interfaces/IStackOSNFT.sol";
-import "hardhat/console.sol";
 
 contract Royalty is Ownable {
     using Counters for Counters.Counter;
@@ -67,7 +66,6 @@ contract Royalty is Ownable {
             if (cycles[counter.current()].balance >= minEthToStartCycle) {
                 // at the end of cycle we calculate 'ETH per NFT' for it
                 cycles[counter.current()].perTokenReward = getUnitPayment();
-                        console.log(counter.current(), cycles[counter.current()].perTokenReward, cycles[counter.current()].balance, cycles[counter.current()].delegatedCount);
                 // start new cycle
                 counter.increment();
                 // save count of delegates that exists on start of cycle
@@ -201,7 +199,6 @@ contract Royalty is Ownable {
         ) {
             if (cycles[counter.current()].balance >= minEthToStartCycle) {
                 cycles[counter.current()].perTokenReward = getUnitPayment();
-                        console.log(counter.current(), cycles[counter.current()].perTokenReward, cycles[counter.current()].balance, cycles[counter.current()].delegatedCount);
                 counter.increment();
                 cycles[counter.current()].delegatedCount = getTotalDelegated();
                 cycles[counter.current()].startTimestamp = block.timestamp;
