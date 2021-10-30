@@ -135,7 +135,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
      * @title Wallets choose how many tickets they want to stake for.
      * @title Each ticket has a number which can be selected in the lottery.
      * @param Amount of tickets you stake for.
-     * @dev Lottery has to be active
+     * @dev Lottery has to be active.
      */
 
     function stakeForTickets(uint256 _ticketAmount) public {
@@ -221,8 +221,8 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
     }
 
     /*
-     * @title Once we change ticket assigned Status. People will be start being able to withdraw and claim their NFT
-     * @title Assigns admin withdrawable amount == winning numbers.
+     * @title Once we change ticket assigned Status. People will be start being able to withdraw and claim their NFT.
+     * @title Assigns admin withdrawable amount to the number of winning tickets multiplied by participation fee.
      * @dev Could only be invoked by the contract owner. All prizes have to be assigned.
      */
 
@@ -234,9 +234,8 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
     }
 
     /*
-     * @title Winning NFT tickets will be able to withdraw their NFT prize
+     * @title Winning NFT tickets will be able to withdraw their NFT prize.
      * @param List of Ticket Numbers that were winners.
-     * @dev Could only be invoked by the contract owner.
      */
 
     function claimReward(uint256[] calldata _ticketID) public {
@@ -257,7 +256,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
     }
 
     /*
-     * @title Tickets that did not will be able to withdraw their stake.
+     * @title Tickets that didn't win will be able to withdraw their stake.
      * @param List of Ticket Numbers that did not win.
      */
 
@@ -319,6 +318,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
      * @param Address of the partner.
      * @param Whitelist - TRUE/FALSE
      * @param Number of tokens will be able to mint.
+     * @dev Could only be invoked by the contract owner.
      */
 
     function whitelistPartner(
@@ -329,7 +329,8 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
     }
 
     /*
-     * @title Allow partners to buy NFT's
+     * @title Allow partners to buy NFT's.
+     * @dev Could only be invoked by the contract owner.
      */
 
     function startPartnerSales() public onlyOwner {
@@ -338,6 +339,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
 
     /*
      * @title Allow wallets to start staking for lottery tickets.
+     * @dev Could only be invoked by the contract owner.
      */
 
     function activateLottery() public onlyOwner {
@@ -432,6 +434,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
      * @param _delegatee Address of delegatee.
      * @param tokenId token id to delegate.
      * @dev Caller must be owner of NFT, caller and delegatee must not be zero-address.
+     * @dev Delegation can be done only once.
      */
 
     function delegate(address _delegatee, uint256 tokenId) public {
