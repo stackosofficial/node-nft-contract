@@ -39,15 +39,14 @@ contract Royalty is Ownable {
         uint256 _bankPercent
     ) {
         bank = _bank;
-        generations[generationsCount++] = _stackOS; // TODO: what if bad address passed? such as 0, should we revert ?
+        generations[generationsCount++] = _stackOS;
         bankPercent = _bankPercent;
         minEthToStartCycle = _minEthToStartCycle;
     }
 
-    // TODO: bug, if we 'delegate, then receive' in the same block.timestamp, then impossible to claim for that token (this seems to be only bug for first cycle),
-    // the same applies for adding generations and their timestamps
-    // one fix come in mind is to start first cycle only if firstDelegationTimestamp < block.timestamp
-    // maybe something similar for generations...
+    /*
+     * @title Deposit royalty so that NFT holders can claim it later.
+     */
     receive() external payable {
 
         checkDelegationsForFirstCycle();
