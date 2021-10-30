@@ -143,6 +143,8 @@ contract Royalty is Ownable {
 
     /*
      * @title Get total delegated NFT's that exists prior current block, in all added generations
+     * @dev May consume a lot of gas if there is a lot of generations and NFTs.
+     * @dev O(x * y)
      */
     function getTotalDelegatedBeforeCurrentBlock() private view returns (uint256) {
         uint256 result = 0;

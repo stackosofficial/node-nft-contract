@@ -192,7 +192,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
                     keccak256(abi.encode(randomNumber + iterationCount))
                 ) % participationTickets;
                 iterationCount++;
-                
+
                 if (randomUniqueNumbers[nr] == false) {
                     winningTickets.push(nr);
                     randomUniqueNumbers[nr] = true;
@@ -458,11 +458,6 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         override(ERC721, ERC721URIStorage)
     {
         super._burn(tokenId);
-
-        totalSupply -= 1;
-        totalDelegated -= 1;
-        delegates[tokenId] = address(0);
-        delegationTimestamp[tokenId] = 0;
     }
 
     function tokenURI(uint256 tokenId)
