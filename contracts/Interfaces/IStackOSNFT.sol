@@ -1,8 +1,8 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
 
-// TODO: should add getGenerationID ?
 interface IStackOSNFT {
+
     function getTotalDelegated() external view returns (uint256);
 
     function getDelegationTimestamp(uint256 _tokenId)

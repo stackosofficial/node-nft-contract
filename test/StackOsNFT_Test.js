@@ -9,6 +9,7 @@ describe("StackOS NFT", function () {
   const format = ethers.utils.formatEther;
   it("Defining Generals", async function () {
     // General
+    await network.provider.request({ method: "hardhat_reset", params: [] });
     provider = ethers.provider;
     [owner, joe] = await hre.ethers.getSigners();
   });
@@ -158,7 +159,7 @@ describe("StackOS NFT", function () {
   it("Partners mint", async function () {
     console.log(format(await currency.balanceOf(stackOsNFT.address)));
 
-    await stackOsNFT.whitelistPartner(joe.address, true, 2);
+    await stackOsNFT.whitelistPartner(joe.address, 2);
     await currency.transfer(joe.address, parse("2.0"));
     await currency.connect(joe).approve(stackOsNFT.address, parse("2.0"));
     await expect(stackOsNFT.connect(joe).partnerMint(4)).to.be.revertedWith(
