@@ -1,6 +1,7 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/utils/Counters.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IERC20.sol";
@@ -9,7 +10,7 @@ import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 import "./interfaces/IStackOSNFT.sol";
 import "hardhat/console.sol";
 
-contract Subscription is ReentrancyGuard {
+contract Subscription is Ownable, ReentrancyGuard {
 
     IERC20 private stackToken;
     IERC20 private paymentToken;
@@ -43,6 +44,26 @@ contract Subscription is ReentrancyGuard {
         _paymentToken = paymentToken;
         _stackNFT = stackNFT;
         _router = router;
+    }
+
+    function setCost(uint256 _cost) external onlyOwner {
+        require(_cost > 0, "Cant be zero");
+        cost = _cost;
+    }
+
+    function setBonusPercent(uint256 _percent) external onlyOwner {
+        require(_percent <= 10000, "Should not be higher than 100%");
+        bonusPercent = _percent;
+    }
+
+    function setMonthsRequired(uint256 _numberOfMonths) external onlyOwner {
+        require(_numberOfMonths > 0, "Cant be zero");
+        monthsRequired = _numberOfMonths;
+    }
+
+    function setTaxResetDeadline(uint256 _seconds) external onlyOwner {
+        require(_seconds > 0, "Cant be zero");
+        taxResetDeadline = _seconds;
     }
 
     /*
