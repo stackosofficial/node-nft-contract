@@ -15,11 +15,11 @@ contract Subscription is ReentrancyGuard {
     IERC20 private paymentToken;
     IStackOSNFT private stackNFT;
     IUniswapV2Router02 private router;
-    IERC20 private taxAddress;
+    address private taxAddress;
 
-    uint256 private constant MIN_MONTHS = 2; // 0 tax after this many months paid
     uint256 private constant MONTH = 28 days; // define what's a month
-    uint256 private constant TAX_RESET_DEADLINE = 7 days; // tax reduction resets if you haven't pay for this long for current unpayed month
+    uint256 private monthsRequired = 2; // 0 tax when subscribed this many months 
+    uint256 private taxResetDeadline = 7 days; // tax reduction resets if you haven't pay for this long for current unpayed month
 
     uint256 public cost = 10e18;
     uint256 public bonusPercent = 2000;
@@ -46,57 +46,64 @@ contract Subscription is ReentrancyGuard {
     }
 
     /*
-        @title StackNFT owner can buy subscription.
-        @dev Caller must approve us `cost` amount of paymentToken.
+        @title Buy subscription.
+        @dev Caller must own StackNFT and approve us `cost` amount of `paymentToken`.
     */
-    function subscribe(uint256 tokenId) external nonReentrant {
+    function subscribe(uint256 tokenId, uint256 numberOfMonths) external nonReentrant {
 
-        require(paymentToken.balanceOf(msg.sender) >= cost , "Not enough balance for subscription");
-        require(stackNFT.ownerOf(tokenId) == msg.sender, "Not your token");
-        // TODO: if withdraw, we set nextPayDay to 0, so technically can have 2 subs per month
-        require(deposits[tokenId].nextPayDate < block.timestamp, "Cant subscribe twice a month");
+        require(numberOfMonths > 0, "Zero months not allowed");
+        require(stackNFT.ownerOf(tokenId) == msg.sender, "Not owner");
+        require(deposits[tokenId].nextPayDate < block.timestamp, "Too soon");
 
         if(deposits[tokenId].nextPayDate == 0) {
             deposits[tokenId].nextPayDate = block.timestamp;
         }
 
-        if(deposits[tokenId].nextPayDate + TAX_RESET_DEADLINE < block.timestamp) {
+        // Paid after deadline?
+        if(deposits[tokenId].nextPayDate + taxResetDeadline < block.timestamp) {
+            // Reset TAX reduction
             deposits[tokenId].monthsPaid = 0;
         }
 
-        deposits[tokenId].monthsPaid += 1;
-        deposits[tokenId].nextPayDate += MONTH;
+        deposits[tokenId].monthsPaid += numberOfMonths;
+        deposits[tokenId].nextPayDate += (MONTH * numberOfMonths);
         
         // convert payment token into stack token
-        uint256 amountOutMin = getQuote(cost );
+        uint256 amountOutMin = getQuote(cost * numberOfMonths);
         uint256 deadline = block.timestamp + 1200;
         address[] memory path = new address[](2);
         path[0] = address(paymentToken);
         path[1] = address(stackToken);
         // TODO: what is amounts[0] ? just the same input amount we've passed?
-        uint256[] memory amounts = router.swapExactTokensForTokens(cost , amountOutMin, path, address(this), deadline);
+        uint256[] memory amounts = router.swapExactTokensForTokens(cost * numberOfMonths, amountOutMin, path, address(this), deadline);
         
         console.log("amouns after swap payment token: %s, stack token: %s", amounts[0], amounts[1]);
-
-        deposits[tokenId].balance += (amounts[1] + ((amounts[1] * bonusPercent) / 10000));
-
+        deposits[tokenId].balance += (amounts[1] * (10000 + bonusPercent) / 10000);
     }
 
-    function withdraw(uint256 tokenId) external nonReentrant {
-        require(stackNFT.ownerOf(tokenId) == msg.sender, "Not your token");
-        // TODO: require monthsPaid > 0?
+    /*
+        @title Withdraw accumulated deposit.
+        @dev Caller must own `tokenIds` and subscription at least for one month.
+        @dev TAX is subtracted if caller haven't subscribed for `monthsRequired` number of months in a row.
+    */
+    function withdraw(uint256[] calldata tokenIds) external nonReentrant {
+        for(uint256 i; i < tokenIds.length; i) {
+             _withdraw(tokenIds[i]);
+        }
+    }
 
-        uint256 tax;
-        if(deposits[tokenId].monthsPaid < MIN_MONTHS) {
-            // TODO: should be there applied a trick for a better precision?
-            uint256 payForMonth = deposits[tokenId].balance / MIN_MONTHS;
-            tax = MIN_MONTHS - deposits[tokenId].monthsPaid * payForMonth;
+    function _withdraw(uint256 tokenId) private {
+        require(stackNFT.ownerOf(tokenId) == msg.sender, "Not owner");
+        require(deposits[tokenId].monthsPaid > 0, "No subscription");
+        
+        if(deposits[tokenId].monthsPaid < monthsRequired ) {
+            uint256 tax = monthsRequired - deposits[tokenId].monthsPaid * (deposits[tokenId].balance / monthsRequired);
+            stackToken.transfer(taxAddress, tax);
+            deposits[tokenId].balance -= tax;
+            deposits[tokenId].monthsPaid = 0;
         }
 
-        deposits[tokenId].monthsPaid = 0;
-        deposits[tokenId].nextPayDate = 0;
-
-        stackToken.transfer(msg.sender, deposits[tokenId].balance - tax);
+        stackToken.transfer(msg.sender, deposits[tokenId].balance);
         deposits[tokenId].balance = 0;
     }
 
