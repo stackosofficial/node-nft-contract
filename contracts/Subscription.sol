@@ -1,5 +1,6 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
+
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
@@ -22,7 +23,7 @@ contract Subscription is Ownable, ReentrancyGuard {
     uint256 public monthsRequired = 2; // 0 tax when subscribed this many months 
     uint256 public taxResetDeadline = 7 days; // tax reduction resets if you haven't pay for this long for current unpayed month
 
-    uint256 public cost = 10e18;
+    uint256 public cost = 1e18;
     uint256 public bonusPercent = 2000;
 
     // per NFT deposit
@@ -35,14 +36,14 @@ contract Subscription is Ownable, ReentrancyGuard {
     mapping(uint256 => Deposit) private deposits;
 
     constructor(
-        IERC20 _stackToken,
         IERC20 _paymentToken,
+        IERC20 _stackToken,
         IStackOSNFT _stackNFT,
         IUniswapV2Router02 _router,
         address _taxAddress
     ) {
-        stackToken = _stackToken;
         paymentToken = _paymentToken;
+        stackToken = _stackToken;
         stackNFT = _stackNFT;
         router = _router;
         taxAddress = _taxAddress;
@@ -92,16 +93,23 @@ contract Subscription is Ownable, ReentrancyGuard {
         deposits[tokenId].nextPayDate += (MONTH * numberOfMonths);
         
         // convert payment token into stack token
-        uint256 amountOutMin = getQuote(cost * numberOfMonths);
         uint256 deadline = block.timestamp + 1200;
         address[] memory path = new address[](2);
         path[0] = address(paymentToken);
         path[1] = address(stackToken);
+        uint256[] memory amountOutMin = router.getAmountsOut(cost * numberOfMonths, path);
+        console.log(amountOutMin[0] / 1e18, amountOutMin[1] / 1e18, cost / 1e18);
         // TODO: what is amounts[0] ? just the same input amount we've passed?
-        uint256[] memory amounts = router.swapExactTokensForTokens(cost * numberOfMonths, amountOutMin, path, address(this), deadline);
+        uint256[] memory amounts = router.swapExactTokensForTokens(
+            cost * numberOfMonths,
+            amountOutMin[0],
+            path,
+            address(this),
+            deadline
+        );
         
-        console.log("amouns after swap payment token: %s, stack token: %s", amounts[0], amounts[1]);
         deposits[tokenId].balance += (amounts[1] * (10000 + bonusPercent) / 10000);
+        console.log("amouns after swap payment token: %s, stack token: %s", amounts[0], amounts[1], deposits[tokenId].balance / 1e18);
     }
 
     /*

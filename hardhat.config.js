@@ -58,6 +58,11 @@ module.exports = {
   networks: {
     hardhat: {
        allowUnlimitedContractSize: true,
+        forking: {
+          url: process.env.RINKEBY_URL, // must be archive node for next line to work
+          blockNumber: 9608366, // as stated on hardhat docs, this give x20 perfromance
+          enabled: true
+        }
     },
     rinkeby: {
       url: process.env.RINKEBY_URL || "",
