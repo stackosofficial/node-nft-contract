@@ -126,7 +126,7 @@ describe("Royalty", function () {
     expect(await bank.getBalance()).to.be.gt(parse("10000.19"))
     expect(await provider.getBalance(royalty.address)).to.equal(parse("1.8"))
   })
-  it("Royalty can be claimed only if NFT was delegated a month ago and before royalty deposited", async function () { 
+  it("Claim royalty for delegated NFTs", async function () { 
     await owner.sendTransaction({
       from: owner.address,
       to: royalty.address,
