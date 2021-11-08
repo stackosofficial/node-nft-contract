@@ -38,12 +38,14 @@ contract Subscription is Ownable, ReentrancyGuard {
         IERC20 _stackToken,
         IERC20 _paymentToken,
         IStackOSNFT _stackNFT,
-        IUniswapV2Router02 _router
+        IUniswapV2Router02 _router,
+        address _taxAddress
     ) {
-        _stackToken = stackToken;
-        _paymentToken = paymentToken;
-        _stackNFT = stackNFT;
-        _router = router;
+        stackToken = _stackToken;
+        paymentToken = _paymentToken;
+        stackNFT = _stackNFT;
+        router = _router;
+        taxAddress = _taxAddress;
     }
 
     function setCost(uint256 _cost) external onlyOwner {
