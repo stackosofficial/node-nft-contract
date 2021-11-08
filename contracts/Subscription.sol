@@ -2,7 +2,6 @@
 pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IERC20.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
@@ -10,7 +9,7 @@ import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 import "./interfaces/IStackOSNFT.sol";
 import "hardhat/console.sol";
 
-contract Subscription is Ownable, ReentrancyGuard {
+contract Subscription is ReentrancyGuard {
 
     IERC20 private stackToken;
     IERC20 private paymentToken;
