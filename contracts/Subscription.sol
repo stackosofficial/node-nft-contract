@@ -19,8 +19,8 @@ contract Subscription is Ownable, ReentrancyGuard {
     address private taxAddress;
 
     uint256 private constant MONTH = 28 days; // define what's a month
-    uint256 private monthsRequired = 2; // 0 tax when subscribed this many months 
-    uint256 private taxResetDeadline = 7 days; // tax reduction resets if you haven't pay for this long for current unpayed month
+    uint256 public monthsRequired = 2; // 0 tax when subscribed this many months 
+    uint256 public taxResetDeadline = 7 days; // tax reduction resets if you haven't pay for this long for current unpayed month
 
     uint256 public cost = 10e18;
     uint256 public bonusPercent = 2000;
