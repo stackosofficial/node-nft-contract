@@ -72,8 +72,6 @@ contract Subscription is Ownable, ReentrancyGuard {
     /*
         @title Buy subscription.
         @dev Caller must own StackNFT and approve us `cost` amount of `paymentToken`.
-
-        TODO: Can pay multiple times in the same day, each time will be in advance?
     */
     function subscribe(uint256 tokenId, uint256 numberOfMonths) external nonReentrant {
 
@@ -98,6 +96,8 @@ contract Subscription is Ownable, ReentrancyGuard {
         uint256 totalCost = cost * numberOfMonths;
         uint256 amount = buyStackToken(totalCost);
         deposits[tokenId].balance += (amount * (10000 + bonusPercent) / 10000);
+
+        // console.log(tokenId, deposits[tokenId].balance, deposits[tokenId].monthsPaid);
     }
 
     /*
@@ -106,20 +106,29 @@ contract Subscription is Ownable, ReentrancyGuard {
         @dev TAX is subtracted if caller haven't subscribed for `monthsRequired` number of months in a row.
     */
     function withdraw(uint256[] calldata tokenIds) external nonReentrant {
-        for(uint256 i; i < tokenIds.length; i) {
+        for(uint256 i; i < tokenIds.length; i ++) {
              _withdraw(tokenIds[i]);
         }
     }
-
+    
+    // TODO: if paid 100% months, but withdraw too soon
     function _withdraw(uint256 tokenId) private {
         require(stackNFT.ownerOf(tokenId) == msg.sender, "Not owner");
         require(deposits[tokenId].monthsPaid > 0, "No subscription");
-        
-        if(deposits[tokenId].monthsPaid < monthsRequired ) {
-            uint256 tax = monthsRequired - deposits[tokenId].monthsPaid * (deposits[tokenId].balance / monthsRequired);
+        require(
+            deposits[tokenId].balance <= stackToken.balanceOf(address(this)), 
+            "Not enough balance on bonus wallet"
+        );
+        // console.log(tokenId, deposits[tokenId].balance, deposits[tokenId].monthsPaid);
+        uint256 taxReductionStartedDate = deposits[tokenId].nextPayDate - (deposits[tokenId].monthsPaid * (MONTH+1));
+        uint256 taxReducedDate = taxReductionStartedDate + (MONTH * monthsRequired);
+        if(deposits[tokenId].monthsPaid < monthsRequired ||
+            taxReducedDate > block.timestamp) {
+            uint256 tax = (monthsRequired - deposits[tokenId].monthsPaid) * (deposits[tokenId].balance / monthsRequired);
             stackToken.transfer(taxAddress, tax);
             deposits[tokenId].balance -= tax;
             deposits[tokenId].monthsPaid = 0;
+            deposits[tokenId].nextPayDate = 0;
         }
 
         stackToken.transfer(msg.sender, deposits[tokenId].balance);

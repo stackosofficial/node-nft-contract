@@ -2,13 +2,11 @@ const { ethers } = require("hardhat");
 const { use, expect } = require("chai");
 const { solidity } = require("ethereum-waffle");
 const { Signer } = require("@ethersproject/abstract-signer");
+const { formatEther, parseEther } = require("@ethersproject/units");
 
 use(solidity);
 
 describe("Subscription", function () {
-
-  const parseEther = ethers.utils.parseEther;
-  const format = ethers.utils.formatEther;
 
   it("Snapshot EVM", async function () {
     snapshotId = await ethers.provider.send("evm_snapshot");
@@ -18,7 +16,7 @@ describe("Subscription", function () {
     // General
     provider = ethers.provider;
     [owner, partner, joe, bank, bob, vera, tax]= await hre.ethers.getSigners();
-
+    MONTH = 60*60*24*30;
     router = await ethers.getContractAt(
       "IUniswapV2Router02", 
       "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D"
@@ -134,10 +132,10 @@ describe("Subscription", function () {
   });
 
   it("Unable to subscribe for 0 months or foreign ids", async function () {
-    await expect(subscription.subscribe([0], 0)).to.be.revertedWith(
+    await expect(subscription.subscribe(0, 0)).to.be.revertedWith(
       "Zero months not allowed"
     );
-    await expect(subscription.subscribe([4], 1)).to.be.revertedWith(
+    await expect(subscription.subscribe(4, 1)).to.be.revertedWith(
       "Not owner"
     );
   });
@@ -169,20 +167,55 @@ describe("Subscription", function () {
       subscription.address,
       parseEther("200.0")
     );
-    await subscription.subscribe([0], 1);
-    await subscription.subscribe([1], 4);
+    await subscription.subscribe(0, 1);
+    await subscription.subscribe(1, 4);
   });
 
   it("Unable to subscibe until next month", async function () {
-    await expect(subscription.subscribe([0], 1)).to.be.revertedWith(
+    await expect(subscription.subscribe(0, 1)).to.be.revertedWith(
       "Too soon"
     );
-    await expect(subscription.subscribe([1], 4)).to.be.revertedWith(
+    await expect(subscription.subscribe(1, 4)).to.be.revertedWith(
       "Too soon"
     );
+  });
+  
+  it("Take TAX for early withdrawal", async function () {
+    await stackOsNFT.transferFrom(owner.address, bob.address, 0);
+    await provider.send("evm_increaseTime", [MONTH]);
+    expect(await currency.balanceOf(bob.address)).to.equal(0);
+    await subscription.connect(bob).withdraw([0]);
+    expect(await currency.balanceOf(bob.address)).to.be.gt(parseEther("4.0")); // 1 month sub = 50%
+  });
+
+  it("Unable to withdraw when low balance on bonus wallet", async function () {
+    await provider.send("evm_increaseTime", [MONTH * 3]);
+    await expect(subscription.withdraw([1])).to.be.revertedWith(
+      "Not enough balance on bonus wallet"
+    );
+  });
+
+  it("Withdraw 4 months", async function () {
+    await currency.transfer(subscription.address, parseEther("100.0"));
+    
+    await stackOsNFT.transferFrom(owner.address, bank.address, 1);
+    expect(await currency.balanceOf(bank.address)).to.equal(0);
+    await subscription.connect(bank).withdraw([1]);
+    expect(await currency.balanceOf(bank.address)).to.be.gt(parseEther("40.0"));
+  });
+  
+  it("Payed in advance, and withdraw sooner than TAX is 0%", async function () {
+    await subscription.subscribe(2, 4);
+    await stackOsNFT.transferFrom(owner.address, vera.address, 2);
+    await provider.send("evm_increaseTime", [MONTH]);
+    expect(await currency.balanceOf(vera.address)).to.equal(0);
+    await subscription.connect(vera).withdraw([2]);
+    expect(await currency.balanceOf(vera.address)).to.be.gt(parseEther("12.0"));
+    console.log(formatEther(await currency.balanceOf(vera.address)));
   });
 
   it("Revert EVM state", async function () {
     await ethers.provider.send("evm_revert", [snapshotId]);
   });
+
 });
