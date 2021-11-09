@@ -20,7 +20,7 @@ contract Subscription is Ownable, ReentrancyGuard {
     address private taxAddress;
 
     uint256 private constant MONTH = 28 days; // define what's a month
-    uint256 public monthsRequired = 2; // 0 tax when subscribed this many months 
+    uint256 public monthsRequired = 2; // tax fully reduced to 0 when subscribed this many months 
     uint256 public taxResetDeadline = 7 days; // tax reduction resets if you haven't pay for this long for current unpayed month
 
     uint256 public cost = 1e18;
@@ -29,8 +29,11 @@ contract Subscription is Ownable, ReentrancyGuard {
     // per NFT deposit
     struct Deposit {
         uint256 balance; 
-        uint256 monthsPaid;
+        uint256 subscribedMonthsNum;
+        uint256 monthsWithdrawn;
         uint256 nextPayDate; 
+        uint256 taxReductionStartDate; 
+        uint256 firstSubscriptionDate; 
     }
 
     mapping(uint256 => Deposit) private deposits;
@@ -83,21 +86,30 @@ contract Subscription is Ownable, ReentrancyGuard {
             deposits[tokenId].nextPayDate = block.timestamp;
         }
 
-        // Paid after deadline?
-        if(deposits[tokenId].nextPayDate + taxResetDeadline < block.timestamp) {
-            // Reset TAX reduction
-            deposits[tokenId].monthsPaid = 0;
+        if(deposits[tokenId].subscribedMonthsNum == 0) {
+            deposits[tokenId].firstSubscriptionDate = block.timestamp;
         }
 
-        deposits[tokenId].monthsPaid += numberOfMonths;
+        // Paid after deadline?
+        if(deposits[tokenId].nextPayDate + taxResetDeadline < block.timestamp) {
+            // Reset TAX to maximum
+            deposits[tokenId].taxReductionStartDate = 0;
+        }
+      
+
+        if(deposits[tokenId].taxReductionStartDate == 0) {
+            deposits[tokenId].taxReductionStartDate = block.timestamp;
+        }
+
+        deposits[tokenId].subscribedMonthsNum += numberOfMonths;
         deposits[tokenId].nextPayDate += (MONTH * numberOfMonths);
         
         // convert payment token into stack token
         uint256 totalCost = cost * numberOfMonths;
         uint256 amount = buyStackToken(totalCost);
-        deposits[tokenId].balance += (amount * (10000 + bonusPercent) / 10000);
+        deposits[tokenId].balance += amount;
 
-        // console.log(tokenId, deposits[tokenId].balance, deposits[tokenId].monthsPaid);
+        // console.log(tokenId, deposits[tokenId].balance, deposits[tokenId].subscribedMonthsNum);
     }
 
     /*
@@ -110,29 +122,61 @@ contract Subscription is Ownable, ReentrancyGuard {
              _withdraw(tokenIds[i]);
         }
     }
-    
+
     // TODO: if paid 100% months, but withdraw too soon
     function _withdraw(uint256 tokenId) private {
         require(stackNFT.ownerOf(tokenId) == msg.sender, "Not owner");
-        require(deposits[tokenId].monthsPaid > 0, "No subscription");
+        require(deposits[tokenId].subscribedMonthsNum > 0, "No subscription");
         require(
             deposits[tokenId].balance <= stackToken.balanceOf(address(this)), 
             "Not enough balance on bonus wallet"
         );
-        // console.log(tokenId, deposits[tokenId].balance, deposits[tokenId].monthsPaid);
-        uint256 taxReductionStartedDate = deposits[tokenId].nextPayDate - (deposits[tokenId].monthsPaid * (MONTH+1));
-        uint256 taxReducedDate = taxReductionStartedDate + (MONTH * monthsRequired);
-        if(deposits[tokenId].monthsPaid < monthsRequired ||
-            taxReducedDate > block.timestamp) {
-            uint256 tax = (monthsRequired - deposits[tokenId].monthsPaid) * (deposits[tokenId].balance / monthsRequired);
-            stackToken.transfer(taxAddress, tax);
-            deposits[tokenId].balance -= tax;
-            deposits[tokenId].monthsPaid = 0;
-            deposits[tokenId].nextPayDate = 0;
+
+        // subscribedMonthsNum, currentMonthAfterTaxReductionStarted, 10 paid, 5 required, withdraw at 3 month, or at 7 month
+        uint256 currentMonthSinceStarted = (block.timestamp - deposits[tokenId].firstSubscriptionDate) / MONTH;
+        if(currentMonthSinceStarted > deposits[tokenId].subscribedMonthsNum) {
+            currentMonthSinceStarted = deposits[tokenId].subscribedMonthsNum;
+        } else if (currentMonthSinceStarted == 0) {
+            currentMonthSinceStarted = 1;
         }
 
-        stackToken.transfer(msg.sender, deposits[tokenId].balance);
-        deposits[tokenId].balance = 0;
+        uint256 notWithdrawnMonths = 
+            deposits[tokenId].subscribedMonthsNum - deposits[tokenId].monthsWithdrawn;
+        uint256 withdrawMonthsNum = 
+            currentMonthSinceStarted - deposits[tokenId].monthsWithdrawn;
+        uint256 amountWithdraw = 
+            deposits[tokenId].balance / notWithdrawnMonths * withdrawMonthsNum;
+
+        uint256 amountWithdrawWithBonus = amountWithdraw * (10000 + bonusPercent) / 10000;
+
+        deposits[tokenId].monthsWithdrawn += withdrawMonthsNum;
+
+        uint256 zeroTaxDate = deposits[tokenId].taxReductionStartDate + (MONTH * monthsRequired);
+        uint256 reducedTaxMonthsNum = (block.timestamp - deposits[tokenId].taxReductionStartDate) / MONTH;
+        if(reducedTaxMonthsNum > monthsRequired) {
+            reducedTaxMonthsNum = monthsRequired;
+        } else if (reducedTaxMonthsNum == 0) {
+            reducedTaxMonthsNum = 1;
+        }
+        uint256 tax;
+        // early withdraw tax
+        if(zeroTaxDate > block.timestamp) {
+            // console.log(currentMonthSinceStarted, zeroTaxDate, reducedTaxMonthsNum);
+            // take tax from withdraw amount
+            tax = amountWithdrawWithBonus / monthsRequired * (monthsRequired - reducedTaxMonthsNum);
+            stackToken.transfer(taxAddress, tax);
+            amountWithdrawWithBonus -= tax;
+
+            // console.log(withdrawMonthsNum, amountWithdraw / 1e18, tax / 1e18, amountWithdrawWithBonus / 1e18);
+            // take tax from NFT balance
+            tax = amountWithdraw / monthsRequired * (monthsRequired - reducedTaxMonthsNum);
+            deposits[tokenId].balance -= tax;
+            // console.log(tokenId, amountWithdraw / 1e18, tax / 1e18, amountWithdrawWithBonus / 1e18);
+        } else {
+            deposits[tokenId].balance -= amountWithdraw;
+        }
+
+        stackToken.transfer(msg.sender, amountWithdrawWithBonus);
     }
 
     // swap payments-token to stack-token

@@ -15,13 +15,12 @@ describe("Subscription", function () {
   it("Defining Generals", async function () {
     // General
     provider = ethers.provider;
-    [owner, partner, joe, bank, bob, vera, tax]= await hre.ethers.getSigners();
+    [owner, partner, joe, bank, bob, vera, tax, homer]= await hre.ethers.getSigners();
     MONTH = 60*60*24*30;
     router = await ethers.getContractAt(
       "IUniswapV2Router02", 
       "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D"
     );
-    console.log(await router.factory());
   });
 
   it("Deploy TestCurrency", async function () {
@@ -182,36 +181,56 @@ describe("Subscription", function () {
   
   it("Take TAX for early withdrawal", async function () {
     await stackOsNFT.transferFrom(owner.address, bob.address, 0);
-    await provider.send("evm_increaseTime", [MONTH]);
     expect(await currency.balanceOf(bob.address)).to.equal(0);
     await subscription.connect(bob).withdraw([0]);
-    expect(await currency.balanceOf(bob.address)).to.be.gt(parseEther("4.0")); // 1 month sub = 50%
+    expect(await currency.balanceOf(bob.address)).to.be.gt(parseEther("5.0"));
+    expect(await currency.balanceOf(bob.address)).to.be.lt(parseEther("6.0"));
+    console.log("bob: ", formatEther(await currency.balanceOf(bob.address)));
+    console.log("tax: ", formatEther(await currency.balanceOf(tax.address)));
   });
 
   it("Unable to withdraw when low balance on bonus wallet", async function () {
-    await provider.send("evm_increaseTime", [MONTH * 3]);
     await expect(subscription.withdraw([1])).to.be.revertedWith(
       "Not enough balance on bonus wallet"
     );
   });
 
-  it("Withdraw 4 months", async function () {
+  it("Withdraw 3 months, then one more (total 4)", async function () {
+    await provider.send("evm_increaseTime", [MONTH * 3]);
     await currency.transfer(subscription.address, parseEther("100.0"));
     
     await stackOsNFT.transferFrom(owner.address, bank.address, 1);
     expect(await currency.balanceOf(bank.address)).to.equal(0);
     await subscription.connect(bank).withdraw([1]);
-    expect(await currency.balanceOf(bank.address)).to.be.gt(parseEther("40.0"));
+
+    await provider.send("evm_increaseTime", [MONTH]);
+    await subscription.connect(bank).withdraw([1]);
+
+    expect(await currency.balanceOf(bank.address)).to.be.gt(parseEther("40.0")); // should be 30 * 1.2 + 10 * 1.2 = 48 (but dex? eats a lot?)
+
+    console.log("bank: ", formatEther(await currency.balanceOf(bank.address)));
+    console.log("tax: ", formatEther(await currency.balanceOf(tax.address)));
   });
   
   it("Payed in advance, and withdraw sooner than TAX is 0%", async function () {
     await subscription.subscribe(2, 4);
     await stackOsNFT.transferFrom(owner.address, vera.address, 2);
     await provider.send("evm_increaseTime", [MONTH]);
+
     expect(await currency.balanceOf(vera.address)).to.equal(0);
-    await subscription.connect(vera).withdraw([2]);
-    expect(await currency.balanceOf(vera.address)).to.be.gt(parseEther("12.0"));
-    console.log(formatEther(await currency.balanceOf(vera.address)));
+    await subscription.connect(vera).withdraw([2]); // withdraws for 1 months, TAX taken
+    expect(await currency.balanceOf(vera.address)).to.be.gt(parseEther("4.0"));
+    console.log("vera: ", formatEther(await currency.balanceOf(vera.address)));
+    console.log("tax: ", formatEther(await currency.balanceOf(tax.address)));
+
+    await provider.send("evm_increaseTime", [MONTH * 3]);
+    await currency.transfer(subscription.address, parseEther("100.0")); // not enough for bonuses
+    await stackOsNFT.connect(vera).transferFrom(vera.address, homer.address, 2);
+    expect(await currency.balanceOf(homer.address)).to.equal(0);
+    await subscription.connect(homer).withdraw([2]); // withdraws for  3 months, not taxed
+    expect(await currency.balanceOf(homer.address)).to.be.gt(parseEther("30.0"));
+    console.log("homer: ", formatEther(await currency.balanceOf(homer.address)));
+    console.log("tax: ", formatEther(await currency.balanceOf(tax.address)));
   });
 
   it("Revert EVM state", async function () {
