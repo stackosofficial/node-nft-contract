@@ -72,6 +72,8 @@ contract Subscription is Ownable, ReentrancyGuard {
     /*
         @title Buy subscription.
         @dev Caller must own StackNFT and approve us `cost` amount of `paymentToken`.
+
+        TODO: Can pay multiple times in the same day, each time will be in advance?
     */
     function subscribe(uint256 tokenId, uint256 numberOfMonths) external nonReentrant {
 
@@ -93,23 +95,9 @@ contract Subscription is Ownable, ReentrancyGuard {
         deposits[tokenId].nextPayDate += (MONTH * numberOfMonths);
         
         // convert payment token into stack token
-        uint256 deadline = block.timestamp + 1200;
-        address[] memory path = new address[](2);
-        path[0] = address(paymentToken);
-        path[1] = address(stackToken);
-        uint256[] memory amountOutMin = router.getAmountsOut(cost * numberOfMonths, path);
-        console.log(amountOutMin[0] / 1e18, amountOutMin[1] / 1e18, cost / 1e18);
-        // TODO: what is amounts[0] ? just the same input amount we've passed?
-        uint256[] memory amounts = router.swapExactTokensForTokens(
-            cost * numberOfMonths,
-            amountOutMin[0],
-            path,
-            address(this),
-            deadline
-        );
-        
-        deposits[tokenId].balance += (amounts[1] * (10000 + bonusPercent) / 10000);
-        console.log("amouns after swap payment token: %s, stack token: %s", amounts[0], amounts[1], deposits[tokenId].balance / 1e18);
+        uint256 totalCost = cost * numberOfMonths;
+        uint256 amount = buyStackToken(totalCost);
+        deposits[tokenId].balance += (amount * (10000 + bonusPercent) / 10000);
     }
 
     /*
@@ -138,13 +126,25 @@ contract Subscription is Ownable, ReentrancyGuard {
         deposits[tokenId].balance = 0;
     }
 
-    function getQuote(uint256 amountA) public view returns (uint256) {
-        IUniswapV2Pair lpToken = IUniswapV2Pair(
-            IUniswapV2Factory(
-                router.factory()
-            ).getPair(address(paymentToken), address(stackToken))
+    // swap payments-token to stack-token
+    function buyStackToken(uint256 amount) private returns (uint256) {
+
+        paymentToken.transferFrom(msg.sender, address(this), amount);
+        paymentToken.approve(address(router), amount);
+
+        uint256 deadline = block.timestamp + 1200;
+        address[] memory path = new address[](2);
+        path[0] = address(paymentToken);
+        path[1] = address(stackToken);
+        uint256[] memory amountOutMin = router.getAmountsOut(amount, path);
+        uint256[] memory amounts = router.swapExactTokensForTokens(
+            amount,
+            amountOutMin[1],
+            path,
+            address(this),
+            deadline
         );
-        (uint112 reserveA, uint112 reserveB, ) = lpToken.getReserves();
-        return router.quote(amountA, reserveA, reserveB);
+        
+        return amounts[1];
     }
 }
