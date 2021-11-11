@@ -94,6 +94,7 @@ contract Subscription is Ownable, ReentrancyGuard {
         if(deposits[tokenId].nextPayDate + taxResetDeadline < block.timestamp) {
             // Reset TAX to maximum
             deposits[tokenId].taxReductionStartDate = 0;
+            deposits[tokenId].nextPayDate = block.timestamp;
         }
       
 
