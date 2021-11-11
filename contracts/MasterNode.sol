@@ -5,7 +5,6 @@ import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "@uniswap/v2-periphery/contracts/interfaces/IERC20.sol";
 import "./interfaces/IStackOSNFT.sol";
 import "hardhat/console.sol";
 
@@ -14,17 +13,18 @@ contract MasterNode is ERC721, Ownable, ReentrancyGuard {
 
     Counters.Counter private _tokenIdCounter;
 
-    IERC20 private stackToken;
     mapping(address => uint256) private deposits; // total tokens deposited, from any generation
 
     IStackOSNFT[] private generations; // StackNFT contract generations
 
-    uint256 private mintPrice;
+    uint256 public mintPrice;
 
     constructor(
-        IERC20 _stackToken
+        IStackOSNFT _stackOS, 
+        uint256 _mintPrice
     ) ERC721("MasterNode", "MN") {
-        stackToken = _stackToken;
+        mintPrice = _mintPrice;
+        addNextGeneration(_stackOS);
     }
 
     /*
@@ -32,13 +32,13 @@ contract MasterNode is ERC721, Ownable, ReentrancyGuard {
      * @param Number of nodes.
      * @dev Could only be invoked by the contract owner.
      */
-    function setMintPrice(uint256 numberOfTokens) public onlyOwner {
-        mintPrice = numberOfTokens;
+    function setMintPrice(uint256 _mintPrice) public onlyOwner {
+        mintPrice = _mintPrice;
     }
 
     /*
-     * @title Add next generation of StackNFT
-     * @param IStackOSNFT compatible address
+     * @title Add next generation of StackNFT.
+     * @param IStackOSNFT compatible address. Should be unique and non-zero.
      * @dev Could only be invoked by the contract owner.
      */
     function addNextGeneration(IStackOSNFT _stackOS) public onlyOwner {
@@ -51,7 +51,7 @@ contract MasterNode is ERC721, Ownable, ReentrancyGuard {
 
     /*
         @title Deposit StackNFT.
-        @title Once deposited enough mints a MasterNode for the caller.
+        @dev StackNFT generation must be added prior to deposit.
     */
     function deposit(uint256 generationId, uint256[] calldata tokenIds) external nonReentrant {
 
@@ -66,12 +66,16 @@ contract MasterNode is ERC721, Ownable, ReentrancyGuard {
         }
 
         deposits[msg.sender] += tokenIds.length;
+    }
 
-        if(deposits[msg.sender] >= mintPrice) {
-            deposits[msg.sender] -= mintPrice;
-            _mint(msg.sender, _tokenIdCounter.current());
-            _tokenIdCounter.increment();
-        }
-
+    /*
+        @title Mints a MasterNode for the caller.
+        @dev Caller must have deposited `mintPrice` number of StackNFT of any generation.
+    */
+    function mint() public nonReentrant {
+        require(deposits[msg.sender] >= mintPrice, "Not enough deposited");
+        deposits[msg.sender] -= mintPrice;
+        _mint(msg.sender, _tokenIdCounter.current());
+        _tokenIdCounter.increment();
     }
 }
