@@ -116,6 +116,8 @@ contract Subscription is Ownable, ReentrancyGuard {
         @title Withdraw accumulated deposit.
         @dev Caller must own `tokenIds` and subscription at least for one month.
         @dev TAX is subtracted if caller haven't subscribed for `monthsRequired` number of months in a row.
+        
+        TODO: If they stop paying $100 a month the withdrawal tax resets to 75%
     */
     function withdraw(uint256[] calldata tokenIds) external nonReentrant {
         for(uint256 i; i < tokenIds.length; i ++) {

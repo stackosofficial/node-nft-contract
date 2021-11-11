@@ -14,10 +14,13 @@ interface IStackOSNFT {
 
     function getDelegator(uint256 _tokenId) external view returns (address);
 
+    function transferFromLastGen(address _ticketOwner, uint256 _amount)
+        external;
+
+    // From IERC721
+    function transferFrom( address from, address to, uint256 tokenId) external;
+
     function balanceOf(address owner) external view returns (uint256 balance);
 
     function ownerOf(uint256 tokenId) external view returns (address owner);
-
-    function transferFromLastGen(address _ticketOwner, uint256 _amount)
-        external;
 }
