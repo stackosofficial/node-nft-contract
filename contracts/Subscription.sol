@@ -83,23 +83,16 @@ contract Subscription is Ownable, ReentrancyGuard {
         require(deposits[tokenId].nextPayDate < block.timestamp, "Too soon");
 
         if(deposits[tokenId].nextPayDate == 0) {
-            deposits[tokenId].nextPayDate = block.timestamp;
-        }
-
-        if(deposits[tokenId].subscribedMonthsNum == 0) {
             deposits[tokenId].firstSubscriptionDate = block.timestamp;
+            deposits[tokenId].nextPayDate = block.timestamp + MONTH;
+            deposits[tokenId].taxReductionStartDate = block.timestamp;
         }
 
         // Paid after deadline?
         if(deposits[tokenId].nextPayDate + taxResetDeadline < block.timestamp) {
             // Reset TAX to maximum
-            deposits[tokenId].taxReductionStartDate = 0;
-            deposits[tokenId].nextPayDate = block.timestamp;
-        }
-      
-
-        if(deposits[tokenId].taxReductionStartDate == 0) {
             deposits[tokenId].taxReductionStartDate = block.timestamp;
+            deposits[tokenId].nextPayDate = block.timestamp;
         }
 
         deposits[tokenId].subscribedMonthsNum += numberOfMonths;
@@ -117,8 +110,6 @@ contract Subscription is Ownable, ReentrancyGuard {
         @title Withdraw accumulated deposit.
         @dev Caller must own `tokenIds` and subscription at least for one month.
         @dev TAX is subtracted if caller haven't subscribed for `monthsRequired` number of months in a row.
-        
-        TODO: If they stop paying $100 a month the withdrawal tax resets to 75%
     */
     function withdraw(uint256[] calldata tokenIds) external nonReentrant {
         for(uint256 i; i < tokenIds.length; i ++) {
@@ -126,7 +117,8 @@ contract Subscription is Ownable, ReentrancyGuard {
         }
     }
 
-    // TODO: if paid 100% months, but withdraw too soon
+    // TODO: see what if paid for 100% months, but withdraw too soon
+    // TODO: if they stop paying $100 a month the withdrawal tax resets
     function _withdraw(uint256 tokenId) private {
         require(stackNFT.ownerOf(tokenId) == msg.sender, "Not owner");
         require(deposits[tokenId].subscribedMonthsNum > 0, "No subscription");
