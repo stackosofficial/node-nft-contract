@@ -132,7 +132,8 @@ contract Subscription is Ownable, ReentrancyGuard {
     // TODO: if they stop paying $100 a month the withdrawal tax resets
     function _withdraw(uint256 tokenId) private {
         require(stackNFT.ownerOf(tokenId) == msg.sender, "Not owner");
-        require(deposits[tokenId].subscribedMonthsNum > 0, "No subscription");
+        require(deposits[tokenId].nextPayDate > 0, "No subscription");
+        require(deposits[tokenId].lastSubscriptionDate < block.timestamp, "Already withdrawn");
         require(
             deposits[tokenId].balance <= stackToken.balanceOf(address(this)), 
             "Not enough balance on bonus wallet"
