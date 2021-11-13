@@ -16,7 +16,7 @@ describe("Subscription", function () {
     // General
     provider = ethers.provider;
     [owner, partner, joe, bank, bob, vera, tax, homer]= await hre.ethers.getSigners();
-    MONTH = 60*60*24*30;
+    MONTH = 60*60*24*28;
     router = await ethers.getContractAt(
       "IUniswapV2Router02", 
       "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D"
@@ -161,7 +161,7 @@ describe("Subscription", function () {
     );
   });
 
-  it("Subscribe 1 month and 4 months in advance", async function () {
+  it("Subscribe 1 month and 4 months in advance for another NFT", async function () {
     await usdt.approve(
       subscription.address,
       parseEther("200.0")
