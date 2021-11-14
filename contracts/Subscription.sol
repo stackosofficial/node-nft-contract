@@ -157,7 +157,7 @@ contract Subscription is Ownable, ReentrancyGuard {
             deposits[tokenId].withdrawableNum += currentMonth;
             // move last subscription date to the next month, so that we will be unable to withdraw for the same months again
             deposits[tokenId].lastSubscriptionDate += currentMonth * MONTH;
-            assert(deposits[tokenId].nextPayDate >= deposits[tokenId].lastSubscriptionDate); // TODO: remove if will be fine on tests
+            assert(deposits[tokenId].nextPayDate >= deposits[tokenId].lastSubscriptionDate);
             deposits[tokenId].tax = subOrZero(deposits[tokenId].tax, taxReductionPercent * currentMonth);
         }
 
@@ -187,7 +187,6 @@ contract Subscription is Ownable, ReentrancyGuard {
      *  @title Swap `paymentToken` for `stackToken`.
      *  @param Amount of `paymentToken`.
      */
-     // TODO: should this be rewriten to take everything from args?
     function buyStackToken(uint256 amount) private returns (uint256) {
 
         paymentToken.transferFrom(msg.sender, address(this), amount);
