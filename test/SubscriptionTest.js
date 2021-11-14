@@ -23,14 +23,14 @@ describe("Subscription", function () {
     );
   });
 
-  it("Deploy TestCurrency", async function () {
+  it("Deploy fake StackToken", async function () {
     ERC20 = await ethers.getContractFactory("TestCurrency");
-    currency = await ERC20.deploy(parseEther("10000.0"));
-    await currency.deployed();
+    stackToken = await ERC20.deploy(parseEther("1000000.0"));
+    await stackToken.deployed();
   })
 
   it("Deploy USDT", async function () {
-    usdt = await ERC20.deploy(parseEther("10000.0"));
+    usdt = await ERC20.deploy(parseEther("1000000.0"));
     await usdt.deployed();
   })
 
@@ -51,7 +51,7 @@ describe("Subscription", function () {
   it("Deploy StackOS NFT", async function () {
     NAME = "STACK OS NFT";
     SYMBOL = "SON";
-    STACK_TOKEN_FOR_PAYMENT = currency.address;
+    STACK_TOKEN_FOR_PAYMENT = stackToken.address;
     PRICE = parseEther("0.1");
     MAX_SUPPLY = 25;
     PRIZES = 10;
@@ -83,14 +83,14 @@ describe("Subscription", function () {
   it("Deploy subscription", async function () {
     
     PAYMENT_TOKEN = usdt.address;
-    STACK_TOKEN_FOR_PAYMENT = currency.address;
+    STACK_TOKEN_FOR_PAYMENT = stackToken.address;
     STACKOS_NFT_ADDRESS = stackOsNFT.address;
     ROUTER_ADDRESS = router.address;
     TAX_ADDRESS = tax.address;
 
     SUBSCRIPTION_COST = parseEther("10.0");
     BONUS_PECENT = 2000;
-    MONTHS_REQUIRED = 2;
+    TAX_REDUCTION_PERCENT = 2500; // 25% means: 1month withdraw 75% tax, 2 month 50%, 3 month 25%, 4 month 0%
     TAX_RESET_DEADLINE = 60*60*24*7; // 1 week
 
     const Subscription = await ethers.getContractFactory("Subscription");
@@ -104,20 +104,20 @@ describe("Subscription", function () {
     await subscription.deployed();
     await subscription.setCost(SUBSCRIPTION_COST);
     await subscription.setBonusPercent(BONUS_PECENT);
-    await subscription.setMonthsRequired(MONTHS_REQUIRED);
+    await subscription.setTaxReductionPercent(TAX_REDUCTION_PERCENT);
     await subscription.setTaxResetDeadline(TAX_RESET_DEADLINE);
   });
 
   it("Mint some NFTs", async function () {
-    await currency.transfer(partner.address, parseEther("100.0"));
+    await stackToken.transfer(partner.address, parseEther("100.0"));
     await stackOsNFT.startPartnerSales();
     
     await stackOsNFT.whitelistPartner(owner.address, 4);
-    await currency.approve(stackOsNFT.address, parseEther("10.0"));
+    await stackToken.approve(stackOsNFT.address, parseEther("10.0"));
     await stackOsNFT.partnerMint(4);
     
     await stackOsNFT.whitelistPartner(partner.address, 1);
-    await currency.connect(partner).approve(stackOsNFT.address, parseEther("10.0"));
+    await stackToken.connect(partner).approve(stackOsNFT.address, parseEther("10.0"));
     await stackOsNFT.connect(partner).partnerMint(1);
   });
 
@@ -140,20 +140,21 @@ describe("Subscription", function () {
   });
 
   it("Add liquidity", async function () {
-    await currency.approve(
+    await stackToken.approve(
       router.address,
-      parseEther("1000.0")
+      parseEther("100000.0")
     );
     await usdt.approve(
       router.address,
-      parseEther("1000.0")
+      parseEther("100000.0")
     );
     var deadline = Math.floor(Date.now() / 1000) + 1200;
+    // TODO: can replace this shit with pair that (if) exists on rinkeby with a lot of liquidity? or find way to improve this one.
     await router.addLiquidity(
       usdt.address,
-      currency.address,
-      parseEther("500.0"),
-      parseEther("500.0"),
+      stackToken.address,
+      parseEther("100000.0"),
+      parseEther("100000.0"),
       0,
       0,
       joe.address,
@@ -181,12 +182,12 @@ describe("Subscription", function () {
   
   it("Take TAX for early withdrawal", async function () {
     await stackOsNFT.transferFrom(owner.address, bob.address, 0);
-    expect(await currency.balanceOf(bob.address)).to.equal(0);
-    await subscription.connect(bob).withdraw([0]);
-    expect(await currency.balanceOf(bob.address)).to.be.gt(parseEther("5.0"));
-    expect(await currency.balanceOf(bob.address)).to.be.lt(parseEther("6.0"));
-    console.log("bob: ", formatEther(await currency.balanceOf(bob.address)));
-    console.log("tax: ", formatEther(await currency.balanceOf(tax.address)));
+    expect(await stackToken.balanceOf(bob.address)).to.equal(0);
+    await subscription.connect(bob).withdraw([0]); // 1st month 75% tax (so its 0-1 month, like 1st day of the 1st month)
+    console.log("bob: ", formatEther(await stackToken.balanceOf(bob.address)));
+    console.log("tax: ", formatEther(await stackToken.balanceOf(tax.address)));
+    expect(await stackToken.balanceOf(bob.address)).to.be.gt(parseEther("2.9"));
+    expect(await stackToken.balanceOf(bob.address)).to.be.lt(parseEther("3.1"));
   });
 
   it("Unable to withdraw when low balance on bonus wallet", async function () {
@@ -196,41 +197,65 @@ describe("Subscription", function () {
   });
 
   it("Withdraw 3 months, then one more (total 4)", async function () {
-    await provider.send("evm_increaseTime", [MONTH * 3]);
-    await currency.transfer(subscription.address, parseEther("100.0"));
+    await provider.send("evm_increaseTime", [MONTH * 2]); // 3rd month is going 
+    await stackToken.transfer(subscription.address, parseEther("100.0"));
     
     await stackOsNFT.transferFrom(owner.address, bank.address, 1);
-    expect(await currency.balanceOf(bank.address)).to.equal(0);
+    expect(await stackToken.balanceOf(bank.address)).to.equal(0);
+    console.log("bank: ", formatEther(await stackToken.balanceOf(bank.address)));
+    await subscription.connect(bank).withdraw([1]); // tax should be 25% as we at 3rd month
+    console.log("bank: ", formatEther(await stackToken.balanceOf(bank.address)));
+
+    await provider.send("evm_increaseTime", [MONTH]); // 4th month started
     await subscription.connect(bank).withdraw([1]);
 
-    await provider.send("evm_increaseTime", [MONTH]);
-    await subscription.connect(bank).withdraw([1]);
+    // TODO: gets 48 here, but should get less!
+    console.log("bank: ", formatEther(await stackToken.balanceOf(bank.address)));
+    console.log("tax: ", formatEther(await stackToken.balanceOf(tax.address)));
+    expect(await stackToken.balanceOf(bank.address)).to.be.gt(parseEther("47.0")); // 40 + bonus = 48 
 
-    expect(await currency.balanceOf(bank.address)).to.be.gt(parseEther("40.0")); // should be 30 * 1.2 + 10 * 1.2 = 48 (but dex? eats a lot?)
-
-    console.log("bank: ", formatEther(await currency.balanceOf(bank.address)));
-    console.log("tax: ", formatEther(await currency.balanceOf(tax.address)));
   });
-  
+  it("Add liquidity", async function () {
+    await stackToken.approve(
+      router.address,
+      parseEther("1000.0")
+    );
+    await usdt.approve(
+      router.address,
+      parseEther("1000.0")
+    );
+    var deadline = Math.floor(Date.now() / 1000) + 1200;
+    // TODO: can replace this shit with pair that (if) exists on rinkeby with a lot of liquidity? or find way to improve this one.
+    await router.addLiquidity(
+      usdt.address,
+      stackToken.address,
+      parseEther("900.0"),
+      parseEther("850.0"),
+      0,
+      0,
+      joe.address,
+      deadline
+    );
+  });
   it("Payed in advance, and withdraw sooner than TAX is 0%", async function () {
-    await subscription.subscribe(2, 4);
+    await subscription.subscribe(2, 4); // 1 month for NFT 2 
     await stackOsNFT.transferFrom(owner.address, vera.address, 2);
-    await provider.send("evm_increaseTime", [MONTH]);
+    await provider.send("evm_increaseTime", [MONTH]); // now 2 month
 
-    expect(await currency.balanceOf(vera.address)).to.equal(0);
-    await subscription.connect(vera).withdraw([2]); // withdraws for 1 months, TAX taken
-    expect(await currency.balanceOf(vera.address)).to.be.gt(parseEther("4.0"));
-    console.log("vera: ", formatEther(await currency.balanceOf(vera.address)));
-    console.log("tax: ", formatEther(await currency.balanceOf(tax.address)));
+    expect(await stackToken.balanceOf(vera.address)).to.equal(0);
+    await subscription.connect(vera).withdraw([2]); // withdraws for 2 months, TAX taken should be 50%.
+    expect(await stackToken.balanceOf(vera.address)).to.be.gt(parseEther("4.0"));
+    console.log("vera: ", formatEther(await stackToken.balanceOf(vera.address)));
+    console.log("tax: ", formatEther(await stackToken.balanceOf(tax.address)));
 
     await provider.send("evm_increaseTime", [MONTH * 3]);
-    await currency.transfer(subscription.address, parseEther("100.0")); // not enough for bonuses
+    await stackToken.transfer(subscription.address, parseEther("100.0")); // not enough for bonuses
     await stackOsNFT.connect(vera).transferFrom(vera.address, homer.address, 2);
-    expect(await currency.balanceOf(homer.address)).to.equal(0);
+    expect(await stackToken.balanceOf(homer.address)).to.equal(0);
     await subscription.connect(homer).withdraw([2]); // withdraws for  3 months, not taxed
-    expect(await currency.balanceOf(homer.address)).to.be.gt(parseEther("30.0"));
-    console.log("homer: ", formatEther(await currency.balanceOf(homer.address)));
-    console.log("tax: ", formatEther(await currency.balanceOf(tax.address)));
+    expect(await stackToken.balanceOf(homer.address)).to.be.gt(parseEther("30.0"));
+    console.log("homer: ", formatEther(await stackToken.balanceOf(homer.address)));
+    console.log("tax: ", formatEther(await stackToken.balanceOf(tax.address)));
   });
 
   it("Revert EVM state", async function () {
