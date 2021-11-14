@@ -15,8 +15,7 @@ describe("Subscription", function () {
   it("Defining Generals", async function () {
     // General
     provider = ethers.provider;
-    [owner, partner, joe, bank, bob, vera, tax, homer]= await hre.ethers.getSigners();
-    MONTH = 60*60*24*28;
+    [owner, partner, joe, bank, bob, vera, tax, homer, van]= await hre.ethers.getSigners();
     router = await ethers.getContractAt(
       "IUniswapV2Router02", 
       "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D"
@@ -88,7 +87,7 @@ describe("Subscription", function () {
     ROUTER_ADDRESS = router.address;
     TAX_ADDRESS = tax.address;
 
-    SUBSCRIPTION_COST = parseEther("10.0");
+    SUBSCRIPTION_PRICE = parseEther("10.0");
     BONUS_PECENT = 2000;
     TAX_REDUCTION_PERCENT = 2500; // 25% means: 1month withdraw 75% tax, 2 month 50%, 3 month 25%, 4 month 0%
     TAX_RESET_DEADLINE = 60*60*24*7; // 1 week
@@ -100,12 +99,17 @@ describe("Subscription", function () {
       STACKOS_NFT_ADDRESS,
       ROUTER_ADDRESS,
       TAX_ADDRESS,
+      TAX_RESET_DEADLINE,
+      SUBSCRIPTION_PRICE,
+      BONUS_PECENT,
+      TAX_REDUCTION_PERCENT
     );
     await subscription.deployed();
-    await subscription.setCost(SUBSCRIPTION_COST);
+    await subscription.setPrice(SUBSCRIPTION_PRICE);
     await subscription.setBonusPercent(BONUS_PECENT);
     await subscription.setTaxReductionPercent(TAX_REDUCTION_PERCENT);
     await subscription.setTaxResetDeadline(TAX_RESET_DEADLINE);
+    MONTH = (await subscription.MONTH()).toNumber();
   });
 
   it("Mint some NFTs", async function () {
@@ -203,7 +207,7 @@ describe("Subscription", function () {
     await stackOsNFT.transferFrom(owner.address, bank.address, 1);
     expect(await stackToken.balanceOf(bank.address)).to.equal(0);
     console.log("bank: ", formatEther(await stackToken.balanceOf(bank.address)));
-    await subscription.connect(bank).withdraw([1]); // tax should be 25% as we at 3rd month
+    await subscription.connect(bank).withdraw([1]); // tax should be 25% as we at 3rd month, amount get 27
     console.log("bank: ", formatEther(await stackToken.balanceOf(bank.address)));
 
     await provider.send("evm_increaseTime", [MONTH]); // 4th month started
@@ -212,50 +216,61 @@ describe("Subscription", function () {
     // TODO: gets 48 here, but should get less!
     console.log("bank: ", formatEther(await stackToken.balanceOf(bank.address)));
     console.log("tax: ", formatEther(await stackToken.balanceOf(tax.address)));
-    expect(await stackToken.balanceOf(bank.address)).to.be.gt(parseEther("47.0")); // 40 + bonus = 48 
+    expect(await stackToken.balanceOf(bank.address)).to.be.gt(parseEther("38.0")); // 27 + 12 = 39 
 
-  });
-  it("Add liquidity", async function () {
-    await stackToken.approve(
-      router.address,
-      parseEther("1000.0")
-    );
-    await usdt.approve(
-      router.address,
-      parseEther("1000.0")
-    );
-    var deadline = Math.floor(Date.now() / 1000) + 1200;
-    // TODO: can replace this shit with pair that (if) exists on rinkeby with a lot of liquidity? or find way to improve this one.
-    await router.addLiquidity(
-      usdt.address,
-      stackToken.address,
-      parseEther("900.0"),
-      parseEther("850.0"),
-      0,
-      0,
-      joe.address,
-      deadline
-    );
   });
   it("Payed in advance, and withdraw sooner than TAX is 0%", async function () {
     await subscription.subscribe(2, 4); // 1 month for NFT 2 
     await stackOsNFT.transferFrom(owner.address, vera.address, 2);
     await provider.send("evm_increaseTime", [MONTH]); // now 2 month
 
+    // vera withdraw TAXed 2 months
     expect(await stackToken.balanceOf(vera.address)).to.equal(0);
     await subscription.connect(vera).withdraw([2]); // withdraws for 2 months, TAX taken should be 50%.
-    expect(await stackToken.balanceOf(vera.address)).to.be.gt(parseEther("4.0"));
+    expect(await stackToken.balanceOf(vera.address)).to.be.gt(parseEther("11.0"));
     console.log("vera: ", formatEther(await stackToken.balanceOf(vera.address)));
     console.log("tax: ", formatEther(await stackToken.balanceOf(tax.address)));
 
-    await provider.send("evm_increaseTime", [MONTH * 3]);
+    // them homer withdraw from the same NFT but 0% tax and 2 months 
+    await provider.send("evm_increaseTime", [MONTH * 2]); // 4 month
     await stackToken.transfer(subscription.address, parseEther("100.0")); // not enough for bonuses
     await stackOsNFT.connect(vera).transferFrom(vera.address, homer.address, 2);
     expect(await stackToken.balanceOf(homer.address)).to.equal(0);
-    await subscription.connect(homer).withdraw([2]); // withdraws for  3 months, not taxed
-    expect(await stackToken.balanceOf(homer.address)).to.be.gt(parseEther("30.0"));
+    await subscription.connect(homer).withdraw([2]); // withdraws for 2 months, not taxed
     console.log("homer: ", formatEther(await stackToken.balanceOf(homer.address)));
     console.log("tax: ", formatEther(await stackToken.balanceOf(tax.address)));
+    expect(await stackToken.balanceOf(homer.address)).to.be.gt(parseEther("23.0")); // 24
+  });
+  it("Buy, then wait 2 month, then buy in advance, and withdraw after that", async function () {
+
+    // clear tax balance for simplicity
+    await stackToken.connect(tax).transfer(owner.address, await stackToken.balanceOf(tax.address));
+    await stackOsNFT.whitelistPartner(owner.address, 4);
+    await stackToken.approve(stackOsNFT.address, parseEther("100.0"));
+    await stackOsNFT.partnerMint(4); // 5-9
+
+    await subscription.subscribe(5, 2); // 5 is subscribed for 2 months
+    await provider.send("evm_increaseTime", [MONTH * 4]); // wait 2 months, tax is max
+
+    // clear owner balance for simplicity
+    await stackToken.transfer(subscription.address, await stackToken.balanceOf(owner.address)); 
+    expect(await stackToken.balanceOf(owner.address)).to.equal(0);
+    await subscription.subscribe(5, 2); // 5 is sub for 4 months, tax max
+
+    console.log("owner: ", formatEther(await stackToken.balanceOf(owner.address)));
+    console.log("tax: ", formatEther(await stackToken.balanceOf(tax.address)));
+    await subscription.withdraw([5]); // withdraw for 3 months, 36 * 0.25 = 9
+    console.log("owner: ", formatEther(await stackToken.balanceOf(owner.address)));
+    console.log("tax: ", formatEther(await stackToken.balanceOf(tax.address)));
+    expect(await stackToken.balanceOf(owner.address)).to.be.gt(parseEther("8.0"));
+    expect(await stackToken.balanceOf(owner.address)).to.be.lt(parseEther("9.1"));
+
+    await provider.send("evm_increaseTime", [MONTH]); // wait month, tax is 50%
+    await subscription.withdraw([5]); // withdraw for 1 month, 12 * 0.5 = 6, total balance = 9+6=15
+    console.log("owner: ", formatEther(await stackToken.balanceOf(owner.address)));
+    console.log("tax: ", formatEther(await stackToken.balanceOf(tax.address)));
+    expect(await stackToken.balanceOf(owner.address)).to.be.gt(parseEther("14.0"));
+    expect(await stackToken.balanceOf(owner.address)).to.be.lt(parseEther("15.1"));
   });
 
   it("Revert EVM state", async function () {
