@@ -76,6 +76,21 @@ describe("Subscription", function () {
       FEE
     );
     await stackOsNFT.deployed();
+
+    stackOsNFTGen2 = await StackOS.deploy(
+      NAME,
+      SYMBOL,
+      STACK_TOKEN_FOR_PAYMENT,
+      PRICE,
+      MAX_SUPPLY,
+      PRIZES,
+      AUCTIONED_NFTS,
+      VRF_COORDINATOR,
+      LINK_TOKEN,
+      KEY_HASH,
+      FEE
+    );
+    await stackOsNFTGen2.deployed();
  
   });
 
@@ -140,6 +155,15 @@ describe("Subscription", function () {
     );
     await expect(subscription.subscribe(0, 4, 1)).to.be.revertedWith(
       "Not owner"
+    );
+  });
+
+  it("Unable to subscribe and withdraw on wrong generation id", async function () {
+    await expect(subscription.subscribe(1337, 0, 0)).to.be.revertedWith(
+      "Wrong generation id"
+    );
+    await expect(subscription.withdraw(1337, [0])).to.be.revertedWith(
+      "Wrong generation id"
     );
   });
 
@@ -250,7 +274,7 @@ describe("Subscription", function () {
     await stackOsNFT.partnerMint(4); // 5-9
 
     await subscription.subscribe(0, 5, 2); // 5 is subscribed for 2 months
-    await provider.send("evm_increaseTime", [MONTH * 4]); // wait 2 months, tax is max
+    await provider.send("evm_increaseTime", [MONTH * 4]); // wait 4 months, tax is max
 
     // clear owner balance for simplicity
     await stackToken.transfer(subscription.address, await stackToken.balanceOf(owner.address)); 
@@ -271,6 +295,43 @@ describe("Subscription", function () {
     console.log("tax: ", formatEther(await stackToken.balanceOf(tax.address)));
     expect(await stackToken.balanceOf(owner.address)).to.be.gt(parseEther("14.0"));
     expect(await stackToken.balanceOf(owner.address)).to.be.lt(parseEther("15.1"));
+  });
+
+  it("Withdraw on multiple generations", async function () {
+    await subscription.addNextGeneration(stackOsNFTGen2.address);
+    await stackOsNFTGen2.whitelistPartner(owner.address, 1);
+    await stackToken.approve(stackOsNFTGen2.address, parseEther("100.0"));
+    await stackOsNFTGen2.startPartnerSales();
+    await stackOsNFTGen2.partnerMint(1); 
+
+    await usdt.approve(
+      subscription.address,
+      parseEther("200.0")
+    );
+    await subscription.subscribe(0, 6, 10); // gen 0, token 6, 10 months
+    await subscription.subscribe(1, 0, 10); // gen 1, token 0, 10 months
+
+    // clear balances for simplicity
+    await stackToken.connect(tax).transfer(owner.address, await stackToken.balanceOf(tax.address));
+    await stackToken.transfer(subscription.address, await stackToken.balanceOf(owner.address)); 
+
+    console.log("owner: ", formatEther(await stackToken.balanceOf(owner.address)));
+    console.log("tax: ", formatEther(await stackToken.balanceOf(tax.address)));
+    await subscription.withdraw(0, [6]); // +3 (tax is 75%, 12 * 0.25 = 3)
+    await subscription.withdraw(1, [0]); // +3
+    console.log("owner: ", formatEther(await stackToken.balanceOf(owner.address)));
+    console.log("tax: ", formatEther(await stackToken.balanceOf(tax.address)));
+    expect(await stackToken.balanceOf(owner.address)).to.be.gt(parseEther("5.0"));
+  });
+  it("Withdraw on multiple generations, 9 months no tax", async function () {
+    await provider.send("evm_increaseTime", [MONTH * 9]); // wait 9 months, tax 0
+
+    await subscription.withdraw(0, [6]); // + 108 (90 * 1.2)
+    await subscription.withdraw(1, [0]); // + 108
+    console.log("owner: ", formatEther(await stackToken.balanceOf(owner.address)));
+    console.log("tax: ", formatEther(await stackToken.balanceOf(tax.address)));
+    expect(await stackToken.balanceOf(owner.address)).to.be.gt(parseEther("220.0"));
+    expect(await stackToken.balanceOf(tax.address)).to.be.lt(parseEther("18.0")); // tax was 0, should stay the same
   });
 
   it("Revert EVM state", async function () {
