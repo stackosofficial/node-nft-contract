@@ -184,10 +184,10 @@ describe("Subscription", function () {
 
   it("Unable to subscribe and withdraw on wrong generation id", async function () {
     await expect(subscription.subscribe(1337, 0, 0)).to.be.revertedWith(
-      "Wrong generation id"
+      "Generation doesn't exist"
     );
     await expect(subscription.withdraw(1337, [0])).to.be.revertedWith(
-      "Wrong generation id"
+      "Generation doesn't exist"
     );
   });
 

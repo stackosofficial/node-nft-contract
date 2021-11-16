@@ -95,7 +95,7 @@ contract Subscription is Ownable, ReentrancyGuard {
      */
     function subscribe(uint256 generationId, uint256 tokenId, uint256 numberOfMonths) external nonReentrant {
 
-        require(generationId < generations.count(), "Wrong generation id");
+        require(generationId < generations.count(), "Generation doesn't exist");
         require(masterNode.isOwnStackOrMasterNode(msg.sender, generationId, tokenId), "Not owner");
         require(numberOfMonths > 0, "Zero months not allowed");
         require(deposits[generationId][tokenId].nextPayDate < block.timestamp, "Too soon");
@@ -137,7 +137,7 @@ contract Subscription is Ownable, ReentrancyGuard {
     }
 
     function _withdraw(uint256 generationId, uint256 tokenId) private {
-        require(generationId < generations.count(), "Wrong generation id");
+        require(generationId < generations.count(), "Generation doesn't exist");
         require(masterNode.isOwnStackOrMasterNode(msg.sender, generationId, tokenId), "Not owner");
         require(deposits[generationId][tokenId].nextPayDate > 0, "No subscription");
         require(

@@ -48,25 +48,21 @@ contract MasterNode is ERC721, Ownable, ReentrancyGuard {
         return _exists(stackToMaster[generationId][tokenId]);
     }
 
-    // /*
-    //  * @title Returns true if StackNFT token is locked in MasterNode.
-    //  * @param StackNFT generation id.
-    //  * @param StackNFT token id.
-    //  */
-    // function getMasterNodeByStack(uint256 generationId, uint256 tokenId) public view returns (uint256) {
-    //     return stackToMaster[generationId][tokenId];
-    // }
-
+    /*
+     * @title Returns true if `_wallet` own either StackNFT or MasterNodeNFT that owns StackNFT.
+     * @param StackNFT generation id.
+     * @param StackNFT token id.
+     */
     function isOwnStackOrMasterNode(address _wallet, uint256 generationId, uint256 tokenId) public view returns (bool) {
-        if(isLocked(generationId, tokenId) 
-            && ownerOf(generationId, tokenId) == _wallet) {
+        if(_exists(stackToMaster[generationId][tokenId]) &&
+                ownerOf(generationId, tokenId) == _wallet) {
             return true;
         }
         return generations.get(generationId).ownerOf(tokenId) == _wallet;
     }
 
     /*
-     * @title
+     * @title Returns owner of the MasterNodeNFT that owns designated StackNFT.
      * @param StackNFT generation id.
      * @param StackNFT token id.
      */
@@ -75,9 +71,9 @@ contract MasterNode is ERC721, Ownable, ReentrancyGuard {
     }
 
     /*
-        @title Deposit StackNFT.
-        @dev StackNFT generation must be added prior to deposit.
-    */
+     *  @title Deposit StackNFT.
+     *  @dev StackNFT generation must be added prior to deposit.
+     */
     function deposit(uint256 generationId, uint256[] calldata tokenIds) external nonReentrant {
 
         require(generationId < generations.count(), "Generation doesn't exist");
@@ -95,9 +91,9 @@ contract MasterNode is ERC721, Ownable, ReentrancyGuard {
     }
 
     /*
-        @title Mints a MasterNode for the caller.
-        @dev Caller must have deposited `mintPrice` number of StackNFT of any generation.
-    */
+     *  @title Mints a MasterNodeNFT for the caller.
+     *  @dev Caller must have deposited `mintPrice` number of StackNFT of any generation.
+     */
     function mint() public nonReentrant {
         require(deposits[msg.sender] >= mintPrice, "Not enough deposited");
         deposits[msg.sender] -= mintPrice;
