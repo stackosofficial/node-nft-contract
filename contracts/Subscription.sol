@@ -9,12 +9,16 @@ import "@uniswap/v2-periphery/contracts/interfaces/IERC20.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 import "./interfaces/IStackOSNFT.sol";
+import "./MasterNode.sol";
+import "./GenerationManager.sol";
 
 contract Subscription is Ownable, ReentrancyGuard {
 
     IERC20 private stackToken;
     IERC20 private paymentToken; // you buy subscriptions for this tokens
     IUniswapV2Router02 private router;
+    MasterNode private masterNode;
+    GenerationManager private generations;
     address private taxAddress;
 
     uint256 private constant MAX_PERCENT = 10000;   // for convinience 100%
@@ -36,12 +40,11 @@ contract Subscription is Ownable, ReentrancyGuard {
 
     mapping(uint256 => mapping(uint256 => Deposit)) private deposits; // generationId => tokenId => Deposit
 
-    IStackOSNFT[] private generations; // StackOS NFT contract different generations
-
     constructor(
         IERC20 _paymentToken,
         IERC20 _stackToken,
-        IStackOSNFT _stackNFT,
+        GenerationManager _generations,
+        MasterNode _masterNode,
         IUniswapV2Router02 _router,
         address _taxAddress,
         uint256 _taxResetDeadline,
@@ -51,7 +54,8 @@ contract Subscription is Ownable, ReentrancyGuard {
     ) {
         paymentToken = _paymentToken;
         stackToken = _stackToken;
-        generations.push(_stackNFT);
+        generations = _generations;
+        masterNode = _masterNode;
         router = _router;
         taxAddress = _taxAddress;
         taxResetDeadline = _taxResetDeadline;
@@ -81,19 +85,6 @@ contract Subscription is Ownable, ReentrancyGuard {
     }
 
     /*
-     * @title Add StackOS NFT contract generation.
-     * @param IStackOSNFT compatible address. Must be unique.
-     * @dev Could only be invoked by the contract owner. 
-     */
-    function addNextGeneration(IStackOSNFT _stackOS) public onlyOwner {
-        require(address(_stackOS) != address(0), "Must be not zero-address");
-        for(uint256 i; i < generations.length; i++) {
-            require(generations[i] != _stackOS, "Address already added");
-        }
-        generations.push(_stackOS);
-    }
-
-    /*
      *  @title Buy subscription.
      *  @param StackNFT generation id.
      *  @param Token id.
@@ -104,8 +95,8 @@ contract Subscription is Ownable, ReentrancyGuard {
      */
     function subscribe(uint256 generationId, uint256 tokenId, uint256 numberOfMonths) external nonReentrant {
 
-        require(generationId < generations.length, "Wrong generation id");
-        require(generations[generationId].ownerOf(tokenId) == msg.sender, "Not owner");
+        require(generationId < generations.count(), "Wrong generation id");
+        require(masterNode.isOwnStackOrMasterNode(msg.sender, generationId, tokenId), "Not owner");
         require(numberOfMonths > 0, "Zero months not allowed");
         require(deposits[generationId][tokenId].nextPayDate < block.timestamp, "Too soon");
 
@@ -146,8 +137,8 @@ contract Subscription is Ownable, ReentrancyGuard {
     }
 
     function _withdraw(uint256 generationId, uint256 tokenId) private {
-        require(generationId < generations.length, "Wrong generation id");
-        require(generations[generationId].ownerOf(tokenId) == msg.sender, "Not owner");
+        require(generationId < generations.count(), "Wrong generation id");
+        require(masterNode.isOwnStackOrMasterNode(msg.sender, generationId, tokenId), "Not owner");
         require(deposits[generationId][tokenId].nextPayDate > 0, "No subscription");
         require(
             deposits[generationId][tokenId].lastSubscriptionDate < block.timestamp &&

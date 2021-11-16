@@ -94,11 +94,34 @@ describe("Subscription", function () {
  
   });
 
+  it("Deploy GenerationManager", async function () {
+    MASTER_NODE_PRICE = 50;
+    const GenerationManager = await ethers.getContractFactory("GenerationManager");
+    generationManager = await GenerationManager.deploy(
+      stackOsNFT.address
+    );
+    await generationManager.deployed();
+    console.log(generationManager.address);
+  });
+
+  it("Deploy MasterNode", async function () {
+    GENERATION_MANAGER_ADDRESS = generationManager.address;
+    MASTER_NODE_PRICE = 50;
+    const MasterNode = await ethers.getContractFactory("MasterNode");
+    masterNode = await MasterNode.deploy(
+      GENERATION_MANAGER_ADDRESS,
+      MASTER_NODE_PRICE
+    );
+    await masterNode.deployed();
+    console.log(masterNode.address);
+  });
+
   it("Deploy subscription", async function () {
     
     PAYMENT_TOKEN = usdt.address;
     STACK_TOKEN_FOR_PAYMENT = stackToken.address;
-    STACKOS_NFT_ADDRESS = stackOsNFT.address;
+    GENERATION_MANAGER_ADDRESS = generationManager.address;
+    MASTER_NODE_ADDRESS = masterNode.address;
     ROUTER_ADDRESS = router.address;
     TAX_ADDRESS = tax.address;
 
@@ -111,7 +134,8 @@ describe("Subscription", function () {
     subscription = await Subscription.deploy(
       PAYMENT_TOKEN,
       STACK_TOKEN_FOR_PAYMENT,
-      STACKOS_NFT_ADDRESS,
+      GENERATION_MANAGER_ADDRESS,
+      MASTER_NODE_ADDRESS,
       ROUTER_ADDRESS,
       TAX_ADDRESS,
       TAX_RESET_DEADLINE,
@@ -298,7 +322,7 @@ describe("Subscription", function () {
   });
 
   it("Withdraw on multiple generations", async function () {
-    await subscription.addNextGeneration(stackOsNFTGen2.address);
+    await generationManager.add(stackOsNFTGen2.address);
     await stackOsNFTGen2.whitelistPartner(owner.address, 1);
     await stackToken.approve(stackOsNFTGen2.address, parseEther("100.0"));
     await stackOsNFTGen2.startPartnerSales();

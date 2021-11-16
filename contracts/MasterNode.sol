@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "./interfaces/IStackOSNFT.sol";
 import "hardhat/console.sol";
+import "./GenerationManager.sol";
 
 contract MasterNode is ERC721, Ownable, ReentrancyGuard {
     using Counters for Counters.Counter;
@@ -14,17 +15,19 @@ contract MasterNode is ERC721, Ownable, ReentrancyGuard {
     Counters.Counter private _tokenIdCounter;
 
     mapping(address => uint256) private deposits; // total tokens deposited, from any generation
+    mapping(uint256 => mapping(uint256 => uint256)) private stackToMaster; // generation => stack id => master node id
+    mapping(address => uint256) private lastUserMasterNode; // owner => current incomplete master node id
 
-    IStackOSNFT[] private generations; // StackNFT contract generations
+    GenerationManager private generations;
 
     uint256 public mintPrice;
 
     constructor(
-        IStackOSNFT _stackOS, 
+        GenerationManager _generations,
         uint256 _mintPrice
     ) ERC721("MasterNode", "MN") {
+        generations = _generations;
         mintPrice = _mintPrice;
-        addNextGeneration(_stackOS);
     }
 
     /*
@@ -37,16 +40,38 @@ contract MasterNode is ERC721, Ownable, ReentrancyGuard {
     }
 
     /*
-     * @title Add next generation of StackNFT.
-     * @param IStackOSNFT compatible address. Should be unique and non-zero.
-     * @dev Could only be invoked by the contract owner.
+     * @title Returns true if StackNFT token is locked in MasterNode.
+     * @param StackNFT generation id.
+     * @param StackNFT token id.
      */
-    function addNextGeneration(IStackOSNFT _stackOS) public onlyOwner {
-        require(address(_stackOS) != address(0), "Must be not zero-address");
-        for(uint256 i; i < generations.length; i++) {
-            require(generations[i] != _stackOS, "Address already added");
+    function isLocked(uint256 generationId, uint256 tokenId) public view returns (bool) {
+        return _exists(stackToMaster[generationId][tokenId]);
+    }
+
+    // /*
+    //  * @title Returns true if StackNFT token is locked in MasterNode.
+    //  * @param StackNFT generation id.
+    //  * @param StackNFT token id.
+    //  */
+    // function getMasterNodeByStack(uint256 generationId, uint256 tokenId) public view returns (uint256) {
+    //     return stackToMaster[generationId][tokenId];
+    // }
+
+    function isOwnStackOrMasterNode(address _wallet, uint256 generationId, uint256 tokenId) public view returns (bool) {
+        if(isLocked(generationId, tokenId) 
+            && ownerOf(generationId, tokenId) == _wallet) {
+            return true;
         }
-        generations.push(_stackOS);
+        return generations.get(generationId).ownerOf(tokenId) == _wallet;
+    }
+
+    /*
+     * @title
+     * @param StackNFT generation id.
+     * @param StackNFT token id.
+     */
+    function ownerOf(uint256 generationId, uint256 tokenId) public view returns (address) {
+        return ownerOf(stackToMaster[generationId][tokenId]);
     }
 
     /*
@@ -55,14 +80,15 @@ contract MasterNode is ERC721, Ownable, ReentrancyGuard {
     */
     function deposit(uint256 generationId, uint256[] calldata tokenIds) external nonReentrant {
 
-        require(generationId < generations.length, "Generation doesn't exist");
+        require(generationId < generations.count(), "Generation doesn't exist");
 
-        IStackOSNFT stack = generations[generationId];
+        IStackOSNFT stack = generations.get(generationId);
 
         for (uint256 i = 0; i < tokenIds.length; i++) {
             uint256 tokenId = tokenIds[i];
             require(stack.ownerOf(tokenId) == msg.sender, "Not owner");
             stack.transferFrom(msg.sender, address(this), tokenId);
+            stackToMaster[generationId][tokenId] = lastUserMasterNode[msg.sender];
         }
 
         deposits[msg.sender] += tokenIds.length;
@@ -77,5 +103,6 @@ contract MasterNode is ERC721, Ownable, ReentrancyGuard {
         deposits[msg.sender] -= mintPrice;
         _mint(msg.sender, _tokenIdCounter.current());
         _tokenIdCounter.increment();
+        lastUserMasterNode[msg.sender] = _tokenIdCounter.current();
     }
 }

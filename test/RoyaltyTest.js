@@ -96,18 +96,40 @@ describe("Royalty", function () {
     );
     await stackOsNFTgen3.deployed();
   });
+  it("Deploy GenerationManager", async function () {
+    MASTER_NODE_PRICE = 50;
+    const GenerationManager = await ethers.getContractFactory("GenerationManager");
+    generationManager = await GenerationManager.deploy(
+      stackOsNFT.address
+    );
+    await generationManager.deployed();
+    console.log(generationManager.address);
+  });
+  it("Deploy MasterNode", async function () {
+    GENERATION_MANAGER_ADDRESS = generationManager.address;
+    MASTER_NODE_PRICE = 50;
+    const MasterNode = await ethers.getContractFactory("MasterNode");
+    masterNode = await MasterNode.deploy(
+      GENERATION_MANAGER_ADDRESS,
+      MASTER_NODE_PRICE
+    );
+    await masterNode.deployed();
+    console.log(masterNode.address);
+  });
   it("Deploy royalty", async function () {
     
-    STACKOS_NFT_ADDRESS = stackOsNFT.address;
-    MIN_CYCLE_ETHER = parseEther("1");
+    GENERATION_MANAGER_ADDRESS = generationManager.address;
+    MASTER_NODE_ADDRESS = masterNode.address;
     DEPOSIT_FEE_ADDRESS = bank.address;
+    MIN_CYCLE_ETHER = parseEther("1");
     DEPOSIT_FEE_PERCENT = 1000;
     
     const Royalty = await ethers.getContractFactory("Royalty");
     royalty = await Royalty.deploy(
-      STACKOS_NFT_ADDRESS,
-      MIN_CYCLE_ETHER,
+      GENERATION_MANAGER_ADDRESS,
+      MASTER_NODE_ADDRESS,
       DEPOSIT_FEE_ADDRESS,
+      MIN_CYCLE_ETHER,
     );
     await royalty.deployed();
     await royalty.setFeePercent(DEPOSIT_FEE_PERCENT);
@@ -276,7 +298,7 @@ describe("Royalty", function () {
     await royalty.claim(0, [8]);
     console.log(format(await owner.getBalance()), format(await bob.getBalance()), format(await vera.getBalance()))
 
-    await royalty.addNextGeneration(stackOsNFTgen2.address); //delegates of gen2 will be only counted in future cycles
+    await generationManager.add(stackOsNFTgen2.address); //delegates of gen2 will be only counted in future cycles
     // console.log("balance after add generation: ", format(await provider.getBalance(royalty.address)));
 
     await royalty.claim(1, [2]);
@@ -340,11 +362,10 @@ describe("Royalty", function () {
     console.log(format(await provider.getBalance(royalty.address)));
     expect(await provider.getBalance(royalty.address)).to.be.equal(parseEther("0.0"));
     console.log(format(await owner.getBalance()), format(await partner.getBalance()), format(await bob.getBalance()), format(await vera.getBalance()));
-    await expect(royalty.addNextGeneration(stackOsNFTgen2.address)).to.be.revertedWith("Address already added");
   })
   it("StackOS generation 3 with multiple claimers", async function () {
 
-    await royalty.addNextGeneration(stackOsNFTgen3.address); // gen3 will be counted in 11 cycle
+    await generationManager.add(stackOsNFTgen3.address); // gen3 will be counted in 11 cycle
 
     await stackOsNFTgen3.whitelistPartner(vera.address, 1);
     await stackOsNFTgen3.whitelistPartner(bob.address, 1);
