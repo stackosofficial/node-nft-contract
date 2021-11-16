@@ -29,9 +29,8 @@ contract Royalty is Ownable {
 
     mapping(uint256 => Cycle) private cycles; // a new cycle can start when two conditions met, `CYCLE_DURATION` time passed and `minEthToStartCycle` ether deposited
 
-    mapping(uint256 => IStackOSNFT) private generations; // StackOS NFT contract different generations
-    mapping(uint256 => uint256) private generationAddedTimestamp; // time when new StackOS added to this contract
-    uint256 private generationsCount; // total stackOS generations added
+    IStackOSNFT[] private generations; // StackOS NFT contract different generations
+    uint256[] private generationAddedTimestamp; // time when new StackOS added to this contract
 
     constructor(
         IStackOSNFT _stackOS,
@@ -39,7 +38,8 @@ contract Royalty is Ownable {
         address payable _feeAddress
     ) {
         feeAddress = _feeAddress;
-        generations[generationsCount++] = _stackOS;
+        generations.push(_stackOS);
+        generationAddedTimestamp.push(0);
         minEthToStartCycle = _minEthToStartCycle;
     }
 
@@ -133,12 +133,11 @@ contract Royalty is Ownable {
      */
     function addNextGeneration(IStackOSNFT _stackOS) public onlyOwner {
         require(address(_stackOS) != address(0), "Must be not zero-address");
-        for(uint256 i; i < generationsCount; i++) {
+        for(uint256 i; i < generations.length; i++) {
             require(generations[i] != _stackOS, "Address already added");
         }
-        generations[generationsCount] = _stackOS;
-        generationAddedTimestamp[generationsCount] = block.timestamp;
-        generationsCount += 1;
+        generations.push(_stackOS);
+        generationAddedTimestamp.push(block.timestamp);
     }
 
     /*
@@ -148,7 +147,7 @@ contract Royalty is Ownable {
      */
     function getTotalDelegatedBeforeCurrentBlock() private view returns (uint256) {
         uint256 result = 0;
-        for(uint256 i = 0; i < generationsCount; i++) {
+        for(uint256 i = 0; i < generations.length; i++) {
             uint256 generationTotalDelegated = generations[i].getTotalDelegated();
             for(uint256 tokenId; tokenId < generationTotalDelegated; tokenId ++) {
                 uint256 delegationTimestamp = generations[i].getDelegationTimestamp(tokenId);
@@ -165,7 +164,7 @@ contract Royalty is Ownable {
      */
     function getTotalDelegated() private view returns (uint256) {
         uint256 total = 0;
-        for(uint256 i = 0; i < generationsCount; i++) {
+        for(uint256 i = 0; i < generations.length; i++) {
             total += generations[i].getTotalDelegated();
         }
         return total;
@@ -188,7 +187,7 @@ contract Royalty is Ownable {
      * @dev tokens must be delegated and owned by the caller, otherwise transaction reverted
      */
     function claim(uint256 generationId, uint256[] calldata tokenIds) external payable {
-        require(generationId < generationsCount, "Generation doesn't exist");
+        require(generationId < generations.length, "Generation doesn't exist");
         require(address(this).balance > 0, "No royalty");
         require(generations[generationId].balanceOf(msg.sender) > 0, "You dont have NFTs");
 
