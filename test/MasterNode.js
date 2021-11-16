@@ -94,13 +94,25 @@ describe("MasterNode", function () {
     await stackOsNFTgen2.deployed();
   });
 
+  it("Deploy GenerationManager", async function () {
+    MASTER_NODE_PRICE = 50;
+    const GenerationManager = await ethers.getContractFactory("GenerationManager");
+    generationManager = await GenerationManager.deploy(
+      stackOsNFT.address
+    );
+    await generationManager.deployed();
+    console.log(generationManager.address);
+  });
   it("Deploy MasterNode", async function () {
-    
-    MINT_RPICE = 5;
-
+    GENERATION_MANAGER_ADDRESS = generationManager.address;
+    MASTER_NODE_PRICE = 50;
     const MasterNode = await ethers.getContractFactory("MasterNode");
-    masterNode = await MasterNode.deploy(stackOsNFT.address, MINT_RPICE);
+    masterNode = await MasterNode.deploy(
+      GENERATION_MANAGER_ADDRESS,
+      MASTER_NODE_PRICE
+    );
     await masterNode.deployed();
+    console.log(masterNode.address);
   });
 
   it("Mint some StackNFT", async function () {

@@ -100,17 +100,37 @@ describe("Royalty", function () {
     await stackOsNFT.deployed();
     await stackOsNFTgen2.deployed();
     await stackOsNFTgen3.deployed();
+
+    MASTER_NODE_PRICE = 50;
+    const GenerationManager = await ethers.getContractFactory("GenerationManager");
+    generationManager = await GenerationManager.deploy(
+      stackOsNFT.address
+    );
+
+    GENERATION_MANAGER_ADDRESS = generationManager.address;
+    MASTER_NODE_PRICE = 50;
+    const MasterNode = await ethers.getContractFactory("MasterNode");
+    masterNode = await MasterNode.deploy(
+      GENERATION_MANAGER_ADDRESS,
+      MASTER_NODE_PRICE
+    );
     
-    STACKOS_NFT_ADDRESS = stackOsNFT.address;
-    MIN_CYCLE_ETHER = parseEther("1");
+    GENERATION_MANAGER_ADDRESS = generationManager.address;
+    MASTER_NODE_ADDRESS = masterNode.address;
     DEPOSIT_FEE_ADDRESS = bank.address;
+    MIN_CYCLE_ETHER = parseEther("1");
     DEPOSIT_FEE_PERCENT = 1000;
+
+    await ethers.provider.send("evm_mine");
+    await generationManager.deployed();
+    await masterNode.deployed();
     
     const Royalty = await ethers.getContractFactory("Royalty");
     royalty = await Royalty.deploy(
-      STACKOS_NFT_ADDRESS,
-      MIN_CYCLE_ETHER,
+      GENERATION_MANAGER_ADDRESS,
+      MASTER_NODE_ADDRESS,
       DEPOSIT_FEE_ADDRESS,
+      MIN_CYCLE_ETHER,
     );
     await ethers.provider.send("evm_mine");
     await royalty.deployed();
