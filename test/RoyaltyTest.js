@@ -49,6 +49,7 @@ describe("Royalty", function () {
     KEY_HASH =
       "0x2ed0feb3e7fd2022120aa84fab1945545a9f2ffc9076fd6156fa96eaff4c1311";
     FEE = parseEther("0.1");
+    TRANSFER_DISCOUNT = 2000;
 
     const StackOS = await ethers.getContractFactory("StackOsNFT");
     stackOsNFT = await StackOS.deploy(
@@ -59,42 +60,13 @@ describe("Royalty", function () {
       MAX_SUPPLY,
       PRIZES,
       AUCTIONED_NFTS,
-      VRF_COORDINATOR,
-      LINK_TOKEN,
+      // VRF_COORDINATOR,
+      // LINK_TOKEN,
       KEY_HASH,
-      FEE
+      FEE,
+      TRANSFER_DISCOUNT
     );
     await stackOsNFT.deployed();
-    // generation 2
-    stackOsNFTgen2 = await StackOS.deploy(
-      NAME,
-      SYMBOL,
-      STACK_TOKEN_FOR_PAYMENT,
-      PRICE,
-      MAX_SUPPLY,
-      PRIZES,
-      AUCTIONED_NFTS,
-      VRF_COORDINATOR,
-      LINK_TOKEN,
-      KEY_HASH,
-      FEE
-    );
-    await stackOsNFTgen2.deployed();
-    // gen3
-    stackOsNFTgen3 = await StackOS.deploy(
-      NAME,
-      SYMBOL,
-      STACK_TOKEN_FOR_PAYMENT,
-      PRICE,
-      MAX_SUPPLY,
-      PRIZES,
-      AUCTIONED_NFTS,
-      VRF_COORDINATOR,
-      LINK_TOKEN,
-      KEY_HASH,
-      FEE
-    );
-    await stackOsNFTgen3.deployed();
   });
   it("Deploy GenerationManager", async function () {
     const GenerationManager = await ethers.getContractFactory("GenerationManager");
@@ -247,6 +219,26 @@ describe("Royalty", function () {
     expect(await partner.getBalance()).to.be.gt(parseEther("10090.0"))
   })
   it("StackOS generation 2 with multiple claimers", async function () {
+    // generation 2
+    // delegates of gen2 will be only counted in future cycles
+    await generationManager.deployNextGen(      
+      NAME,
+      SYMBOL,
+      STACK_TOKEN_FOR_PAYMENT,
+      PRICE,
+      MAX_SUPPLY,
+      PRIZES,
+      AUCTIONED_NFTS,
+      // VRF_COORDINATOR,
+      // LINK_TOKEN,
+      KEY_HASH,
+      FEE,
+      TRANSFER_DISCOUNT
+    );
+    stackOsNFTgen2 = await ethers.getContractAt(
+      "StackOsNFT",
+      await generationManager.get(1)
+    );
 
     await expect(dude.sendTransaction({ // 6 cycle get 6 eth
         from: dude.address,
@@ -297,7 +289,7 @@ describe("Royalty", function () {
     await royalty.claim(0, [8]);
     console.log(format(await owner.getBalance()), format(await bob.getBalance()), format(await vera.getBalance()))
 
-    await generationManager.add(stackOsNFTgen2.address); //delegates of gen2 will be only counted in future cycles
+    // await generationManager.add(stackOsNFTgen2.address); 
     // console.log("balance after add generation: ", format(await provider.getBalance(royalty.address)));
 
     await royalty.claim(1, [2]);
@@ -322,13 +314,10 @@ describe("Royalty", function () {
     await royalty.connect(vera).claim(0, [7]); 
     await royalty.claim(0, [8]);
 
-    // 9 cycle not ended, can't claim gen2 for it
-    let before = format(await provider.getBalance(royalty.address));
     await royalty.claim(1, [2]);
     await royalty.connect(bob).claim(1, [0]);
     await royalty.connect(vera).claim(1, [1]); 
     await royalty.claim(1, [2]); 
-    expect(before).to.be.equal(format(await provider.getBalance(royalty.address)));
 
     await royalty.claim(0, [5]); 
     await royalty.connect(bob).claim(0, [3]);
@@ -364,7 +353,25 @@ describe("Royalty", function () {
   })
   it("StackOS generation 3 with multiple claimers", async function () {
 
-    await generationManager.add(stackOsNFTgen3.address); // gen3 will be counted in 11 cycle
+    // gen3
+    await generationManager.deployNextGen(      
+      NAME,
+      SYMBOL,
+      STACK_TOKEN_FOR_PAYMENT,
+      PRICE,
+      MAX_SUPPLY,
+      PRIZES,
+      AUCTIONED_NFTS,
+      // VRF_COORDINATOR,
+      // LINK_TOKEN,
+      KEY_HASH,
+      FEE,
+      TRANSFER_DISCOUNT
+    );
+    stackOsNFTgen3 = await ethers.getContractAt(
+      "StackOsNFT",
+      await generationManager.get(2)
+    );
 
     await stackOsNFTgen3.whitelistPartner(vera.address, 1);
     await stackOsNFTgen3.whitelistPartner(bob.address, 1);
