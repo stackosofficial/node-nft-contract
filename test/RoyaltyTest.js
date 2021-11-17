@@ -97,7 +97,6 @@ describe("Royalty", function () {
     await stackOsNFTgen3.deployed();
   });
   it("Deploy GenerationManager", async function () {
-    MASTER_NODE_PRICE = 50;
     const GenerationManager = await ethers.getContractFactory("GenerationManager");
     generationManager = await GenerationManager.deploy(
       stackOsNFT.address

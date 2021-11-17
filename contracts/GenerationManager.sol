@@ -48,10 +48,11 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         uint256 _maxSupply,
         uint256 _prizes,
         uint256 _auctionedNFTs,
-        address _vrfCoordinator,
-        address _linkToken,
+        // address _vrfCoordinator,
+        // address _linkToken,
         bytes32 _keyHash,
-        uint256 _fee
+        uint256 _fee,
+        uint256 _transferDiscount
     ) public onlyOwner returns (IStackOSNFT) {
         IStackOSNFT stack = IStackOSNFT(address(new StackOsNFT( 
             _name,
@@ -61,10 +62,11 @@ contract GenerationManager is Ownable, ReentrancyGuard {
             _maxSupply,
             _prizes,
             _auctionedNFTs,
-            _vrfCoordinator,
-            _linkToken,
+            // _vrfCoordinator,
+            // _linkToken,
             _keyHash,
-            _fee
+            _fee,
+            _transferDiscount
         )));
         stack.transferOwnership(msg.sender);
         add(stack);

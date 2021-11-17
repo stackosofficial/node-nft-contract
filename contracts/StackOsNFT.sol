@@ -9,6 +9,7 @@ import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@chainlink/contracts/src/v0.8/VRFConsumerBase.sol";
 import "./interfaces/IStackOSNFT.sol";
+import "hardhat/console.sol";
 
 contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
     using Counters for Counters.Counter;
@@ -65,15 +66,14 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         uint256 _maxSupply,
         uint256 _prizes,
         uint256 _auctionedNFTs,
-        address _vrfCoordinator,
-        address _linkToken,
         bytes32 _keyHash,
-        uint256 _fee
+        uint256 _fee,
+        uint256 _transferDiscount
     )
         ERC721(_name, _symbol)
         VRFConsumerBase(
-            _vrfCoordinator, // VRF Coordinator
-            _linkToken // LINK Token
+            0x6Aea593F1E70beb836049929487F7AF3d5e4432F, // VRF Coordinator
+            0xB678B953dD909a4386ED1cA7841550a89fb508cc // LINK Token
         )
     {
         stackOSToken = _stackOSTokenToken;
@@ -82,6 +82,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         prizes = _prizes;
         keyHash = _keyHash;
         fee = _fee;
+        transferDiscount = _transferDiscount;
         auctionedNFTs = _auctionedNFTs;
     }
 
@@ -315,13 +316,14 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
     }
 
     function transferFromLastGen(address _ticketOwner, uint256 _amount) public {
-        require(address(this) != address(msg.sender));
+        require(address(this) != address(msg.sender), "Cant transfer to the same address");
         uint256 ticketAmount = _amount.div(participationFee);
 
         // from stakeForTickets function
         uint256 depositAmount = participationFee.mul(ticketAmount)
-                                                .mul(transferDiscount)
+                                                .mul(10000 - transferDiscount)
                                                 .div(10000);
+        // console.log(ticketAmount, depositAmount);
         stackOSToken.transferFrom(address(msg.sender), address(this), depositAmount);
         uint256 nextTicketID = participationTickets;
         for (uint256 i; i < ticketAmount; i++) {
