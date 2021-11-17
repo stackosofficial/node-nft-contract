@@ -12,6 +12,7 @@ import "hardhat/console.sol";
 contract GenerationManager is Ownable, ReentrancyGuard {
 
     IStackOSNFT[] private generations; // StackNFT contract generations
+    mapping(address => uint256) private ids; // generation ids
     uint256[] private generationAddedTimestamp; // time when new StackOS added to this contract
 
     constructor(
@@ -32,6 +33,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         for(uint256 i; i < generations.length; i++) {
             require(generations[i] != _stackOS, "Address already added");
         }
+        ids[address(_stackOS)] = generations.length;
         generations.push(_stackOS);
         generationAddedTimestamp.push(block.timestamp);
     }
@@ -52,7 +54,8 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         // address _linkToken,
         bytes32 _keyHash,
         uint256 _fee,
-        uint256 _transferDiscount
+        uint256 _transferDiscount,
+        address _masterNode
     ) public onlyOwner returns (IStackOSNFT) {
         IStackOSNFT stack = IStackOSNFT(address(new StackOsNFT( 
             _name,
@@ -69,6 +72,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
             _transferDiscount
         )));
         stack.transferOwnership(msg.sender);
+        stack.setMasterNodeAddress(_masterNode);
         add(stack);
         return stack;
     }
@@ -86,6 +90,14 @@ contract GenerationManager is Ownable, ReentrancyGuard {
      */
     function get(uint256 generationId) public view returns (IStackOSNFT) {
         return generations[generationId];
+    }
+
+    /*
+     * @title Get generation of StackNFT.
+     * @param Generation id. 
+     */
+    function getId(address _stackOsNFT) public view returns (uint256) {
+        return ids[_stackOsNFT];
     }
 
     /*

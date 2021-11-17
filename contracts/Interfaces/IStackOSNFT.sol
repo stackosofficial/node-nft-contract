@@ -25,4 +25,6 @@ interface IStackOSNFT {
     function ownerOf(uint256 tokenId) external view returns (address owner);
 
     function transferOwnership(address newOwner) external;
+
+    function setMasterNodeAddress(address _masterNode) external;
 }

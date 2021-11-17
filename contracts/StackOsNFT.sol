@@ -8,6 +8,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@chainlink/contracts/src/v0.8/VRFConsumerBase.sol";
+import "./MasterNode.sol";
 import "./interfaces/IStackOSNFT.sol";
 import "hardhat/console.sol";
 
@@ -24,6 +25,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
     
     Counters.Counter private _tokenIdCounter;
     IERC20 private stackOSToken;
+    MasterNode private masterNode;
 
     uint256[] public winningTickets;
     // SET TIMELOCK!
@@ -86,6 +88,11 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         auctionedNFTs = _auctionedNFTs;
     }
 
+    function setMasterNodeAddress(MasterNode _masterNode) public onlyOwner {
+        require(address(masterNode) == address(0), "Already set");
+        masterNode = _masterNode;
+    }
+
     /*
      * @title Get total delegated NFTs.
      */
@@ -122,7 +129,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
      */
 
     function getDelegator(uint256 _tokenId) public view returns (address) {
-        return ownerOf(_tokenId);
+        return masterNode.ownerOfStackOrMasterNode(msg.sender, IStackOSNFT(address(this)), _tokenId);
     }
 
     function _baseURI() internal pure override returns (string memory) {
@@ -458,8 +465,10 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
      */
 
     function delegate(address _delegatee, uint256 tokenId) public {
-        require(msg.sender != address(0), "Delegate is address-zero");
-        require(msg.sender == ownerOf(tokenId), "Not owner");
+        require(
+            msg.sender == masterNode.ownerOfStackOrMasterNode(msg.sender, IStackOSNFT(address(this)), tokenId),
+            "Not owner"
+        );
         require(delegates[tokenId] == address(0), "Already delegated");
         delegates[tokenId] = _delegatee;
         if (delegationTimestamp[tokenId] == 0) totalDelegated += 1;
