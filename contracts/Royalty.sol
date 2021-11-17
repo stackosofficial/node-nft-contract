@@ -176,7 +176,6 @@ contract Royalty is Ownable {
      * @dev tokens must be delegated and owned by the caller, otherwise transaction reverted
      */
     function claim(uint256 generationId, uint256[] calldata tokenIds) external payable {
-        require(generationId < generations.count(), "Generation doesn't exist");
         require(address(this).balance > 0, "No royalty");
         IStackOSNFT stack = generations.get(generationId);
         require(

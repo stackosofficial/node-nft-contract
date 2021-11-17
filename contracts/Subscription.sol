@@ -97,30 +97,32 @@ contract Subscription is Ownable, ReentrancyGuard {
         require(generationId < generations.count(), "Generation doesn't exist");
         require(masterNode.isOwnStackOrMasterNode(msg.sender, generationId, tokenId), "Not owner");
         require(numberOfMonths > 0, "Zero months not allowed");
-        require(deposits[generationId][tokenId].nextPayDate < block.timestamp, "Too soon");
 
-        if(deposits[generationId][tokenId].nextPayDate == 0) {
-            deposits[generationId][tokenId].lastSubscriptionDate = block.timestamp;
-            deposits[generationId][tokenId].nextPayDate = block.timestamp;
-            deposits[generationId][tokenId].tax = MAX_PERCENT;
+        Deposit storage deposit = deposits[generationId][tokenId];
+        require(deposit.nextPayDate < block.timestamp, "Too soon");
+
+        if(deposit.nextPayDate == 0) {
+            deposit.lastSubscriptionDate = block.timestamp;
+            deposit.nextPayDate = block.timestamp;
+            deposit.tax = MAX_PERCENT;
         }
 
         // Paid after deadline?
-        if(deposits[generationId][tokenId].nextPayDate + taxResetDeadline < block.timestamp) {
-            uint256 prevWithdrawableMonths = (deposits[generationId][tokenId].nextPayDate - deposits[generationId][tokenId].lastSubscriptionDate) / MONTH;
+        if(deposit.nextPayDate + taxResetDeadline < block.timestamp) {
+            uint256 prevWithdrawableMonths = (deposit.nextPayDate - deposit.lastSubscriptionDate) / MONTH;
 
-            deposits[generationId][tokenId].withdrawableNum += prevWithdrawableMonths;
-            deposits[generationId][tokenId].lastSubscriptionDate = block.timestamp;
-            deposits[generationId][tokenId].nextPayDate = block.timestamp;
-            deposits[generationId][tokenId].tax = MAX_PERCENT;
+            deposit.withdrawableNum += prevWithdrawableMonths;
+            deposit.lastSubscriptionDate = block.timestamp;
+            deposit.nextPayDate = block.timestamp;
+            deposit.tax = MAX_PERCENT;
         }
 
-        deposits[generationId][tokenId].nextPayDate += (MONTH * numberOfMonths);
+        deposit.nextPayDate += (MONTH * numberOfMonths);
         
         // convert payment token into stack token
         uint256 totalCost = price * numberOfMonths;
         uint256 amount = buyStackToken(totalCost);
-        deposits[generationId][tokenId].balance += amount;
+        deposit.balance += amount;
     }
 
     /*
@@ -138,54 +140,55 @@ contract Subscription is Ownable, ReentrancyGuard {
     function _withdraw(uint256 generationId, uint256 tokenId) private {
         require(generationId < generations.count(), "Generation doesn't exist");
         require(masterNode.isOwnStackOrMasterNode(msg.sender, generationId, tokenId), "Not owner");
-        require(deposits[generationId][tokenId].nextPayDate > 0, "No subscription");
+        Deposit storage deposit = deposits[generationId][tokenId];
+        require(deposit.nextPayDate > 0, "No subscription");
         require(
-            deposits[generationId][tokenId].lastSubscriptionDate < block.timestamp &&
-            deposits[generationId][tokenId].nextPayDate > deposits[generationId][tokenId].lastSubscriptionDate, 
+            deposit.lastSubscriptionDate < block.timestamp &&
+            deposit.nextPayDate > deposit.lastSubscriptionDate, 
             "Already withdrawn"
         );
         require(
-            deposits[generationId][tokenId].balance <= stackToken.balanceOf(address(this)), 
+            deposit.balance <= stackToken.balanceOf(address(this)), 
             "Not enough balance on bonus wallet"
         );
 
         // if not subscribed
-        if(deposits[generationId][tokenId].nextPayDate < block.timestamp) {
+        if(deposit.nextPayDate < block.timestamp) {
             // no need for ceil, the difference should always be divisible by a month
-            uint256 prevWithdrawableMonths = (deposits[generationId][tokenId].nextPayDate - deposits[generationId][tokenId].lastSubscriptionDate) / MONTH;
+            uint256 prevWithdrawableMonths = (deposit.nextPayDate - deposit.lastSubscriptionDate) / MONTH;
 
-            deposits[generationId][tokenId].withdrawableNum += prevWithdrawableMonths;
-            deposits[generationId][tokenId].lastSubscriptionDate = 0;
-            deposits[generationId][tokenId].nextPayDate = 0;
-            deposits[generationId][tokenId].tax = MAX_PERCENT - taxReductionPercent;
+            deposit.withdrawableNum += prevWithdrawableMonths;
+            deposit.lastSubscriptionDate = 0;
+            deposit.nextPayDate = 0;
+            deposit.tax = MAX_PERCENT - taxReductionPercent;
         } else {
             // current month number since last subscription date. ceil needed as we use arbitrary block time
-            uint256 currentMonth = ceilDiv(block.timestamp - deposits[generationId][tokenId].lastSubscriptionDate, MONTH);
-            deposits[generationId][tokenId].withdrawableNum += currentMonth;
+            uint256 currentMonth = ceilDiv(block.timestamp - deposit.lastSubscriptionDate, MONTH);
+            deposit.withdrawableNum += currentMonth;
             // move last subscription date to the next month, so that we will be unable to withdraw for the same months again
-            deposits[generationId][tokenId].lastSubscriptionDate += currentMonth * MONTH;
-            assert(deposits[generationId][tokenId].nextPayDate >= deposits[generationId][tokenId].lastSubscriptionDate);
-            deposits[generationId][tokenId].tax = subOrZero(deposits[generationId][tokenId].tax, taxReductionPercent * currentMonth);
+            deposit.lastSubscriptionDate += currentMonth * MONTH;
+            assert(deposit.nextPayDate >= deposit.lastSubscriptionDate);
+            deposit.tax = subOrZero(deposit.tax, taxReductionPercent * currentMonth);
         }
 
-        uint256 unwithdrawableNum = (deposits[generationId][tokenId].nextPayDate - deposits[generationId][tokenId].lastSubscriptionDate) / MONTH;
+        uint256 unwithdrawableNum = (deposit.nextPayDate - deposit.lastSubscriptionDate) / MONTH;
         uint256 amountWithdraw = 
-            deposits[generationId][tokenId].balance / (deposits[generationId][tokenId].withdrawableNum + unwithdrawableNum);
-        amountWithdraw *= deposits[generationId][tokenId].withdrawableNum;
+            deposit.balance / (deposit.withdrawableNum + unwithdrawableNum);
+        amountWithdraw *= deposit.withdrawableNum;
         uint256 amountWithdrawWithBonus = amountWithdraw * (MAX_PERCENT + bonusPercent) / MAX_PERCENT;
 
-        deposits[generationId][tokenId].withdrawableNum = 0;
+        deposit.withdrawableNum = 0;
 
         // early withdraw tax
-        if(deposits[generationId][tokenId].tax > 0) {
+        if(deposit.tax > 0) {
             // take tax from amount with bonus that will be withdrawn
-            uint256 tax = amountWithdrawWithBonus * deposits[generationId][tokenId].tax / MAX_PERCENT;
+            uint256 tax = amountWithdrawWithBonus * deposit.tax / MAX_PERCENT;
             amountWithdrawWithBonus -= tax;
             stackToken.transfer(taxAddress, tax);
         } 
 
         // subtract withdrawn amount from balance (not counting tax and bonus)
-        deposits[generationId][tokenId].balance -= amountWithdraw;
+        deposit.balance -= amountWithdraw;
 
         stackToken.transfer(msg.sender, amountWithdrawWithBonus);
     }
