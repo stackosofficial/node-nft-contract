@@ -95,7 +95,6 @@ describe("MasterNode", function () {
   });
 
   it("Deploy GenerationManager", async function () {
-    MASTER_NODE_PRICE = 50;
     const GenerationManager = await ethers.getContractFactory("GenerationManager");
     generationManager = await GenerationManager.deploy(
       stackOsNFT.address
@@ -105,7 +104,7 @@ describe("MasterNode", function () {
   });
   it("Deploy MasterNode", async function () {
     GENERATION_MANAGER_ADDRESS = generationManager.address;
-    MASTER_NODE_PRICE = 50;
+    MASTER_NODE_PRICE = 5;
     const MasterNode = await ethers.getContractFactory("MasterNode");
     masterNode = await MasterNode.deploy(
       GENERATION_MANAGER_ADDRESS,
@@ -145,7 +144,7 @@ describe("MasterNode", function () {
   });
 
   it("Two generations", async function () {
-    await masterNode.addNextGeneration(stackOsNFTgen2.address);
+    await generationManager.add(stackOsNFTgen2.address);
     await stackOsNFT.partnerMint(3);
 
     await stackOsNFT.setApprovalForAll(masterNode.address, true);
@@ -160,9 +159,8 @@ describe("MasterNode", function () {
   });
 
   it("Reverts", async function () {
-    await expect(masterNode.addNextGeneration(stackOsNFTgen2.address)).to.be.revertedWith("Address already added");
     await expect(masterNode.deposit(1337, [3, 4])).to.be.revertedWith("Generation doesn't exist");
-    await expect(masterNode.deposit(0, [5])).to.be.revertedWith("Not owner");
+    await expect(masterNode.deposit(0, [5])).to.be.revertedWith("ERC721: transfer caller is not owner nor approved");
     await expect(masterNode.mint()).to.be.revertedWith("Not enough deposited");
   });
 

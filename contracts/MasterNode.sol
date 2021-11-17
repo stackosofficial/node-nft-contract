@@ -17,25 +17,17 @@ contract MasterNode is ERC721, Ownable, ReentrancyGuard {
     mapping(address => uint256) private deposits; // total tokens deposited, from any generation
     mapping(uint256 => mapping(uint256 => uint256)) private stackToMaster; // generation => stack id => master node id
     mapping(address => uint256) private lastUserMasterNode; // owner => current incomplete master node id
+    mapping(address => uint256[]) private toBeMinted; // owner => MasterNodeNFT to be minted
 
     GenerationManager private generations;
 
-    uint256 public mintPrice;
+    uint256 immutable mintPrice; // number of StackNFTs that must be deposited in order to be able to mint a MasterNode.
 
     constructor(
         GenerationManager _generations,
         uint256 _mintPrice
     ) ERC721("MasterNode", "MN") {
         generations = _generations;
-        mintPrice = _mintPrice;
-    }
-
-    /*
-     * @title Set number of StackNFTs that must be deposited in order to mint a MasterNode.
-     * @param Number of nodes.
-     * @dev Could only be invoked by the contract owner.
-     */
-    function setMintPrice(uint256 _mintPrice) public onlyOwner {
         mintPrice = _mintPrice;
     }
 
@@ -82,12 +74,22 @@ contract MasterNode is ERC721, Ownable, ReentrancyGuard {
 
         for (uint256 i = 0; i < tokenIds.length; i++) {
             uint256 tokenId = tokenIds[i];
-            require(stack.ownerOf(tokenId) == msg.sender, "Not owner");
             stack.transferFrom(msg.sender, address(this), tokenId);
-            stackToMaster[generationId][tokenId] = lastUserMasterNode[msg.sender];
+
+            if(deposits[msg.sender] == 0) {
+                lastUserMasterNode[msg.sender] = _tokenIdCounter.current();
+                _tokenIdCounter.increment();
+            }
+            deposits[msg.sender] += 1;
+            if(deposits[msg.sender] == mintPrice) {
+                deposits[msg.sender] -= mintPrice;
+                stackToMaster[generationId][tokenId] = lastUserMasterNode[msg.sender];
+                toBeMinted[msg.sender].push(lastUserMasterNode[msg.sender]);
+            } else {
+                stackToMaster[generationId][tokenId] = lastUserMasterNode[msg.sender];
+            }
         }
 
-        deposits[msg.sender] += tokenIds.length;
     }
 
     /*
@@ -95,10 +97,10 @@ contract MasterNode is ERC721, Ownable, ReentrancyGuard {
      *  @dev Caller must have deposited `mintPrice` number of StackNFT of any generation.
      */
     function mint() public nonReentrant {
-        require(deposits[msg.sender] >= mintPrice, "Not enough deposited");
-        deposits[msg.sender] -= mintPrice;
-        _mint(msg.sender, _tokenIdCounter.current());
-        _tokenIdCounter.increment();
-        lastUserMasterNode[msg.sender] = _tokenIdCounter.current();
+        require(toBeMinted[msg.sender].length > 0, "Not enough deposited");
+        while(toBeMinted[msg.sender].length > 0) {
+            _mint(msg.sender, toBeMinted[msg.sender][toBeMinted[msg.sender].length - 1]);
+            toBeMinted[msg.sender].pop();
+        }
     }
 }
