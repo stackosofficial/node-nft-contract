@@ -34,6 +34,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
     uint256 private maxSupply;
     uint256 private totalSupply;
     uint256 private participationFee;
+    uint256 private transferDiscount;
     uint256 private participationTickets;
     uint256 private prizes;
     uint256 private totalDelegated;
@@ -311,6 +312,23 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         uint256 amount = _ticketID.length.mul(participationFee);
         stackOSToken.approve(_address, amount);
         IStackOSNFT(_address).transferFromLastGen(msg.sender, amount);
+    }
+
+    function transferFromLastGen(address _ticketOwner, uint256 _amount) public {
+        require(address(this) != address(msg.sender));
+        uint256 ticketAmount = _amount.div(participationFee);
+
+        // from stakeForTickets function
+        uint256 depositAmount = participationFee.mul(ticketAmount)
+                                                .mul(transferDiscount)
+                                                .div(10000);
+        stackOSToken.transferFrom(address(msg.sender), address(this), depositAmount);
+        uint256 nextTicketID = participationTickets;
+        for (uint256 i; i < ticketAmount; i++) {
+            ticketOwner[nextTicketID] = _ticketOwner;
+            nextTicketID++;
+        }
+        participationTickets += ticketAmount;
     }
 
     /*

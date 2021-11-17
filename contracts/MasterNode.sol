@@ -6,8 +6,8 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "./interfaces/IStackOSNFT.sol";
-import "hardhat/console.sol";
 import "./GenerationManager.sol";
+import "hardhat/console.sol";
 
 contract MasterNode is ERC721, Ownable, ReentrancyGuard {
     using Counters for Counters.Counter;
@@ -15,9 +15,9 @@ contract MasterNode is ERC721, Ownable, ReentrancyGuard {
     Counters.Counter private _tokenIdCounter;
 
     mapping(address => uint256) private deposits; // total tokens deposited, from any generation
-    mapping(uint256 => mapping(uint256 => uint256)) private stackToMaster; // generation => stack id => master node id
     mapping(address => uint256) private lastUserMasterNode; // owner => current incomplete master node id
-    mapping(address => uint256[]) private toBeMinted; // owner => MasterNodeNFT to be minted
+    mapping(address => uint256[]) private toBeMinted; // owner => MasterNodeNFT ids to be minted
+    mapping(uint256 => mapping(uint256 => uint256)) private stackToMaster; // generation => stack id => master node id
 
     GenerationManager private generations;
 
