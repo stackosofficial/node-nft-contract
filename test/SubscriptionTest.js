@@ -60,6 +60,7 @@ describe("Subscription", function () {
     KEY_HASH =
       "0x2ed0feb3e7fd2022120aa84fab1945545a9f2ffc9076fd6156fa96eaff4c1311";
     FEE = parseEther("0.1");
+    TRANSFER_DISCOUNT = 2000;
 
     const StackOS = await ethers.getContractFactory("StackOsNFT");
     stackOsNFT = await StackOS.deploy(
@@ -70,28 +71,13 @@ describe("Subscription", function () {
       MAX_SUPPLY,
       PRIZES,
       AUCTIONED_NFTS,
-      VRF_COORDINATOR,
-      LINK_TOKEN,
+      // VRF_COORDINATOR,
+      // LINK_TOKEN,
       KEY_HASH,
-      FEE
+      FEE,
+      TRANSFER_DISCOUNT
     );
     await stackOsNFT.deployed();
-
-    stackOsNFTGen2 = await StackOS.deploy(
-      NAME,
-      SYMBOL,
-      STACK_TOKEN_FOR_PAYMENT,
-      PRICE,
-      MAX_SUPPLY,
-      PRIZES,
-      AUCTIONED_NFTS,
-      VRF_COORDINATOR,
-      LINK_TOKEN,
-      KEY_HASH,
-      FEE
-    );
-    await stackOsNFTGen2.deployed();
- 
   });
 
   it("Deploy GenerationManager", async function () {
@@ -321,7 +307,24 @@ describe("Subscription", function () {
   });
 
   it("Withdraw on multiple generations", async function () {
-    await generationManager.add(stackOsNFTGen2.address);
+    await generationManager.deployNextGen(      
+      NAME,
+      SYMBOL,
+      STACK_TOKEN_FOR_PAYMENT,
+      PRICE,
+      MAX_SUPPLY,
+      PRIZES,
+      AUCTIONED_NFTS,
+      // VRF_COORDINATOR,
+      // LINK_TOKEN,
+      KEY_HASH,
+      FEE,
+      TRANSFER_DISCOUNT
+    );
+    stackOsNFTGen2 = await ethers.getContractAt(
+      "StackOsNFT",
+      await generationManager.get(1)
+    );
     await stackOsNFTGen2.whitelistPartner(owner.address, 1);
     await stackToken.approve(stackOsNFTGen2.address, parseEther("100.0"));
     await stackOsNFTGen2.startPartnerSales();
