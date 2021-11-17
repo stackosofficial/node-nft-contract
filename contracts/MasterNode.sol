@@ -67,7 +67,7 @@ contract MasterNode is ERC721, Ownable, ReentrancyGuard {
      *  @dev StackNFT generation must be added prior to deposit.
      */
     function deposit(uint256 generationId, uint256[] calldata tokenIds) external nonReentrant {
-
+        require(generationId < generations.count(), "Generation doesn't exist");
         IStackOSNFT stack = generations.get(generationId);
 
         for (uint256 i = 0; i < tokenIds.length; i++) {
