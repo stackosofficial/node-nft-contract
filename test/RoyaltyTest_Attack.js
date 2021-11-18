@@ -4,12 +4,16 @@ const { solidity } = require("ethereum-waffle");
 const { Signer } = require("@ethersproject/abstract-signer");
 
 describe("Royalty", function () {
-  const parse = ethers.utils.parseEther;
+
+  const parseEther = ethers.utils.parseEther;
   const format = ethers.utils.formatEther;
   const CYCLE_DURATION = 60*60*24*31;
+
+  it("Snapshot EVM", async function () {
+    snapshotId = await ethers.provider.send("evm_snapshot");
+  });
   it("Defining Generals", async function () {
 
-    await network.provider.request({ method: "hardhat_reset", params: [] });
     await ethers.provider.send("evm_setAutomine", [false]);
     await ethers.provider.send("evm_setIntervalMining", [0]);
 
@@ -18,8 +22,8 @@ describe("Royalty", function () {
   });
   it("Deploy contracts", async function () {
     ERC20 = await ethers.getContractFactory("TestCurrency");
-    currency = await ERC20.deploy(parse("1000.0"));
-    currency2 = await ERC20.deploy(parse("1000.0"));
+    currency = await ERC20.deploy(parseEther("1000.0"));
+    currency2 = await ERC20.deploy(parseEther("1000.0"));
 
     ERC20_2 = await ethers.getContractFactory("LinkToken");
     link = await ERC20_2.deploy();
@@ -38,7 +42,7 @@ describe("Royalty", function () {
     NAME = "STACK OS NFT";
     SYMBOL = "SON";
     STACK_TOKEN_FOR_PAYMENT = currency.address;
-    PRICE = parse("0.1");
+    PRICE = parseEther("0.1");
     MAX_SUPPLY = 25;
     PRIZES = 10;
     AUCTIONED_NFTS = 10;
@@ -46,7 +50,7 @@ describe("Royalty", function () {
     LINK_TOKEN = link.address;
     KEY_HASH =
       "0x2ed0feb3e7fd2022120aa84fab1945545a9f2ffc9076fd6156fa96eaff4c1311";
-    FEE = parse("0.1");
+    FEE = parseEther("0.1");
 
     const StackOS = await ethers.getContractFactory("StackOsNFT");
     // generation 1
@@ -98,7 +102,7 @@ describe("Royalty", function () {
     await stackOsNFTgen3.deployed();
     
     STACKOS_NFT_ADDRESS = stackOsNFT.address;
-    MIN_CYCLE_ETHER = parse("1");
+    MIN_CYCLE_ETHER = parseEther("1");
     DEPOSIT_FEE_ADDRESS = bank.address;
     DEPOSIT_FEE_PERCENT = 1000;
     
@@ -115,7 +119,7 @@ describe("Royalty", function () {
   it("Mint NFT", async function () {
     await stackOsNFT.startPartnerSales();
     await stackOsNFT.whitelistPartner(owner.address, 3);
-    await currency.approve(stackOsNFT.address, parse("10.0"));
+    await currency.approve(stackOsNFT.address, parseEther("10.0"));
     await stackOsNFT.partnerMint(3);
     await ethers.provider.send("evm_mine"); // block timestamp = 0 
   })
@@ -132,7 +136,7 @@ describe("Royalty", function () {
     depositTx = await owner.sendTransaction({ 
         from: owner.address,
         to: royalty.address,
-        value: parse("2.0")
+        value: parseEther("2.0")
     });
     await ethers.provider.send("evm_mine"); // block timestamp = 1, cycle 0 reset to timestamp = 1
 
@@ -146,7 +150,7 @@ describe("Royalty", function () {
     depositTx = await owner.sendTransaction({ // this should reset 0 cycle again, we only wan't delegations that's older than current block!
         from: owner.address,
         to: royalty.address,
-        value: parse("2.0")
+        value: parseEther("2.0")
     });
     await royalty.claim(0, [0]); // 0 cycle just resets here to 62, not getting delegation that is on the same block with it
     await provider.send("evm_increaseTime", [CYCLE_DURATION]);
@@ -166,5 +170,9 @@ describe("Royalty", function () {
     await ethers.provider.send("evm_mine"); // block timestamp = 95
 
     console.log(format(await provider.getBalance(royalty.address)))
-  })
+  }) 
+  it("Revert EVM state", async function () {
+    await ethers.provider.send("evm_revert", [snapshotId]);
+    await ethers.provider.send("evm_setAutomine", [true]);
+  });
 });

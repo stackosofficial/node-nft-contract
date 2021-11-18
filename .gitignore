@@ -1,4 +1,6 @@
 node_modules
-.env
-artifacts
 cache
+artifacts
+.env
+.vscode
+package-lock.json

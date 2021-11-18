@@ -22,7 +22,7 @@ contract Royalty is Ownable {
         uint256 startTimestamp; // when cycle started
         uint256 perTokenReward; // price of 1 NFT, calculated on cycle end
         uint256 balance; // how much deposited during cycle
-        uint256 delegatedCount; // how many tokens delegated when cycle starts
+        uint256 delegatedCount; // how much tokens delegated when cycle starts
         // [generation][tokenId] = true/false
         mapping(uint256 => mapping(uint256 => bool)) isClaimed; // whether reward for this token in this cycle is claimed
     }

@@ -20,7 +20,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         Rewarded,
         Withdrawn
     }
-
+    
     Counters.Counter private _tokenIdCounter;
     IERC20 private stackOSToken;
 
@@ -321,10 +321,10 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
      * @dev Could only be invoked by the contract owner.
      */
 
-    function whitelistPartner(address _address, uint256 _amount)
-        public
-        onlyOwner
-    {
+    function whitelistPartner(
+        address _address,
+        uint256 _amount
+    ) public onlyOwner {
         strategicPartner[_address] = _amount;
     }
 
@@ -364,7 +364,10 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
 
     function partnerMint(uint256 _nftAmount) public {
         require(salesStarted, "Sales not started");
-        require(strategicPartner[msg.sender] >= _nftAmount, "Amount Too Big");
+        require(
+            strategicPartner[msg.sender] >= _nftAmount,
+            "Amount Too Big"
+        );
         stackOSToken.transferFrom(
             msg.sender,
             address(this),
@@ -372,7 +375,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         );
         adminWithdrawableAmount += participationFee.mul(_nftAmount);
         for (uint256 i; i < _nftAmount; i++) {
-            strategicPartner[msg.sender]--;
+            strategicPartner[msg.sender] --;
             mint(msg.sender);
         }
     }
@@ -475,7 +478,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
      */
     function adminWithdraw() public onlyOwner {
         require(block.timestamp > timeLock, "Locked!");
-        require(ticketStatusAssigned == true, "Not assigned yet.");
+        require(ticketStatusAssigned == true, "Already Assigned.");
         stackOSToken.transfer(msg.sender, adminWithdrawableAmount);
         adminWithdrawableAmount.sub(adminWithdrawableAmount);
     }
