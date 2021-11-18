@@ -8,7 +8,9 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@chainlink/contracts/src/v0.8/VRFConsumerBase.sol";
+import "./MasterNode.sol";
 import "./interfaces/IStackOSNFT.sol";
+import "hardhat/console.sol";
 
 contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
     using Counters for Counters.Counter;
@@ -23,6 +25,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
     
     Counters.Counter private _tokenIdCounter;
     IERC20 private stackOSToken;
+    MasterNode private masterNode;
 
     uint256[] public winningTickets;
     // SET TIMELOCK!
@@ -34,6 +37,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
     uint256 private maxSupply;
     uint256 private totalSupply;
     uint256 private participationFee;
+    uint256 private transferDiscount;
     uint256 private participationTickets;
     uint256 private prizes;
     uint256 private totalDelegated;
@@ -60,27 +64,29 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         string memory _name,
         string memory _symbol,
         IERC20 _stackOSTokenToken,
+        MasterNode _masterNode,
         uint256 _participationFee,
         uint256 _maxSupply,
         uint256 _prizes,
         uint256 _auctionedNFTs,
-        address _vrfCoordinator,
-        address _linkToken,
         bytes32 _keyHash,
-        uint256 _fee
+        uint256 _fee,
+        uint256 _transferDiscount
     )
         ERC721(_name, _symbol)
         VRFConsumerBase(
-            _vrfCoordinator, // VRF Coordinator
-            _linkToken // LINK Token
+            0x6Aea593F1E70beb836049929487F7AF3d5e4432F, // VRF Coordinator
+            0xB678B953dD909a4386ED1cA7841550a89fb508cc // LINK Token
         )
     {
         stackOSToken = _stackOSTokenToken;
+        masterNode = _masterNode;
         participationFee = _participationFee;
         maxSupply = _maxSupply;
         prizes = _prizes;
         keyHash = _keyHash;
         fee = _fee;
+        transferDiscount = _transferDiscount;
         auctionedNFTs = _auctionedNFTs;
     }
 
@@ -120,7 +126,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
      */
 
     function getDelegator(uint256 _tokenId) public view returns (address) {
-        return ownerOf(_tokenId);
+        return masterNode.ownerOfStackOrMasterNode(IStackOSNFT(address(this)), _tokenId);
     }
 
     function _baseURI() internal pure override returns (string memory) {
@@ -313,6 +319,24 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         IStackOSNFT(_address).transferFromLastGen(msg.sender, amount);
     }
 
+    function transferFromLastGen(address _ticketOwner, uint256 _amount) public {
+        require(address(this) != address(msg.sender), "Cant transfer to the same address");
+        uint256 ticketAmount = _amount.div(participationFee);
+
+        // from stakeForTickets function
+        uint256 depositAmount = participationFee.mul(ticketAmount)
+                                                .mul(10000 - transferDiscount)
+                                                .div(10000);
+        // console.log(ticketAmount, depositAmount);
+        stackOSToken.transferFrom(address(msg.sender), address(this), depositAmount);
+        uint256 nextTicketID = participationTickets;
+        for (uint256 i; i < ticketAmount; i++) {
+            ticketOwner[nextTicketID] = _ticketOwner;
+            nextTicketID++;
+        }
+        participationTickets += ticketAmount;
+    }
+
     /*
      * @title Whitelist and address that will be able to do strategy purchaise.
      * @param Address of the partner.
@@ -438,8 +462,10 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
      */
 
     function delegate(address _delegatee, uint256 tokenId) public {
-        require(msg.sender != address(0), "Delegate is address-zero");
-        require(msg.sender == ownerOf(tokenId), "Not owner");
+        require(
+            msg.sender == masterNode.ownerOfStackOrMasterNode(IStackOSNFT(address(this)), tokenId),
+            "Not owner"
+        );
         require(delegates[tokenId] == address(0), "Already delegated");
         delegates[tokenId] = _delegatee;
         if (delegationTimestamp[tokenId] == 0) totalDelegated += 1;

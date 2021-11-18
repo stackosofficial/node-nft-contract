@@ -2,6 +2,8 @@
 pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "./GenerationManager.sol";
+import "./MasterNode.sol";
 import "./interfaces/IStackOSNFT.sol";
 import "hardhat/console.sol";
 
@@ -12,6 +14,8 @@ contract Royalty is Ownable {
 
     uint256 private constant HUNDRED_PERCENT = 10000;
 
+    GenerationManager private generations; // StackOS NFT contract different generations
+    MasterNode private masterNode;
     address payable private feeAddress; // fee from deposits goes here
     uint256 private feePercent; // fee percent taken from deposits
 
@@ -29,17 +33,15 @@ contract Royalty is Ownable {
 
     mapping(uint256 => Cycle) private cycles; // a new cycle can start when two conditions met, `CYCLE_DURATION` time passed and `minEthToStartCycle` ether deposited
 
-    mapping(uint256 => IStackOSNFT) private generations; // StackOS NFT contract different generations
-    mapping(uint256 => uint256) private generationAddedTimestamp; // time when new StackOS added to this contract
-    uint256 private generationsCount; // total stackOS generations added
-
     constructor(
-        IStackOSNFT _stackOS,
-        uint256 _minEthToStartCycle,
-        address payable _feeAddress
+        GenerationManager _generations,
+        MasterNode _masterNode,
+        address payable _feeAddress,
+        uint256 _minEthToStartCycle
     ) {
+        generations = _generations;
+        masterNode = _masterNode;
         feeAddress = _feeAddress;
-        generations[generationsCount++] = _stackOS;
         minEthToStartCycle = _minEthToStartCycle;
     }
 
@@ -127,31 +129,17 @@ contract Royalty is Ownable {
     }
 
     /*
-     * @title Add another StackOS NFT contract to be counted for royalty
-     * @param IStackOSNFT compatible address
-     * @dev Could only be invoked by the contract owner.
-     */
-    function addNextGeneration(IStackOSNFT _stackOS) public onlyOwner {
-        require(address(_stackOS) != address(0), "Must be not zero-address");
-        for(uint256 i; i < generationsCount; i++) {
-            require(generations[i] != _stackOS, "Address already added");
-        }
-        generations[generationsCount] = _stackOS;
-        generationAddedTimestamp[generationsCount] = block.timestamp;
-        generationsCount += 1;
-    }
-
-    /*
      * @title Get total delegated NFT's that exists prior current block, in all added generations
      * @dev May consume a lot of gas if there is a lot of generations and NFTs.
      * @dev O(x * y)
      */
     function getTotalDelegatedBeforeCurrentBlock() private view returns (uint256) {
         uint256 result = 0;
-        for(uint256 i = 0; i < generationsCount; i++) {
-            uint256 generationTotalDelegated = generations[i].getTotalDelegated();
+        for(uint256 i = 0; i < generations.count(); i++) {
+            IStackOSNFT stack = generations.get(i);
+            uint256 generationTotalDelegated = stack.getTotalDelegated();
             for(uint256 tokenId; tokenId < generationTotalDelegated; tokenId ++) {
-                uint256 delegationTimestamp = generations[i].getDelegationTimestamp(tokenId);
+                uint256 delegationTimestamp = stack.getDelegationTimestamp(tokenId);
                 if(delegationTimestamp > 0 && delegationTimestamp < block.timestamp) {
                     result += 1;
                 }
@@ -165,8 +153,8 @@ contract Royalty is Ownable {
      */
     function getTotalDelegated() private view returns (uint256) {
         uint256 total = 0;
-        for(uint256 i = 0; i < generationsCount; i++) {
-            total += generations[i].getTotalDelegated();
+        for(uint256 i = 0; i < generations.count(); i++) {
+            total += generations.get(i).getTotalDelegated();
         }
         return total;
     }
@@ -188,9 +176,12 @@ contract Royalty is Ownable {
      * @dev tokens must be delegated and owned by the caller, otherwise transaction reverted
      */
     function claim(uint256 generationId, uint256[] calldata tokenIds) external payable {
-        require(generationId < generationsCount, "Generation doesn't exist");
         require(address(this).balance > 0, "No royalty");
-        require(generations[generationId].balanceOf(msg.sender) > 0, "You dont have NFTs");
+        IStackOSNFT stack = generations.get(generationId);
+        require(
+            stack.balanceOf(msg.sender) > 0 || masterNode.balanceOf(msg.sender) > 0,
+            "You dont have NFTs"
+        );
 
         checkDelegationsForFirstCycle();
 
@@ -213,18 +204,22 @@ contract Royalty is Ownable {
             // iterate over passed tokens
             for (uint256 i = 0; i < tokenIds.length; i++) {
                 uint256 tokenId = tokenIds[i];
-                require(generations[generationId].ownerOf(tokenId) == msg.sender, "Not owner");
+
                 require(
-                    generations[generationId].getDelegatee(tokenId) != address(0),
+                    masterNode.isOwnStackOrMasterNode(msg.sender, generationId, tokenId),
+                    "Not owner"
+                );
+                require(
+                    stack.getDelegatee(tokenId) != address(0),
                     "NFT should be delegated"
                 );
 
-                uint256 delegationTimestamp = generations[generationId].getDelegationTimestamp(tokenId);
+                uint256 delegationTimestamp = stack.getDelegationTimestamp(tokenId);
                 if (delegationTimestamp > 0) {
                     // iterate over cycles, ignoring current one since its not ended
                     for (uint256 o = 0; o < counter.current(); o++) {
                         // generation must be added before start of the cycle (first generation's timestamp = 0)
-                        if(generationAddedTimestamp[generationId] < cycles[o].startTimestamp) { 
+                        if(generations.getAddedTimestamp(generationId) < cycles[o].startTimestamp) { 
                             // reward for token in this cycle shouldn't be already claimed
                             if (cycles[o].isClaimed[generationId][tokenId] == false) {
                                 // is this token delegated earlier than this cycle start?

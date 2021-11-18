@@ -26,4 +26,6 @@ interface IStackOSNFT {
     function balanceOf(address owner) external view returns (uint256 balance);
 
     function ownerOf(uint256 tokenId) external view returns (address owner);
+
+    function transferOwnership(address newOwner) external;
 }

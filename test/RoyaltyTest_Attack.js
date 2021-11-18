@@ -3,7 +3,7 @@ const { use, expect } = require("chai");
 const { solidity } = require("ethereum-waffle");
 const { Signer } = require("@ethersproject/abstract-signer");
 
-describe("Royalty", function () {
+describe("Royalty Attack", function () {
 
   const parseEther = ethers.utils.parseEther;
   const format = ethers.utils.formatEther;
@@ -39,9 +39,21 @@ describe("Royalty", function () {
     await coordinator.deployed();
     console.log(coordinator.address);
 
+    const GenerationManager = await ethers.getContractFactory("GenerationManager");
+    generationManager = await GenerationManager.deploy();
+
+    GENERATION_MANAGER_ADDRESS = generationManager.address;
+    MASTER_NODE_PRICE = 50;
+    const MasterNode = await ethers.getContractFactory("MasterNode");
+    masterNode = await MasterNode.deploy(
+      GENERATION_MANAGER_ADDRESS,
+      MASTER_NODE_PRICE
+    );
+
     NAME = "STACK OS NFT";
     SYMBOL = "SON";
     STACK_TOKEN_FOR_PAYMENT = currency.address;
+    MASTER_NODE_ADDRESS = masterNode.address;
     PRICE = parseEther("0.1");
     MAX_SUPPLY = 25;
     PRIZES = 10;
@@ -51,6 +63,7 @@ describe("Royalty", function () {
     KEY_HASH =
       "0x2ed0feb3e7fd2022120aa84fab1945545a9f2ffc9076fd6156fa96eaff4c1311";
     FEE = parseEther("0.1");
+    TRANSFER_DISCOUNT = 2000;
 
     const StackOS = await ethers.getContractFactory("StackOsNFT");
     // generation 1
@@ -58,59 +71,38 @@ describe("Royalty", function () {
       NAME,
       SYMBOL,
       STACK_TOKEN_FOR_PAYMENT,
+      MASTER_NODE_ADDRESS,
       PRICE,
       MAX_SUPPLY,
       PRIZES,
       AUCTIONED_NFTS,
-      VRF_COORDINATOR,
-      LINK_TOKEN,
+      // VRF_COORDINATOR,
+      // LINK_TOKEN,
       KEY_HASH,
-      FEE
+      FEE,
+      TRANSFER_DISCOUNT
     );
     // generation 2
-    stackOsNFTgen2 = await StackOS.deploy(
-      NAME,
-      SYMBOL,
-      STACK_TOKEN_FOR_PAYMENT,
-      PRICE,
-      MAX_SUPPLY,
-      PRIZES,
-      AUCTIONED_NFTS,
-      VRF_COORDINATOR,
-      LINK_TOKEN,
-      KEY_HASH,
-      FEE
-    );
-    // generation 3
-    stackOsNFTgen3 = await StackOS.deploy(
-      NAME,
-      SYMBOL,
-      STACK_TOKEN_FOR_PAYMENT,
-      PRICE,
-      MAX_SUPPLY,
-      PRIZES,
-      AUCTIONED_NFTS,
-      VRF_COORDINATOR,
-      LINK_TOKEN,
-      KEY_HASH,
-      FEE
-    );
-
     await ethers.provider.send("evm_mine");
     await stackOsNFT.deployed();
-    await stackOsNFTgen2.deployed();
-    await stackOsNFTgen3.deployed();
+    await generationManager.add(stackOsNFT.address);
     
-    STACKOS_NFT_ADDRESS = stackOsNFT.address;
-    MIN_CYCLE_ETHER = parseEther("1");
+    GENERATION_MANAGER_ADDRESS = generationManager.address;
+    MASTER_NODE_ADDRESS = masterNode.address;
     DEPOSIT_FEE_ADDRESS = bank.address;
+    MIN_CYCLE_ETHER = parseEther("1");
     DEPOSIT_FEE_PERCENT = 1000;
+
+    await ethers.provider.send("evm_mine");
+    await generationManager.deployed();
+    await masterNode.deployed();
     
     const Royalty = await ethers.getContractFactory("Royalty");
     royalty = await Royalty.deploy(
-      STACKOS_NFT_ADDRESS,
-      MIN_CYCLE_ETHER,
+      GENERATION_MANAGER_ADDRESS,
+      MASTER_NODE_ADDRESS,
       DEPOSIT_FEE_ADDRESS,
+      MIN_CYCLE_ETHER,
     );
     await ethers.provider.send("evm_mine");
     await royalty.deployed();

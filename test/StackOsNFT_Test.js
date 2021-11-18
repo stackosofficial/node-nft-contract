@@ -2,11 +2,10 @@ const { ethers } = require("hardhat");
 const { use, expect } = require("chai");
 const { solidity } = require("ethereum-waffle");
 const { BigNumber } = require("@ethersproject/bignumber");
+const { parseEther, formatEther } = require("@ethersproject/units");
 // const timeMachine = require("@atixlabs/hardhat-time-n-mine");
 
 describe("StackOS NFT", function () {
-  const parseEther = ethers.utils.parseEther;
-  const format = ethers.utils.formatEther;
   it("Snapshot EVM", async function () {
     snapshotId = await ethers.provider.send("evm_snapshot");
   });
@@ -32,10 +31,28 @@ describe("StackOS NFT", function () {
     await coordinator.deployed();
     console.log(coordinator.address);
   });
+  it("Deploy GenerationManager", async function () {
+    const GenerationManager = await ethers.getContractFactory("GenerationManager");
+    generationManager = await GenerationManager.deploy();
+    await generationManager.deployed();
+    console.log(generationManager.address);
+  });
+  it("Deploy MasterNode", async function () {
+    GENERATION_MANAGER_ADDRESS = generationManager.address;
+    MASTER_NODE_PRICE = 50;
+    const MasterNode = await ethers.getContractFactory("MasterNode");
+    masterNode = await MasterNode.deploy(
+      GENERATION_MANAGER_ADDRESS,
+      MASTER_NODE_PRICE
+    );
+    await masterNode.deployed();
+    console.log(masterNode.address);
+  });
   it("Deploy StackOS NFT", async function () {
     NAME = "STACK OS NFT";
     SYMBOL = "SON";
     STACK_TOKEN_FOR_PAYMENT = currency.address;
+    MASTER_NODE_ADDRESS = masterNode.address;
     PRICE = parseEther("0.1");
     MAX_SUPPLY = 25;
     PRIZES = 10;
@@ -45,22 +62,26 @@ describe("StackOS NFT", function () {
     KEY_HASH =
       "0x2ed0feb3e7fd2022120aa84fab1945545a9f2ffc9076fd6156fa96eaff4c1311";
     FEE = parseEther("0.1");
+    TRANSFER_DISCOUNT = 2000;
 
     const StackOS = await ethers.getContractFactory("StackOsNFT");
     stackOsNFT = await StackOS.deploy(
       NAME,
       SYMBOL,
       STACK_TOKEN_FOR_PAYMENT,
+      MASTER_NODE_ADDRESS,
       PRICE,
       MAX_SUPPLY,
       PRIZES,
       AUCTIONED_NFTS,
-      VRF_COORDINATOR,
-      LINK_TOKEN,
+      // VRF_COORDINATOR,
+      // LINK_TOKEN,
       KEY_HASH,
-      FEE
+      FEE,
+      TRANSFER_DISCOUNT
     );
     await stackOsNFT.deployed();
+    await generationManager.add(stackOsNFT.address);
   });
   it("Stake for tickets", async function () {
     await currency.approve(stackOsNFT.address, parseEther("10.0"));
@@ -115,7 +136,7 @@ describe("StackOS NFT", function () {
     );
   });
   it("Map out winners", async function () {
-    await stackOsNFT.mapOutWinningTickets(0, 10);
+    await stackOsNFT.mapOutWinningTickets(0, PRIZES);
   });
 
   it("changeTicketStatus()", async function () {
@@ -127,7 +148,7 @@ describe("StackOS NFT", function () {
       "Stake Not Returnable"
     );
   });
-  it("Try to return stake of tickets that did not win won!", async function () {
+  it("Try to return stake of tickets that did not won!", async function () {
     var balanceBefore = await currency.balanceOf(owner.address);
     console.log("Balance Before Return Stake: " + balanceBefore.toString());
 
@@ -159,7 +180,7 @@ describe("StackOS NFT", function () {
   });
 
   it("Partners mint", async function () {
-    console.log(format(await currency.balanceOf(stackOsNFT.address)));
+    console.log(formatEther(await currency.balanceOf(stackOsNFT.address)));
 
     await stackOsNFT.whitelistPartner(joe.address, 2);
     await currency.transfer(joe.address, parseEther("2.0"));
@@ -195,7 +216,7 @@ describe("StackOS NFT", function () {
   });
 
   it("Auction", async function () {
-    //   // console.log(format(await currency.balanceOf(owner.address)))
+    //   // console.log(formatEther(await currency.balanceOf(owner.address)))
     await stackOsNFT.placeBid(parseEther("1.0"));
     await stackOsNFT.placeBid(parseEther("1.0"));
     await stackOsNFT.placeBid(parseEther("2.0"));
@@ -219,16 +240,159 @@ describe("StackOS NFT", function () {
     await stackOsNFT.finalizeAuction();
   });
 
-  it("Admin tried to withdraw before time lock expires.", async function () {
-    var adminWithdrawableAmount = await stackOsNFT.adminWithdrawableAmount();
-    console.log(adminWithdrawableAmount.toString());
-    await expect(stackOsNFT.adminWithdraw()).to.be.revertedWith("Locked!");
+  it("Deploy stackOsNFT generation 2 from manager", async function () {
+    await generationManager.deployNextGen(      
+      NAME,
+      SYMBOL,
+      STACK_TOKEN_FOR_PAYMENT,
+      MASTER_NODE_ADDRESS,
+      PRICE,
+      MAX_SUPPLY,
+      PRIZES,
+      AUCTIONED_NFTS,
+      // VRF_COORDINATOR,
+      // LINK_TOKEN,
+      KEY_HASH,
+      FEE,
+      TRANSFER_DISCOUNT
+    );
+    stackOsNFTgen2 = await ethers.getContractAt(
+      "StackOsNFT",
+      await generationManager.get(1)
+    );
+    expect(await stackOsNFTgen2.owner()).to.be.equal(owner.address);
+  });  
+  it("Get some 'not winning' tickets on stack generation 2", async function () {
+    await currency.approve(stackOsNFTgen2.address, parseEther("10.0"));
+
+    await expect(stackOsNFTgen2.stakeForTickets(2)).to.be.revertedWith(
+      "Lottery inactive"
+    );
+    await stackOsNFTgen2.activateLottery();
+    await stackOsNFTgen2.stakeForTickets(14);
+
+    //"Start lottery"
+    await link.transfer(stackOsNFTgen2.address, parseEther("10.0"));
+    requestID = await stackOsNFTgen2.callStatic.announceLottery();
+    await stackOsNFTgen2.callStatic.announceLottery();
+    console.log(requestID);
+    expect(await stackOsNFTgen2.ticketOwner(1)).to.be.equal(owner.address);
+
+    //"Start lottery"
+    await coordinator.callBackWithRandomness(
+      requestID,
+      89765,
+      stackOsNFTgen2.address
+    );
+    var randomNumber = await stackOsNFTgen2.randomNumber();
+    console.log(randomNumber.toString());
+
+    await stackOsNFTgen2.announceWinners(100);
+
+    winningTickets = [];
+    for (let i = 0; i < PRIZES; i++) {
+      winningTickets.push((await stackOsNFTgen2.winningTickets(i)).toNumber());
+    }
+    // get NOT winning tickets
+    notWinning = [...Array(14).keys()].filter(
+      (e) => winningTickets.indexOf(e) == -1
+    );
+
+    await stackOsNFTgen2.mapOutWinningTickets(0, PRIZES);
+
+    await stackOsNFTgen2.changeTicketStatus();
   });
 
-  it("Admin withdraws after time lock.", async function () {
-    await ethers.provider.send("evm_setNextBlockTimestamp", [deadline + 3600]);
-    await stackOsNFT.adminWithdraw();
+  it("Deploy stackOsNFT generation 3 from manager", async function () {
+    PRIZES = 2
+    await generationManager.deployNextGen(      
+      NAME,
+      SYMBOL,
+      STACK_TOKEN_FOR_PAYMENT,
+      MASTER_NODE_ADDRESS,
+      PRICE,
+      MAX_SUPPLY,
+      PRIZES,
+      AUCTIONED_NFTS,
+      // VRF_COORDINATOR,
+      // LINK_TOKEN,
+      KEY_HASH,
+      FEE,
+      TRANSFER_DISCOUNT
+    );
+    stackOsNFTgen3 = await ethers.getContractAt(
+      "StackOsNFT",
+      await generationManager.get(2)
+    );
+    expect(await stackOsNFTgen3.owner()).to.be.equal(owner.address);
   });
+
+  it("Transfer tickets that are not winned from gen 2 to gen 3", async function () {
+    console.log("not winning tickets to be transfered: " + notWinning);
+    console.log("gen2 balance: " + formatEther(await currency.balanceOf(stackOsNFTgen2.address)));
+    console.log("gen3 balance: " + formatEther(await currency.balanceOf(stackOsNFTgen3.address)));
+    await stackOsNFTgen2.transferTicket(notWinning, stackOsNFTgen3.address);
+    expect(await currency.balanceOf(stackOsNFTgen2.address)).to.be.equal(parseEther("1.08"));
+    expect(await currency.balanceOf(stackOsNFTgen3.address)).to.be.equal(parseEther("0.32")); // discount is 20%, so instead of 40 we get 80% which is .32
+    console.log("Tickets transfered!");
+    console.log("gen2 balance: " + formatEther(await currency.balanceOf(stackOsNFTgen2.address)));
+    console.log("gen3 balance: " + formatEther(await currency.balanceOf(stackOsNFTgen3.address)));
+  });
+  it("Play lottery with transfered tickets", async function () {
+    await link.transfer(stackOsNFTgen3.address, parseEther("10.0"));
+    requestID = await stackOsNFTgen3.callStatic.announceLottery();
+    await stackOsNFTgen3.announceLottery();
+    console.log(requestID);
+    expect(await stackOsNFTgen3.ticketOwner(1)).to.be.equal(owner.address);
+
+    await coordinator.callBackWithRandomness(
+      requestID,
+      89765,
+      stackOsNFTgen3.address
+    );
+    var randomNumber = await stackOsNFTgen3.randomNumber();
+    console.log(randomNumber.toString());
+
+    await stackOsNFTgen3.announceWinners(100);
+
+    winningTickets = [];
+    for (let i = 0; i < PRIZES; i++) {
+      winningTickets.push((await stackOsNFTgen3.winningTickets(i)).toNumber());
+    }
+    // get NOT winning tickets
+    notWinning = [...Array(4).keys()].filter(
+      (e) => winningTickets.indexOf(e) == -1
+    );
+    console.log("winning tickets: " + winningTickets);
+
+    await stackOsNFTgen3.mapOutWinningTickets(0, PRIZES);
+
+    await stackOsNFTgen3.changeTicketStatus();
+
+    await expect(stackOsNFTgen3.claimReward(notWinning)).to.be.revertedWith(
+      "Awarded Or Not Won"
+    );
+    await stackOsNFTgen3.claimReward(winningTickets);
+    expect(await stackOsNFTgen3.balanceOf(owner.address)).to.be.equal(
+      winningTickets.length
+    );
+
+    console.log("Balance Before Return Stake: " + 
+                  formatEther(await currency.balanceOf(owner.address)));
+    await stackOsNFTgen3.returnStake(notWinning);
+    console.log("Balance After Return Stake: " + 
+                  formatEther(await currency.balanceOf(owner.address)));
+  });
+  // it("Admin tried to withdraw before time lock expires.", async function () {
+  //   var adminWithdrawableAmount = await stackOsNFT.adminWithdrawableAmount();
+  //   console.log(adminWithdrawableAmount.toString());
+  //   await expect(stackOsNFT.adminWithdraw()).to.be.revertedWith("Locked!");
+  // });
+
+  // it("Admin withdraws after time lock.", async function () {
+  //   await ethers.provider.send("evm_setNextBlockTimestamp", [deadline + 3600]);
+  //   await stackOsNFT.adminWithdraw();
+  // });
   it("Revert EVM state", async function () {
     await ethers.provider.send("evm_revert", [snapshotId]);
   });

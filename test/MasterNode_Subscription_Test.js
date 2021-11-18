@@ -6,7 +6,7 @@ const { formatEther, parseEther } = require("@ethersproject/units");
 
 use(solidity);
 
-describe("Subscription", function () {
+describe("MasterNode integration with Subscription", function () {
 
   it("Snapshot EVM", async function () {
     snapshotId = await ethers.provider.send("evm_snapshot");
@@ -47,7 +47,6 @@ describe("Subscription", function () {
     console.log(coordinator.address);
   });
 
-
   it("Deploy GenerationManager", async function () {
     const GenerationManager = await ethers.getContractFactory("GenerationManager");
     generationManager = await GenerationManager.deploy();
@@ -57,7 +56,7 @@ describe("Subscription", function () {
 
   it("Deploy MasterNode", async function () {
     GENERATION_MANAGER_ADDRESS = generationManager.address;
-    MASTER_NODE_PRICE = 50;
+    MASTER_NODE_PRICE = 5;
     const MasterNode = await ethers.getContractFactory("MasterNode");
     masterNode = await MasterNode.deploy(
       GENERATION_MANAGER_ADDRESS,
@@ -138,24 +137,32 @@ describe("Subscription", function () {
     MONTH = (await subscription.MONTH()).toNumber();
   });
 
-  it("Mint some NFTs", async function () {
-    await stackToken.transfer(partner.address, parseEther("100.0"));
+  it("Mint MasterNode NFT", async function () {
     await stackOsNFT.startPartnerSales();
-    
-    await stackOsNFT.whitelistPartner(owner.address, 4);
+    await stackOsNFT.whitelistPartner(owner.address, 5);
     await stackToken.approve(stackOsNFT.address, parseEther("10.0"));
-    await stackOsNFT.partnerMint(4);
-    
-    await stackOsNFT.whitelistPartner(partner.address, 1);
-    await stackToken.connect(partner).approve(stackOsNFT.address, parseEther("10.0"));
-    await stackOsNFT.connect(partner).partnerMint(1);
+    await stackOsNFT.partnerMint(5);
+
+    await stackOsNFT.setApprovalForAll(masterNode.address, true);
+    await masterNode.deposit(0, [0, 1, 2]);
+    await expect(masterNode.mint()).to.be.revertedWith("Not enough deposited");
+
+    await stackOsNFT.setApprovalForAll(masterNode.address, true);
+    await masterNode.deposit(0, [3, 4]);
+    await masterNode.mint()
+
+    // got 1 master node
+    expect(await stackOsNFT.balanceOf(masterNode.address)).to.be.equal(5);
+    expect(await stackOsNFT.balanceOf(owner.address)).to.be.equal(0);
+    expect(await masterNode.balanceOf(owner.address)).to.be.equal(1);
+
   });
 
   it("Unable to withdraw without subs and foreign ids", async function () {
     await expect(subscription.withdraw(0, [0])).to.be.revertedWith(
       "No subscription"
     );
-    await expect(subscription.withdraw(0, [4])).to.be.revertedWith(
+    await expect(subscription.connect(partner).withdraw(0, [4])).to.be.revertedWith(
       "Not owner"
     );
   });
@@ -164,7 +171,7 @@ describe("Subscription", function () {
     await expect(subscription.subscribe(0, 0, 0)).to.be.revertedWith(
       "Zero months not allowed"
     );
-    await expect(subscription.subscribe(0, 4, 1)).to.be.revertedWith(
+    await expect(subscription.connect(partner).subscribe(0, 4, 1)).to.be.revertedWith(
       "Not owner"
     );
   });
@@ -220,7 +227,7 @@ describe("Subscription", function () {
   });
   
   it("Take TAX for early withdrawal", async function () {
-    await stackOsNFT.transferFrom(owner.address, bob.address, 0);
+    await masterNode.transferFrom(owner.address, bob.address, 0);
     expect(await stackToken.balanceOf(bob.address)).to.equal(0);
     await subscription.connect(bob).withdraw(0, [0]); // 1st month 75% tax (so its 0-1 month, like 1st day of the 1st month)
     console.log("bob: ", formatEther(await stackToken.balanceOf(bob.address)));
@@ -229,8 +236,11 @@ describe("Subscription", function () {
     expect(await stackToken.balanceOf(bob.address)).to.be.lt(parseEther("3.1"));
   });
 
-  it("Unable to withdraw when low balance on bonus wallet", async function () {
+  it("Unable to withdraw when low balance on bonus wallet & not owner", async function () {
     await expect(subscription.withdraw(0, [1])).to.be.revertedWith(
+      "Not owner"
+    );
+    await expect(subscription.connect(bob).withdraw(0, [1])).to.be.revertedWith(
       "Not enough balance on bonus wallet"
     );
   });
@@ -239,7 +249,7 @@ describe("Subscription", function () {
     await provider.send("evm_increaseTime", [MONTH * 2]); // 3rd month is going 
     await stackToken.transfer(subscription.address, parseEther("100.0"));
     
-    await stackOsNFT.transferFrom(owner.address, bank.address, 1);
+    await masterNode.connect(bob).transferFrom(bob.address, bank.address, 0);
     expect(await stackToken.balanceOf(bank.address)).to.equal(0);
     console.log("bank: ", formatEther(await stackToken.balanceOf(bank.address)));
     await subscription.connect(bank).withdraw(0, [1]); // tax should be 25% as we at 3rd month, amount get 27
@@ -255,8 +265,11 @@ describe("Subscription", function () {
 
   });
   it("Payed in advance, and withdraw sooner than TAX is 0%", async function () {
-    await subscription.subscribe(0, 2, 4); // 1 month for NFT 2 
-    await stackOsNFT.transferFrom(owner.address, vera.address, 2);
+    // await stackToken.transfer(bank.address, parseEther("100.0"));
+    // await stackToken.connect(bank).approve(subscription.address, parseEther("100.0"));
+    await masterNode.connect(bank).transferFrom(bank.address, owner.address, 0);
+    await subscription.subscribe(0, 2, 4); // 1st month for NFT 2 
+    await masterNode.connect(owner).transferFrom(owner.address, vera.address, 0);
     await provider.send("evm_increaseTime", [MONTH]); // now 2 month
 
     // vera withdraw TAXed 2 months
@@ -269,20 +282,33 @@ describe("Subscription", function () {
     // them homer withdraw from the same NFT but 0% tax and 2 months 
     await provider.send("evm_increaseTime", [MONTH * 2]); // 4 month
     await stackToken.transfer(subscription.address, parseEther("100.0")); // not enough for bonuses
-    await stackOsNFT.connect(vera).transferFrom(vera.address, homer.address, 2);
+    await masterNode.connect(vera).transferFrom(vera.address, homer.address, 0);
     expect(await stackToken.balanceOf(homer.address)).to.equal(0);
     await subscription.connect(homer).withdraw(0, [2]); // withdraws for 2 months, not taxed
     console.log("homer: ", formatEther(await stackToken.balanceOf(homer.address)));
     console.log("tax: ", formatEther(await stackToken.balanceOf(tax.address)));
     expect(await stackToken.balanceOf(homer.address)).to.be.gt(parseEther("23.0")); // 24
   });
+
+  it("Mint 2nd MasterNode NFT", async function () {
+    await stackOsNFT.whitelistPartner(owner.address, 5);
+    await stackToken.approve(stackOsNFT.address, parseEther("10.0"));
+    await stackOsNFT.partnerMint(5);
+
+    await stackOsNFT.setApprovalForAll(masterNode.address, true);
+    await masterNode.deposit(0, [5, 6, 7, 8, 9]);
+    await masterNode.mint()
+
+    // got 1 master node
+    expect(await stackOsNFT.balanceOf(masterNode.address)).to.be.equal(10);
+    expect(await stackOsNFT.balanceOf(owner.address)).to.be.equal(0);
+    expect(await masterNode.balanceOf(owner.address)).to.be.equal(1);
+  });
+
   it("Buy, then wait 2 month, then buy in advance, and withdraw after that", async function () {
 
     // clear tax balance for simplicity
     await stackToken.connect(tax).transfer(owner.address, await stackToken.balanceOf(tax.address));
-    await stackOsNFT.whitelistPartner(owner.address, 4);
-    await stackToken.approve(stackOsNFT.address, parseEther("100.0"));
-    await stackOsNFT.partnerMint(4); // 5-9
 
     await subscription.subscribe(0, 5, 2); // 5 is subscribed for 2 months
     await provider.send("evm_increaseTime", [MONTH * 4]); // wait 4 months, tax is max
@@ -308,7 +334,7 @@ describe("Subscription", function () {
     expect(await stackToken.balanceOf(owner.address)).to.be.lt(parseEther("15.1"));
   });
 
-  it("Withdraw on multiple generations", async function () {
+  it("Mint 3rd MasterNode NFT on stack generation 2", async function () {
     await generationManager.deployNextGen(      
       NAME,
       SYMBOL,
@@ -328,10 +354,22 @@ describe("Subscription", function () {
       "StackOsNFT",
       await generationManager.get(1)
     );
-    await stackOsNFTGen2.whitelistPartner(owner.address, 1);
+    await stackOsNFTGen2.whitelistPartner(owner.address, 5);
     await stackToken.approve(stackOsNFTGen2.address, parseEther("100.0"));
     await stackOsNFTGen2.startPartnerSales();
-    await stackOsNFTGen2.partnerMint(1); 
+    await stackOsNFTGen2.partnerMint(5); 
+
+    await stackOsNFTGen2.setApprovalForAll(masterNode.address, true);
+    await masterNode.deposit(1, [0, 1, 2, 3, 4]);
+    await masterNode.mint()
+
+    // got 1 master node
+    expect(await stackOsNFTGen2.balanceOf(masterNode.address)).to.be.equal(5);
+    expect(await stackOsNFTGen2.balanceOf(owner.address)).to.be.equal(0);
+    expect(await masterNode.balanceOf(owner.address)).to.be.equal(2);
+  });
+
+  it("Withdraw on multiple generations", async function () {
 
     await usdt.approve(
       subscription.address,

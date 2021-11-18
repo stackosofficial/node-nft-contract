@@ -48,10 +48,28 @@ describe("MasterNode", function () {
     console.log(coordinator.address);
   });
 
+  it("Deploy GenerationManager", async function () {
+    const GenerationManager = await ethers.getContractFactory("GenerationManager");
+    generationManager = await GenerationManager.deploy();
+    await generationManager.deployed();
+    console.log(generationManager.address);
+  });
+  it("Deploy MasterNode", async function () {
+    GENERATION_MANAGER_ADDRESS = generationManager.address;
+    MASTER_NODE_PRICE = 5;
+    const MasterNode = await ethers.getContractFactory("MasterNode");
+    masterNode = await MasterNode.deploy(
+      GENERATION_MANAGER_ADDRESS,
+      MASTER_NODE_PRICE
+    );
+    await masterNode.deployed();
+    console.log(masterNode.address);
+  });
   it("Deploy StackOS NFT", async function () {
     NAME = "STACK OS NFT";
     SYMBOL = "SON";
     STACK_TOKEN_FOR_PAYMENT = currency.address;
+    MASTER_NODE_ADDRESS = masterNode.address;
     PRICE = parseEther("0.1");
     MAX_SUPPLY = 25;
     PRIZES = 10;
@@ -61,46 +79,48 @@ describe("MasterNode", function () {
     KEY_HASH =
       "0x2ed0feb3e7fd2022120aa84fab1945545a9f2ffc9076fd6156fa96eaff4c1311";
     FEE = parseEther("0.1");
+    TRANSFER_DISCOUNT = 2000;
 
     const StackOS = await ethers.getContractFactory("StackOsNFT");
     stackOsNFT = await StackOS.deploy(
       NAME,
       SYMBOL,
       STACK_TOKEN_FOR_PAYMENT,
+      MASTER_NODE_ADDRESS,
       PRICE,
       MAX_SUPPLY,
       PRIZES,
       AUCTIONED_NFTS,
-      VRF_COORDINATOR,
-      LINK_TOKEN,
+      // VRF_COORDINATOR,
+      // LINK_TOKEN,
       KEY_HASH,
-      FEE
+      FEE,
+      TRANSFER_DISCOUNT
     );
     await stackOsNFT.deployed();
+    await generationManager.add(stackOsNFT.address);
+  });
 
-    stackOsNFTgen2 = await StackOS.deploy(
+  it("Deploy StackOS NFT generation 2", async function () {
+    await generationManager.deployNextGen(      
       NAME,
       SYMBOL,
       STACK_TOKEN_FOR_PAYMENT,
+      MASTER_NODE_ADDRESS,
       PRICE,
       MAX_SUPPLY,
       PRIZES,
       AUCTIONED_NFTS,
-      VRF_COORDINATOR,
-      LINK_TOKEN,
+      // VRF_COORDINATOR,
+      // LINK_TOKEN,
       KEY_HASH,
-      FEE
+      FEE,
+      TRANSFER_DISCOUNT
     );
-    await stackOsNFTgen2.deployed();
-  });
-
-  it("Deploy MasterNode", async function () {
-    
-    MINT_RPICE = 5;
-
-    const MasterNode = await ethers.getContractFactory("MasterNode");
-    masterNode = await MasterNode.deploy(stackOsNFT.address, MINT_RPICE);
-    await masterNode.deployed();
+    stackOsNFTgen2 = await ethers.getContractAt(
+      "StackOsNFT",
+      await generationManager.get(1)
+    );
   });
 
   it("Mint some StackNFT", async function () {
@@ -133,7 +153,6 @@ describe("MasterNode", function () {
   });
 
   it("Two generations", async function () {
-    await masterNode.addNextGeneration(stackOsNFTgen2.address);
     await stackOsNFT.partnerMint(3);
 
     await stackOsNFT.setApprovalForAll(masterNode.address, true);
@@ -148,9 +167,8 @@ describe("MasterNode", function () {
   });
 
   it("Reverts", async function () {
-    await expect(masterNode.addNextGeneration(stackOsNFTgen2.address)).to.be.revertedWith("Address already added");
     await expect(masterNode.deposit(1337, [3, 4])).to.be.revertedWith("Generation doesn't exist");
-    await expect(masterNode.deposit(0, [5])).to.be.revertedWith("Not owner");
+    await expect(masterNode.deposit(0, [5])).to.be.revertedWith("ERC721: transfer caller is not owner nor approved");
     await expect(masterNode.mint()).to.be.revertedWith("Not enough deposited");
   });
 
