@@ -64,6 +64,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         string memory _name,
         string memory _symbol,
         IERC20 _stackOSTokenToken,
+        MasterNode _masterNode,
         uint256 _participationFee,
         uint256 _maxSupply,
         uint256 _prizes,
@@ -79,6 +80,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         )
     {
         stackOSToken = _stackOSTokenToken;
+        masterNode = _masterNode;
         participationFee = _participationFee;
         maxSupply = _maxSupply;
         prizes = _prizes;
@@ -86,11 +88,6 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         fee = _fee;
         transferDiscount = _transferDiscount;
         auctionedNFTs = _auctionedNFTs;
-    }
-
-    function setMasterNodeAddress(MasterNode _masterNode) public onlyOwner {
-        require(address(masterNode) == address(0), "Already set");
-        masterNode = _masterNode;
     }
 
     /*
@@ -129,7 +126,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
      */
 
     function getDelegator(uint256 _tokenId) public view returns (address) {
-        return masterNode.ownerOfStackOrMasterNode(msg.sender, IStackOSNFT(address(this)), _tokenId);
+        return masterNode.ownerOfStackOrMasterNode(IStackOSNFT(address(this)), _tokenId);
     }
 
     function _baseURI() internal pure override returns (string memory) {
@@ -466,7 +463,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
 
     function delegate(address _delegatee, uint256 tokenId) public {
         require(
-            msg.sender == masterNode.ownerOfStackOrMasterNode(msg.sender, IStackOSNFT(address(this)), tokenId),
+            msg.sender == masterNode.ownerOfStackOrMasterNode(IStackOSNFT(address(this)), tokenId),
             "Not owner"
         );
         require(delegates[tokenId] == address(0), "Already delegated");

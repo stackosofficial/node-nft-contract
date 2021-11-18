@@ -39,9 +39,21 @@ describe("Royalty Attack", function () {
     await coordinator.deployed();
     console.log(coordinator.address);
 
+    const GenerationManager = await ethers.getContractFactory("GenerationManager");
+    generationManager = await GenerationManager.deploy();
+
+    GENERATION_MANAGER_ADDRESS = generationManager.address;
+    MASTER_NODE_PRICE = 50;
+    const MasterNode = await ethers.getContractFactory("MasterNode");
+    masterNode = await MasterNode.deploy(
+      GENERATION_MANAGER_ADDRESS,
+      MASTER_NODE_PRICE
+    );
+
     NAME = "STACK OS NFT";
     SYMBOL = "SON";
     STACK_TOKEN_FOR_PAYMENT = currency.address;
+    MASTER_NODE_ADDRESS = masterNode.address;
     PRICE = parseEther("0.1");
     MAX_SUPPLY = 25;
     PRIZES = 10;
@@ -59,6 +71,7 @@ describe("Royalty Attack", function () {
       NAME,
       SYMBOL,
       STACK_TOKEN_FOR_PAYMENT,
+      MASTER_NODE_ADDRESS,
       PRICE,
       MAX_SUPPLY,
       PRIZES,
@@ -72,19 +85,7 @@ describe("Royalty Attack", function () {
     // generation 2
     await ethers.provider.send("evm_mine");
     await stackOsNFT.deployed();
-
-    const GenerationManager = await ethers.getContractFactory("GenerationManager");
-    generationManager = await GenerationManager.deploy(
-      stackOsNFT.address
-    );
-
-    GENERATION_MANAGER_ADDRESS = generationManager.address;
-    MASTER_NODE_PRICE = 50;
-    const MasterNode = await ethers.getContractFactory("MasterNode");
-    masterNode = await MasterNode.deploy(
-      GENERATION_MANAGER_ADDRESS,
-      MASTER_NODE_PRICE
-    );
+    await generationManager.add(stackOsNFT.address);
     
     GENERATION_MANAGER_ADDRESS = generationManager.address;
     MASTER_NODE_ADDRESS = masterNode.address;

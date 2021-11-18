@@ -42,6 +42,7 @@ contract MasterNode is ERC721, Ownable, ReentrancyGuard {
 
     /*
      * @title Returns true if `_wallet` own either StackNFT or MasterNodeNFT that owns StackNFT.
+     * @param Token holder address.
      * @param StackNFT generation id.
      * @param StackNFT token id.
      */
@@ -54,11 +55,11 @@ contract MasterNode is ERC721, Ownable, ReentrancyGuard {
     }
 
     /*
-     * @title Returns true if `_wallet` own either StackNFT or MasterNodeNFT that owns StackNFT.
-     * @param StackNFT generation id.
+     * @title Returns direct or indirect owner of StackNFT.
+     * @param StackNFT address.
      * @param StackNFT token id.
      */
-    function ownerOfStackOrMasterNode(address _wallet, IStackOSNFT _stackOsNFT, uint256 tokenId) public view returns (address) {
+    function ownerOfStackOrMasterNode(IStackOSNFT _stackOsNFT, uint256 tokenId) public view returns (address) {
         uint256 generationId = generations.getId(address(_stackOsNFT));
         if(_exists(stackToMaster[generationId][tokenId])) {
             return ownerOf(generationId, tokenId);

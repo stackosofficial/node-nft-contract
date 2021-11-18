@@ -16,10 +16,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
     uint256[] private generationAddedTimestamp; // time when new StackOS added to this contract
 
     constructor(
-        IStackOSNFT _stackOS 
     ) {
-        generations.push(_stackOS);
-        generationAddedTimestamp.push(0);
     }
 
     /*
@@ -46,6 +43,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         string memory _name,
         string memory _symbol,
         IERC20 _stackOSTokenToken,
+        MasterNode _masterNode,
         uint256 _participationFee,
         uint256 _maxSupply,
         uint256 _prizes,
@@ -54,13 +52,13 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         // address _linkToken,
         bytes32 _keyHash,
         uint256 _fee,
-        uint256 _transferDiscount,
-        address _masterNode
+        uint256 _transferDiscount
     ) public onlyOwner returns (IStackOSNFT) {
         IStackOSNFT stack = IStackOSNFT(address(new StackOsNFT( 
             _name,
             _symbol,
             _stackOSTokenToken,
+            _masterNode,
             _participationFee,
             _maxSupply,
             _prizes,
@@ -72,7 +70,6 @@ contract GenerationManager is Ownable, ReentrancyGuard {
             _transferDiscount
         )));
         stack.transferOwnership(msg.sender);
-        stack.setMasterNodeAddress(_masterNode);
         add(stack);
         return stack;
     }
@@ -93,7 +90,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
     }
 
     /*
-     * @title Get generation of StackNFT.
+     * @title Get generation ID of StackNFT.
      * @param Generation id. 
      */
     function getId(address _stackOsNFT) public view returns (uint256) {
@@ -107,5 +104,4 @@ contract GenerationManager is Ownable, ReentrancyGuard {
     function getAddedTimestamp(uint256 generationId) public view returns (uint256) {
         return generationAddedTimestamp[generationId];
     }
-
 }

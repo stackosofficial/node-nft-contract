@@ -36,10 +36,28 @@ describe("Royalty", function () {
     await coordinator.deployed();
     console.log(coordinator.address);
   });
+  it("Deploy GenerationManager", async function () {
+    const GenerationManager = await ethers.getContractFactory("GenerationManager");
+    generationManager = await GenerationManager.deploy();
+    await generationManager.deployed();
+    console.log(generationManager.address);
+  });
+  it("Deploy MasterNode", async function () {
+    GENERATION_MANAGER_ADDRESS = generationManager.address;
+    MASTER_NODE_PRICE = 50;
+    const MasterNode = await ethers.getContractFactory("MasterNode");
+    masterNode = await MasterNode.deploy(
+      GENERATION_MANAGER_ADDRESS,
+      MASTER_NODE_PRICE
+    );
+    await masterNode.deployed();
+    console.log(masterNode.address);
+  });
   it("Deploy StackOS NFT", async function () {
     NAME = "STACK OS NFT";
     SYMBOL = "SON";
     STACK_TOKEN_FOR_PAYMENT = currency.address;
+    MASTER_NODE_ADDRESS = masterNode.address;
     PRICE = parseEther("0.1");
     MAX_SUPPLY = 25;
     PRIZES = 10;
@@ -56,6 +74,7 @@ describe("Royalty", function () {
       NAME,
       SYMBOL,
       STACK_TOKEN_FOR_PAYMENT,
+      MASTER_NODE_ADDRESS,
       PRICE,
       MAX_SUPPLY,
       PRIZES,
@@ -67,25 +86,7 @@ describe("Royalty", function () {
       TRANSFER_DISCOUNT
     );
     await stackOsNFT.deployed();
-  });
-  it("Deploy GenerationManager", async function () {
-    const GenerationManager = await ethers.getContractFactory("GenerationManager");
-    generationManager = await GenerationManager.deploy(
-      stackOsNFT.address
-    );
-    await generationManager.deployed();
-    console.log(generationManager.address);
-  });
-  it("Deploy MasterNode", async function () {
-    GENERATION_MANAGER_ADDRESS = generationManager.address;
-    MASTER_NODE_PRICE = 50;
-    const MasterNode = await ethers.getContractFactory("MasterNode");
-    masterNode = await MasterNode.deploy(
-      GENERATION_MANAGER_ADDRESS,
-      MASTER_NODE_PRICE
-    );
-    await masterNode.deployed();
-    console.log(masterNode.address);
+    await generationManager.add(stackOsNFT.address);
   });
   it("Deploy royalty", async function () {
     
@@ -225,6 +226,7 @@ describe("Royalty", function () {
       NAME,
       SYMBOL,
       STACK_TOKEN_FOR_PAYMENT,
+      MASTER_NODE_ADDRESS,
       PRICE,
       MAX_SUPPLY,
       PRIZES,
@@ -358,6 +360,7 @@ describe("Royalty", function () {
       NAME,
       SYMBOL,
       STACK_TOKEN_FOR_PAYMENT,
+      MASTER_NODE_ADDRESS,
       PRICE,
       MAX_SUPPLY,
       PRIZES,

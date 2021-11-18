@@ -48,10 +48,28 @@ describe("MasterNode", function () {
     console.log(coordinator.address);
   });
 
+  it("Deploy GenerationManager", async function () {
+    const GenerationManager = await ethers.getContractFactory("GenerationManager");
+    generationManager = await GenerationManager.deploy();
+    await generationManager.deployed();
+    console.log(generationManager.address);
+  });
+  it("Deploy MasterNode", async function () {
+    GENERATION_MANAGER_ADDRESS = generationManager.address;
+    MASTER_NODE_PRICE = 5;
+    const MasterNode = await ethers.getContractFactory("MasterNode");
+    masterNode = await MasterNode.deploy(
+      GENERATION_MANAGER_ADDRESS,
+      MASTER_NODE_PRICE
+    );
+    await masterNode.deployed();
+    console.log(masterNode.address);
+  });
   it("Deploy StackOS NFT", async function () {
     NAME = "STACK OS NFT";
     SYMBOL = "SON";
     STACK_TOKEN_FOR_PAYMENT = currency.address;
+    MASTER_NODE_ADDRESS = masterNode.address;
     PRICE = parseEther("0.1");
     MAX_SUPPLY = 25;
     PRIZES = 10;
@@ -68,6 +86,7 @@ describe("MasterNode", function () {
       NAME,
       SYMBOL,
       STACK_TOKEN_FOR_PAYMENT,
+      MASTER_NODE_ADDRESS,
       PRICE,
       MAX_SUPPLY,
       PRIZES,
@@ -79,21 +98,15 @@ describe("MasterNode", function () {
       TRANSFER_DISCOUNT
     );
     await stackOsNFT.deployed();
+    await generationManager.add(stackOsNFT.address);
   });
 
-  it("Deploy GenerationManager", async function () {
-    const GenerationManager = await ethers.getContractFactory("GenerationManager");
-    generationManager = await GenerationManager.deploy(
-      stackOsNFT.address
-    );
-    await generationManager.deployed();
-    console.log(generationManager.address);
-  });
   it("Deploy StackOS NFT generation 2", async function () {
     await generationManager.deployNextGen(      
       NAME,
       SYMBOL,
       STACK_TOKEN_FOR_PAYMENT,
+      MASTER_NODE_ADDRESS,
       PRICE,
       MAX_SUPPLY,
       PRIZES,
@@ -108,17 +121,6 @@ describe("MasterNode", function () {
       "StackOsNFT",
       await generationManager.get(1)
     );
-  });
-  it("Deploy MasterNode", async function () {
-    GENERATION_MANAGER_ADDRESS = generationManager.address;
-    MASTER_NODE_PRICE = 5;
-    const MasterNode = await ethers.getContractFactory("MasterNode");
-    masterNode = await MasterNode.deploy(
-      GENERATION_MANAGER_ADDRESS,
-      MASTER_NODE_PRICE
-    );
-    await masterNode.deployed();
-    console.log(masterNode.address);
   });
 
   it("Mint some StackNFT", async function () {
