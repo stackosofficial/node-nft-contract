@@ -10,24 +10,21 @@ import "./StackOsNFT.sol";
 import "hardhat/console.sol";
 
 contract GenerationManager is Ownable, ReentrancyGuard {
-
     IStackOSNFT[] private generations; // StackNFT contract generations
     mapping(address => uint256) private ids; // generation ids
     uint256[] private generationAddedTimestamp; // time when new StackOS added to this contract
 
-    constructor(
-    ) {
-    }
+    constructor() {}
 
     /*
      * @title Add next generation of StackNFT.
-     * @param IStackOSNFT address. 
+     * @param IStackOSNFT address.
      * @dev Could only be invoked by the contract owner.
      * @dev Address should be unique.
      */
     function add(IStackOSNFT _stackOS) public onlyOwner {
         require(address(_stackOS) != address(0), "Must be not zero-address");
-        for(uint256 i; i < generations.length; i++) {
+        for (uint256 i; i < generations.length; i++) {
             require(generations[i] != _stackOS, "Address already added");
         }
         ids[address(_stackOS)] = generations.length;
@@ -37,13 +34,13 @@ contract GenerationManager is Ownable, ReentrancyGuard {
 
     /*
      * @title Deploy new StackOsNFT.
-     * @param Generation id. 
+     * @param Generation id.
      */
     function deployNextGen(
         string memory _name,
         string memory _symbol,
         IERC20 _stackOSTokenToken,
-        MasterNode _masterNode,
+        BlackMatter _blackMatter,
         uint256 _participationFee,
         uint256 _maxSupply,
         uint256 _prizes,
@@ -51,24 +48,26 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         // address _vrfCoordinator,
         // address _linkToken,
         bytes32 _keyHash,
-        uint256 _fee,
-        uint256 _transferDiscount
+        uint256 _transferDiscount,
+        uint256 _timeLock
     ) public onlyOwner returns (IStackOSNFT) {
-        IStackOSNFT stack = IStackOSNFT(address(new StackOsNFT( 
-            _name,
-            _symbol,
-            _stackOSTokenToken,
-            _masterNode,
-            _participationFee,
-            _maxSupply,
-            _prizes,
-            _auctionedNFTs,
-            // _vrfCoordinator,
-            // _linkToken,
-            _keyHash,
-            _fee,
-            _transferDiscount
-        )));
+        IStackOSNFT stack = IStackOSNFT(
+            address(
+                new StackOsNFT(
+                    _name,
+                    _symbol,
+                    _stackOSTokenToken,
+                    _blackMatter,
+                    _participationFee,
+                    _maxSupply,
+                    _prizes,
+                    _auctionedNFTs,
+                    _keyHash,
+                    _transferDiscount,
+                    _timeLock
+                )
+            )
+        );
         stack.transferOwnership(msg.sender);
         add(stack);
         return stack;
@@ -83,15 +82,27 @@ contract GenerationManager is Ownable, ReentrancyGuard {
 
     /*
      * @title Get generation of StackNFT.
-     * @param Generation id. 
+     * @param Generation id.
      */
     function get(uint256 generationId) public view returns (IStackOSNFT) {
         return generations[generationId];
     }
 
     /*
+     * @title Get generation of StackNFT.
+     * @param NFT contract address
+     */
+    function getIDByAddress(address _nftAddress) public view returns (uint256) {
+        uint256 generationID = ids[_nftAddress];
+        if (generationID == 0) {
+            require(address(get(0)) == _nftAddress, "Not Correct Address");
+        }
+        return generationID;
+    }
+
+    /*
      * @title Get generation ID of StackNFT.
-     * @param Generation id. 
+     * @param Generation id.
      */
     function getId(address _stackOsNFT) public view returns (uint256) {
         return ids[_stackOsNFT];
@@ -99,9 +110,13 @@ contract GenerationManager is Ownable, ReentrancyGuard {
 
     /*
      * @title Get generation added timestamp.
-     * @param Generation id. 
+     * @param Generation id.
      */
-    function getAddedTimestamp(uint256 generationId) public view returns (uint256) {
+    function getAddedTimestamp(uint256 generationId)
+        public
+        view
+        returns (uint256)
+    {
         return generationAddedTimestamp[generationId];
     }
 }

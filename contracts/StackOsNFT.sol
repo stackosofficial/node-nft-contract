@@ -8,8 +8,9 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@chainlink/contracts/src/v0.8/VRFConsumerBase.sol";
-import "./MasterNode.sol";
+import "./BlackMatter.sol";
 import "./interfaces/IStackOSNFT.sol";
+import "./GenerationManager.sol";
 import "hardhat/console.sol";
 
 contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
@@ -22,14 +23,14 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         Rewarded,
         Withdrawn
     }
-    
+
     Counters.Counter private _tokenIdCounter;
     IERC20 private stackOSToken;
-    MasterNode private masterNode;
+    BlackMatter private blackMatter;
+    GenerationManager private generations;
 
     uint256[] public winningTickets;
-    // SET TIMELOCK!
-    uint256 public timeLock = block.timestamp + 60 minutes;
+    uint256 public timeLock;
     uint256 public randomNumber;
     uint256 public auctionedNFTs;
     uint256 public auctionCloseTime;
@@ -64,14 +65,14 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         string memory _name,
         string memory _symbol,
         IERC20 _stackOSTokenToken,
-        MasterNode _masterNode,
+        BlackMatter _blackMatter,
         uint256 _participationFee,
         uint256 _maxSupply,
         uint256 _prizes,
         uint256 _auctionedNFTs,
         bytes32 _keyHash,
-        uint256 _fee,
-        uint256 _transferDiscount
+        uint256 _transferDiscount,
+        uint256 _timeLock
     )
         ERC721(_name, _symbol)
         VRFConsumerBase(
@@ -80,14 +81,27 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         )
     {
         stackOSToken = _stackOSTokenToken;
-        masterNode = _masterNode;
+        blackMatter = _blackMatter;
         participationFee = _participationFee;
         maxSupply = _maxSupply;
         prizes = _prizes;
         keyHash = _keyHash;
-        fee = _fee;
         transferDiscount = _transferDiscount;
         auctionedNFTs = _auctionedNFTs;
+        timeLock = block.timestamp + _timeLock;
+        generations = GenerationManager(msg.sender);
+    }
+
+    /*
+     * @title On first NFT contract deployment the msg.sender is the deployer not contract
+     * @param address of generation manager contract
+     */
+
+    function adjustGenerationManagerAddress(address _genManager)
+        public
+        onlyOwner
+    {
+        generations = GenerationManager(_genManager);
     }
 
     /*
@@ -126,7 +140,11 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
      */
 
     function getDelegator(uint256 _tokenId) public view returns (address) {
-        return masterNode.ownerOfStackOrMasterNode(IStackOSNFT(address(this)), _tokenId);
+        return
+            blackMatter.ownerOfStackOrBlackMatter(
+                IStackOSNFT(address(this)),
+                _tokenId
+            );
     }
 
     function _baseURI() internal pure override returns (string memory) {
@@ -297,6 +315,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
     function transferTicket(uint256[] calldata _ticketID, address _address)
         public
     {
+        generations.getIDByAddress(_address);
         require(winningTickets.length > 0, "Not Decided Yet.");
         require(ticketStatusAssigned == true, "Not Assigned Yet!");
         for (uint256 i; i < _ticketID.length; i++) {
@@ -320,15 +339,28 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
     }
 
     function transferFromLastGen(address _ticketOwner, uint256 _amount) public {
-        require(address(this) != address(msg.sender), "Cant transfer to the same address");
-        uint256 ticketAmount = _amount.div(participationFee);
-
+        require(
+            address(this) != address(msg.sender),
+            "Cant transfer to the same address"
+        );
+        generations.getIDByAddress(msg.sender);
+        uint256 participationFeeDiscount = participationFee
+            .mul(10000 - transferDiscount)
+            .div(10000);
+        uint256 ticketAmount = _amount.div(participationFeeDiscount);
         // from stakeForTickets function
-        uint256 depositAmount = participationFee.mul(ticketAmount)
-                                                .mul(10000 - transferDiscount)
-                                                .div(10000);
-        // console.log(ticketAmount, depositAmount);
-        stackOSToken.transferFrom(address(msg.sender), address(this), depositAmount);
+        uint256 depositAmount = participationFeeDiscount.mul(ticketAmount);
+        stackOSToken.transferFrom(
+            address(msg.sender),
+            address(this),
+            depositAmount
+        );
+        stackOSToken.transferFrom(
+            address(msg.sender),
+            _ticketOwner,
+            _amount - depositAmount
+        );
+
         uint256 nextTicketID = participationTickets;
         for (uint256 i; i < ticketAmount; i++) {
             ticketOwner[nextTicketID] = _ticketOwner;
@@ -345,10 +377,10 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
      * @dev Could only be invoked by the contract owner.
      */
 
-    function whitelistPartner(
-        address _address,
-        uint256 _amount
-    ) public onlyOwner {
+    function whitelistPartner(address _address, uint256 _amount)
+        public
+        onlyOwner
+    {
         strategicPartner[_address] = _amount;
     }
 
@@ -388,10 +420,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
 
     function partnerMint(uint256 _nftAmount) public {
         require(salesStarted, "Sales not started");
-        require(
-            strategicPartner[msg.sender] >= _nftAmount,
-            "Amount Too Big"
-        );
+        require(strategicPartner[msg.sender] >= _nftAmount, "Amount Too Big");
         stackOSToken.transferFrom(
             msg.sender,
             address(this),
@@ -399,7 +428,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         );
         adminWithdrawableAmount += participationFee.mul(_nftAmount);
         for (uint256 i; i < _nftAmount; i++) {
-            strategicPartner[msg.sender] --;
+            strategicPartner[msg.sender]--;
             mint(msg.sender);
         }
     }
@@ -463,7 +492,11 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
 
     function delegate(address _delegatee, uint256 tokenId) public {
         require(
-            msg.sender == masterNode.ownerOfStackOrMasterNode(IStackOSNFT(address(this)), tokenId),
+            msg.sender ==
+                blackMatter.ownerOfStackOrBlackMatter(
+                    IStackOSNFT(address(this)),
+                    tokenId
+                ),
             "Not owner"
         );
         require(delegates[tokenId] == address(0), "Already delegated");
@@ -503,8 +536,10 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
      * @dev Caller must be contract owner, timelock should be passed.
      */
     function adminWithdraw() public onlyOwner {
+        console.log(block.timestamp);
+        console.log(timeLock);
         require(block.timestamp > timeLock, "Locked!");
-        require(ticketStatusAssigned == true, "Already Assigned.");
+        require(ticketStatusAssigned == true, "Not Assigned.");
         stackOSToken.transfer(msg.sender, adminWithdrawableAmount);
         adminWithdrawableAmount.sub(adminWithdrawableAmount);
     }

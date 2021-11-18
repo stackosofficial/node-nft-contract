@@ -55,23 +55,23 @@ describe("Subscription", function () {
     console.log(generationManager.address);
   });
 
-  it("Deploy MasterNode", async function () {
+  it("Deploy BlackMatter", async function () {
     GENERATION_MANAGER_ADDRESS = generationManager.address;
     MASTER_NODE_PRICE = 50;
-    const MasterNode = await ethers.getContractFactory("MasterNode");
-    masterNode = await MasterNode.deploy(
+    const BlackMatter = await ethers.getContractFactory("BlackMatter");
+    blackMatter = await BlackMatter.deploy(
       GENERATION_MANAGER_ADDRESS,
       MASTER_NODE_PRICE
     );
-    await masterNode.deployed();
-    console.log(masterNode.address);
+    await blackMatter.deployed();
+    console.log(blackMatter.address);
   });
 
   it("Deploy StackOS NFT", async function () {
     NAME = "STACK OS NFT";
     SYMBOL = "SON";
     STACK_TOKEN_FOR_PAYMENT = stackToken.address;
-    MASTER_NODE_ADDRESS = masterNode.address;
+    MASTER_NODE_ADDRESS = blackMatter.address;
     PRICE = parseEther("0.1");
     MAX_SUPPLY = 25;
     PRIZES = 10;
@@ -93,8 +93,6 @@ describe("Subscription", function () {
       MAX_SUPPLY,
       PRIZES,
       AUCTIONED_NFTS,
-      // VRF_COORDINATOR,
-      // LINK_TOKEN,
       KEY_HASH,
       FEE,
       TRANSFER_DISCOUNT
@@ -108,7 +106,7 @@ describe("Subscription", function () {
     PAYMENT_TOKEN = usdt.address;
     STACK_TOKEN_FOR_PAYMENT = stackToken.address;
     GENERATION_MANAGER_ADDRESS = generationManager.address;
-    MASTER_NODE_ADDRESS = masterNode.address;
+    MASTER_NODE_ADDRESS = blackMatter.address;
     ROUTER_ADDRESS = router.address;
     TAX_ADDRESS = tax.address;
 
