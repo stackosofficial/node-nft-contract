@@ -11,27 +11,26 @@ import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 import "./interfaces/IStackOSNFT.sol";
 
 contract Subscription is Ownable, ReentrancyGuard {
-
     IERC20 private stackToken;
     IERC20 private paymentToken; // you buy subscriptions for this tokens
     IStackOSNFT private stackNFT;
     IUniswapV2Router02 private router;
     address private taxAddress;
 
-    uint256 private constant MAX_PERCENT = 10000;   // for convinience 100%
-    uint256 public constant MONTH = 28 days;        // define what's a month. if changing this, then also change in test
+    uint256 private constant MAX_PERCENT = 10000; // for convinience 100%
+    uint256 public constant MONTH = 28 days; // define what's a month. if changing this, then also change in test
 
-    uint256 public taxResetDeadline = 7 days;   // tax reduction resets if you subscribed and missed deadline
-    uint256 public price = 1e18;                // subscription price 
-    uint256 public bonusPercent = 2000;         // bonus that is added for each subscription month
-    uint256 public taxReductionPercent = 2500;  // how much 
+    uint256 public taxResetDeadline = 7 days; // tax reduction resets if you subscribed and missed deadline
+    uint256 public price = ; // subscription price
+    uint256 public bonusPercent = 2000; // bonus that is added for each subscription month
+    uint256 public taxReductionPercent = 2500; // how much
 
     // per NFT deposit
     struct Deposit {
-        uint256 balance;    // total stack amount, NOT counting TAX and bonus.
-        uint256 tax;        // withdraw TAX percent
+        uint256 balance; // total stack amount, NOT counting TAX and bonus.
+        uint256 tax; // withdraw TAX percent
         uint256 withdrawableNum; // number of months that you able to claim bonus for.
-        uint256 nextPayDate;     // subscribe can be called only after this date. and this date + deadline = is the date for TAX reset to max.
+        uint256 nextPayDate; // subscribe can be called only after this date. and this date + deadline = is the date for TAX reset to max.
         uint256 lastSubscriptionDate; // should be a date when subscribe function called. and when withdraw it should be next month.
     }
 
@@ -87,21 +86,29 @@ contract Subscription is Ownable, ReentrancyGuard {
      *  @dev Caller can re-subscribe after last subscription month is ended.
      *  @dev Tax resets to maximum if you re-subscribed too late, after `taxResetDeadline`.
      */
-    function subscribe(uint256 tokenId, uint256 numberOfMonths) external nonReentrant {
 
+    // TODO: Add generation selection.
+
+    function subscribe(uint256 tokenId, uint256 numberOfMonths)
+        external
+        nonReentrant
+    {
         require(stackNFT.ownerOf(tokenId) == msg.sender, "Not owner");
         require(numberOfMonths > 0, "Zero months not allowed");
         require(deposits[tokenId].nextPayDate < block.timestamp, "Too soon");
 
-        if(deposits[tokenId].nextPayDate == 0) {
+        if (deposits[tokenId].nextPayDate == 0) {
             deposits[tokenId].lastSubscriptionDate = block.timestamp;
             deposits[tokenId].nextPayDate = block.timestamp;
             deposits[tokenId].tax = MAX_PERCENT;
         }
 
         // Paid after deadline?
-        if(deposits[tokenId].nextPayDate + taxResetDeadline < block.timestamp) {
-            uint256 prevWithdrawableMonths = (deposits[tokenId].nextPayDate - deposits[tokenId].lastSubscriptionDate) / MONTH;
+        if (
+            deposits[tokenId].nextPayDate + taxResetDeadline < block.timestamp
+        ) {
+            uint256 prevWithdrawableMonths = (deposits[tokenId].nextPayDate -
+                deposits[tokenId].lastSubscriptionDate) / MONTH;
 
             deposits[tokenId].withdrawableNum += prevWithdrawableMonths;
             deposits[tokenId].lastSubscriptionDate = block.timestamp;
@@ -110,7 +117,7 @@ contract Subscription is Ownable, ReentrancyGuard {
         }
 
         deposits[tokenId].nextPayDate += (MONTH * numberOfMonths);
-        
+
         // convert payment token into stack token
         uint256 totalCost = price * numberOfMonths;
         uint256 amount = buyStackToken(totalCost);
@@ -124,8 +131,8 @@ contract Subscription is Ownable, ReentrancyGuard {
      *  @dev Tax resets to maximum if you missed your re-subscription.
      */
     function withdraw(uint256[] calldata tokenIds) external nonReentrant {
-        for(uint256 i; i < tokenIds.length; i ++) {
-             _withdraw(tokenIds[i]);
+        for (uint256 i; i < tokenIds.length; i++) {
+            _withdraw(tokenIds[i]);
         }
     }
 
@@ -134,18 +141,20 @@ contract Subscription is Ownable, ReentrancyGuard {
         require(deposits[tokenId].nextPayDate > 0, "No subscription");
         require(
             deposits[tokenId].lastSubscriptionDate < block.timestamp &&
-            deposits[tokenId].nextPayDate > deposits[tokenId].lastSubscriptionDate, 
+                deposits[tokenId].nextPayDate >
+                deposits[tokenId].lastSubscriptionDate,
             "Already withdrawn"
         );
         require(
-            deposits[tokenId].balance <= stackToken.balanceOf(address(this)), 
+            deposits[tokenId].balance <= stackToken.balanceOf(address(this)),
             "Not enough balance on bonus wallet"
         );
 
         // if not subscribed
-        if(deposits[tokenId].nextPayDate < block.timestamp) {
+        if (deposits[tokenId].nextPayDate < block.timestamp) {
             // no need for ceil, the difference should always be divisible by a month
-            uint256 prevWithdrawableMonths = (deposits[tokenId].nextPayDate - deposits[tokenId].lastSubscriptionDate) / MONTH;
+            uint256 prevWithdrawableMonths = (deposits[tokenId].nextPayDate -
+                deposits[tokenId].lastSubscriptionDate) / MONTH;
 
             deposits[tokenId].withdrawableNum += prevWithdrawableMonths;
             deposits[tokenId].lastSubscriptionDate = 0;
@@ -153,29 +162,41 @@ contract Subscription is Ownable, ReentrancyGuard {
             deposits[tokenId].tax = MAX_PERCENT - taxReductionPercent;
         } else {
             // current month number since last subscription date. ceil needed as we use arbitrary block time
-            uint256 currentMonth = ceilDiv(block.timestamp - deposits[tokenId].lastSubscriptionDate, MONTH);
+            uint256 currentMonth = ceilDiv(
+                block.timestamp - deposits[tokenId].lastSubscriptionDate,
+                MONTH
+            );
             deposits[tokenId].withdrawableNum += currentMonth;
             // move last subscription date to the next month, so that we will be unable to withdraw for the same months again
             deposits[tokenId].lastSubscriptionDate += currentMonth * MONTH;
-            assert(deposits[tokenId].nextPayDate >= deposits[tokenId].lastSubscriptionDate);
-            deposits[tokenId].tax = subOrZero(deposits[tokenId].tax, taxReductionPercent * currentMonth);
+            assert(
+                deposits[tokenId].nextPayDate >=
+                    deposits[tokenId].lastSubscriptionDate
+            );
+            deposits[tokenId].tax = subOrZero(
+                deposits[tokenId].tax,
+                taxReductionPercent * currentMonth
+            );
         }
 
-        uint256 unwithdrawableNum = (deposits[tokenId].nextPayDate - deposits[tokenId].lastSubscriptionDate) / MONTH;
-        uint256 amountWithdraw = 
-            deposits[tokenId].balance / (deposits[tokenId].withdrawableNum + unwithdrawableNum);
+        uint256 unwithdrawableNum = (deposits[tokenId].nextPayDate -
+            deposits[tokenId].lastSubscriptionDate) / MONTH;
+        uint256 amountWithdraw = deposits[tokenId].balance /
+            (deposits[tokenId].withdrawableNum + unwithdrawableNum);
         amountWithdraw *= deposits[tokenId].withdrawableNum;
-        uint256 amountWithdrawWithBonus = amountWithdraw * (MAX_PERCENT + bonusPercent) / MAX_PERCENT;
+        uint256 amountWithdrawWithBonus = (amountWithdraw *
+            (MAX_PERCENT + bonusPercent)) / MAX_PERCENT;
 
         deposits[tokenId].withdrawableNum = 0;
 
         // early withdraw tax
-        if(deposits[tokenId].tax > 0) {
+        if (deposits[tokenId].tax > 0) {
             // take tax from amount with bonus that will be withdrawn
-            uint256 tax = amountWithdrawWithBonus * deposits[tokenId].tax / MAX_PERCENT;
+            uint256 tax = (amountWithdrawWithBonus * deposits[tokenId].tax) /
+                MAX_PERCENT;
             amountWithdrawWithBonus -= tax;
             stackToken.transfer(taxAddress, tax);
-        } 
+        }
 
         // subtract withdrawn amount from balance (not counting tax and bonus)
         deposits[tokenId].balance -= amountWithdraw;
@@ -188,7 +209,6 @@ contract Subscription is Ownable, ReentrancyGuard {
      *  @param Amount of `paymentToken`.
      */
     function buyStackToken(uint256 amount) private returns (uint256) {
-
         paymentToken.transferFrom(msg.sender, address(this), amount);
         paymentToken.approve(address(router), amount);
 
@@ -204,13 +224,13 @@ contract Subscription is Ownable, ReentrancyGuard {
             address(this),
             deadline
         );
-        
+
         return amounts[1];
     }
 
     /*
      *  @title Subtract function, a - b.
-     *  @title But instead of reverting with subtraction underflow we return zero. 
+     *  @title But instead of reverting with subtraction underflow we return zero.
      *  @title For tax reduction 25% this is excessive safety, but if its 33% then on last 1% we will get underflow error.
      */
     function subOrZero(uint256 a, uint256 b) internal pure returns (uint256) {

@@ -2,7 +2,6 @@
 pragma solidity ^0.8.0;
 
 interface IStackOSNFT {
-
     function getTotalDelegated() external view returns (uint256);
 
     function getDelegationTimestamp(uint256 _tokenId)
@@ -18,7 +17,11 @@ interface IStackOSNFT {
         external;
 
     // From IERC721
-    function transferFrom( address from, address to, uint256 tokenId) external;
+    function transferFrom(
+        address from,
+        address to,
+        uint256 tokenId
+    ) external;
 
     function balanceOf(address owner) external view returns (uint256 balance);
 
