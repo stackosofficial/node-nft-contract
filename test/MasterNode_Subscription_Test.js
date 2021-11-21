@@ -57,7 +57,7 @@ describe("MasterNode integration with Subscription", function () {
   it("Deploy MasterNode", async function () {
     GENERATION_MANAGER_ADDRESS = generationManager.address;
     MASTER_NODE_PRICE = 5;
-    const MasterNode = await ethers.getContractFactory("MasterNode");
+    const MasterNode = await ethers.getContractFactory("BlackMatter");
     masterNode = await MasterNode.deploy(
       GENERATION_MANAGER_ADDRESS,
       MASTER_NODE_PRICE
@@ -167,12 +167,9 @@ describe("MasterNode integration with Subscription", function () {
     );
   });
 
-  it("Unable to subscribe for 0 months or foreign ids", async function () {
+  it("Unable to subscribe for 0 months", async function () {
     await expect(subscription.subscribe(0, 0, 0)).to.be.revertedWith(
       "Zero months not allowed"
-    );
-    await expect(subscription.connect(partner).subscribe(0, 4, 1)).to.be.revertedWith(
-      "Not owner"
     );
   });
 
@@ -215,15 +212,6 @@ describe("MasterNode integration with Subscription", function () {
     );
     await subscription.subscribe(0, 0, 1);
     await subscription.subscribe(0, 1, 4);
-  });
-
-  it("Unable to subscibe until next month", async function () {
-    await expect(subscription.subscribe(0, 0, 1)).to.be.revertedWith(
-      "Too soon"
-    );
-    await expect(subscription.subscribe(0, 1, 4)).to.be.revertedWith(
-      "Too soon"
-    );
   });
   
   it("Take TAX for early withdrawal", async function () {
@@ -399,6 +387,23 @@ describe("MasterNode integration with Subscription", function () {
     console.log("tax: ", formatEther(await stackToken.balanceOf(tax.address)));
     expect(await stackToken.balanceOf(owner.address)).to.be.gt(parseEther("220.0"));
     expect(await stackToken.balanceOf(tax.address)).to.be.lt(parseEther("18.0")); // tax was 0, should stay the same
+  });
+
+  it("Pay for subscription on NFT owned by other peoples", async function () {
+    await usdt.transfer(partner.address, parseEther("50.0"));
+    await usdt.connect(partner).approve(
+      subscription.address,
+      parseEther("50.0")
+    );
+    await subscription.connect(partner).subscribe(0, 6, 1);
+
+    // withdraw when other guy payed for us
+    await expect(subscription.withdraw(0, [6])).to.be.revertedWith("Already withdrawn");
+    await provider.send("evm_increaseTime", [MONTH]);
+    await subscription.withdraw(0, [6]);
+
+    console.log("owner: ", formatEther(await stackToken.balanceOf(owner.address)));
+    expect(await stackToken.balanceOf(owner.address)).to.be.gt(parseEther("230.0"));
   });
 
   it("Revert EVM state", async function () {

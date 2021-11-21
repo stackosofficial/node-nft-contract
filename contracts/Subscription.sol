@@ -127,7 +127,9 @@ contract Subscription is Ownable, ReentrancyGuard {
     }
 
     /*
-     *  @title Withdraw accumulated deposit.
+     *  @title Withdraw accumulated deposit plus bonus minus tax.
+     *  @param StackNFT generation id.
+     *  @param STackNFT ids.
      *  @dev Caller must own `tokenIds` and unwithdrawn bonus for current or previous months.
      *  @dev Tax reduced by `taxReductionPercent` each month subscribed in a row until 0.
      *  @dev Tax resets to maximum if you missed your re-subscription.
@@ -240,7 +242,7 @@ contract Subscription is Ownable, ReentrancyGuard {
     /*
      *  @title Subtract function, a - b.
      *  @title But instead of reverting with subtraction underflow we return zero.
-     *  @title For tax reduction 25% this is excessive safety, but if its 33% then on last 1% we will get underflow error.
+     *  @title For tax reduction 25% this is excessive safety, but if its 33% then on last 1% we would get underflow error.
      */
     function subOrZero(uint256 a, uint256 b) internal pure returns (uint256) {
         return a > b ? a - b : 0;

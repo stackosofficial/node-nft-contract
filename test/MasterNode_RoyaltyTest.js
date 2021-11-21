@@ -45,7 +45,7 @@ describe("MasterNode integration with Royalty", function () {
   it("Deploy MasterNode", async function () {
     GENERATION_MANAGER_ADDRESS = generationManager.address;
     MASTER_NODE_PRICE = 5;
-    const MasterNode = await ethers.getContractFactory("MasterNode");
+    const MasterNode = await ethers.getContractFactory("BlackMatter");
     masterNode = await MasterNode.deploy(
       GENERATION_MANAGER_ADDRESS,
       MASTER_NODE_PRICE
