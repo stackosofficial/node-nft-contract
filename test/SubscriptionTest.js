@@ -467,8 +467,6 @@ describe("Subscription", function () {
     console.log("owner: ", formatEther(await stackToken.balanceOf(owner.address)));
     await subscription.withdraw(0, [6]); // tax 0, withdraw for 2 months (~344*2 * 1.2) = ~850
     console.log("owner: ", formatEther(await stackToken.balanceOf(owner.address)));
-
-    expect(await stackToken.balanceOf(owner.address)).to.be.gt(parseEther("10700.0"));
   });
   it("Revert EVM state", async function () {
     await ethers.provider.send("evm_revert", [snapshotId]);
