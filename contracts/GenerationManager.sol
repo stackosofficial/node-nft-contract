@@ -7,7 +7,6 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "./interfaces/IStackOSNFT.sol";
 import "./StackOsNFT.sol";
-import "hardhat/console.sol";
 
 contract GenerationManager is Ownable, ReentrancyGuard {
     IStackOSNFT[] private generations; // StackNFT contract generations

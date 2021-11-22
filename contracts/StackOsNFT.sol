@@ -11,7 +11,6 @@ import "@chainlink/contracts/src/v0.8/VRFConsumerBase.sol";
 import "./DarkMatter.sol";
 import "./interfaces/IStackOSNFT.sol";
 import "./GenerationManager.sol";
-import "hardhat/console.sol";
 
 contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
     using Counters for Counters.Counter;
@@ -536,8 +535,6 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
      * @dev Caller must be contract owner, timelock should be passed.
      */
     function adminWithdraw() public onlyOwner {
-        console.log(block.timestamp);
-        console.log(timeLock);
         require(block.timestamp > timeLock, "Locked!");
         require(ticketStatusAssigned == true, "Not Assigned.");
         stackOSToken.transfer(msg.sender, adminWithdrawableAmount);

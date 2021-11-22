@@ -7,7 +7,6 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "./interfaces/IStackOSNFT.sol";
 import "./GenerationManager.sol";
-import "hardhat/console.sol";
 
 contract DarkMatter is ERC721, Ownable, ReentrancyGuard {
     using Counters for Counters.Counter;
@@ -44,7 +43,7 @@ contract DarkMatter is ERC721, Ownable, ReentrancyGuard {
     }
 
     /*
-     * @title Returns true if `_wallet` own either StackNFT or DarkMatterNFT that owns StackNFT.
+     * @title Returns true if `_wallet` own either StackNFT or DarkMatterNFT that has locked this StackNFT.
      * @param Token holder address.
      * @param StackNFT generation id.
      * @param StackNFT token id.
@@ -64,9 +63,10 @@ contract DarkMatter is ERC721, Ownable, ReentrancyGuard {
     }
 
     /*
-     * @title Returns direct or indirect owner of StackNFT.
+     * @title Returns owner of StackNFT.
      * @param StackNFT address.
      * @param StackNFT token id.
+     * @dev The returned address owns StackNFT or DarkMatter that has locked this StackNFT. 
      */
     function ownerOfStackOrDarkMatter(IStackOSNFT _stackOsNFT, uint256 tokenId)
         public
@@ -95,6 +95,8 @@ contract DarkMatter is ERC721, Ownable, ReentrancyGuard {
 
     /*
      *  @title Deposit StackNFT.
+     *  @param StackNFT generation id.
+     *  @param Token ids.
      *  @dev StackNFT generation must be added prior to deposit.
      */
     function deposit(uint256 generationId, uint256[] calldata tokenIds)
