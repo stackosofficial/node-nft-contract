@@ -105,23 +105,23 @@ describe("Royalty", function () {
     console.log(generationManager.address);
   });
 
-  it("Deploy BlackMatter", async function () {
+  it("Deploy DarkMatter", async function () {
     GENERATION_MANAGER_ADDRESS = generationManager.address;
     MASTER_NODE_PRICE = 50;
-    const BlackMatter = await ethers.getContractFactory("BlackMatter");
-    blackMatter = await BlackMatter.deploy(
+    const DarkMatter = await ethers.getContractFactory("DarkMatter");
+    darkMatter = await DarkMatter.deploy(
       GENERATION_MANAGER_ADDRESS,
       MASTER_NODE_PRICE
     );
-    await blackMatter.deployed();
-    console.log(blackMatter.address);
+    await darkMatter.deployed();
+    console.log(darkMatter.address);
   });
 
   it("Deploy subscription", async function () {
     PAYMENT_TOKEN = usdt.address;
     STACK_TOKEN_FOR_PAYMENT = stackToken.address;
     GENERATION_MANAGER_ADDRESS = generationManager.address;
-    MASTER_NODE_ADDRESS = blackMatter.address;
+    MASTER_NODE_ADDRESS = darkMatter.address;
     ROUTER_ADDRESS = router.address;
     TAX_ADDRESS = tax.address;
 
@@ -155,7 +155,7 @@ describe("Royalty", function () {
     NAME = "STACK OS NFT";
     SYMBOL = "SON";
     STACK_TOKEN_FOR_PAYMENT = stackToken.address;
-    MASTER_NODE_ADDRESS = blackMatter.address;
+    MASTER_NODE_ADDRESS = darkMatter.address;
     PRICE = parseEther("0.1");
     MAX_SUPPLY = 25;
     PRIZES = 10;
@@ -186,7 +186,7 @@ describe("Royalty", function () {
   });
   it("Deploy royalty", async function () {
     GENERATION_MANAGER_ADDRESS = generationManager.address;
-    MASTER_NODE_ADDRESS = blackMatter.address;
+    MASTER_NODE_ADDRESS = darkMatter.address;
     DEPOSIT_FEE_ADDRESS = bank.address;
     MIN_CYCLE_ETHER = parseEther("1");
     DEPOSIT_FEE_PERCENT = 1000;

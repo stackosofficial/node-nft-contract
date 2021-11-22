@@ -6,7 +6,7 @@ const { formatEther, parseEther } = require("@ethersproject/units");
 
 use(solidity);
 
-describe("BlackMatter", function () {
+describe("DarkMatter", function () {
   it("Snapshot EVM", async function () {
     snapshotId = await ethers.provider.send("evm_snapshot");
   });
@@ -56,22 +56,22 @@ describe("BlackMatter", function () {
     await generationManager.deployed();
     console.log(generationManager.address);
   });
-  it("Deploy BlackMatter", async function () {
+  it("Deploy DarkMatter", async function () {
     GENERATION_MANAGER_ADDRESS = generationManager.address;
     MASTER_NODE_PRICE = 5;
-    const BlackMatter = await ethers.getContractFactory("BlackMatter");
-    blackMatter = await BlackMatter.deploy(
+    const DarkMatter = await ethers.getContractFactory("DarkMatter");
+    darkMatter = await DarkMatter.deploy(
       GENERATION_MANAGER_ADDRESS,
       MASTER_NODE_PRICE
     );
-    await blackMatter.deployed();
-    console.log(blackMatter.address);
+    await darkMatter.deployed();
+    console.log(darkMatter.address);
   });
   it("Deploy StackOS NFT", async function () {
     NAME = "STACK OS NFT";
     SYMBOL = "SON";
     STACK_TOKEN_FOR_PAYMENT = currency.address;
-    MASTER_NODE_ADDRESS = blackMatter.address;
+    MASTER_NODE_ADDRESS = darkMatter.address;
     PRICE = parseEther("0.1");
     MAX_SUPPLY = 25;
     PRIZES = 10;
@@ -134,43 +134,43 @@ describe("BlackMatter", function () {
   });
 
   it("Deposit NFTs", async function () {
-    await stackOsNFT.setApprovalForAll(blackMatter.address, true);
-    await blackMatter.deposit(0, [0, 1, 2]);
-    expect(await blackMatter.balanceOf(owner.address)).to.be.equal(0);
+    await stackOsNFT.setApprovalForAll(darkMatter.address, true);
+    await darkMatter.deposit(0, [0, 1, 2]);
+    expect(await darkMatter.balanceOf(owner.address)).to.be.equal(0);
     expect(await stackOsNFT.balanceOf(owner.address)).to.be.equal(2);
-    expect(await stackOsNFT.balanceOf(blackMatter.address)).to.be.equal(3);
+    expect(await stackOsNFT.balanceOf(darkMatter.address)).to.be.equal(3);
   });
 
-  it("Mint BlackMatter", async function () {
-    await blackMatter.deposit(0, [3, 4]);
-    await blackMatter.mint();
-    expect(await blackMatter.balanceOf(owner.address)).to.be.equal(1);
+  it("Mint DarkMatter", async function () {
+    await darkMatter.deposit(0, [3, 4]);
+    await darkMatter.mint();
+    expect(await darkMatter.balanceOf(owner.address)).to.be.equal(1);
     expect(await stackOsNFT.balanceOf(owner.address)).to.be.equal(0);
-    expect(await stackOsNFT.balanceOf(blackMatter.address)).to.be.equal(5);
+    expect(await stackOsNFT.balanceOf(darkMatter.address)).to.be.equal(5);
   });
 
   it("Two generations", async function () {
     await stackOsNFT.partnerMint(3);
 
-    await stackOsNFT.setApprovalForAll(blackMatter.address, true);
-    await blackMatter.deposit(0, [6, 7, 8]);
-    await stackOsNFTgen2.setApprovalForAll(blackMatter.address, true);
-    await blackMatter.deposit(1, [0, 1]);
-    await blackMatter.mint();
-    expect(await blackMatter.balanceOf(owner.address)).to.be.equal(2);
+    await stackOsNFT.setApprovalForAll(darkMatter.address, true);
+    await darkMatter.deposit(0, [6, 7, 8]);
+    await stackOsNFTgen2.setApprovalForAll(darkMatter.address, true);
+    await darkMatter.deposit(1, [0, 1]);
+    await darkMatter.mint();
+    expect(await darkMatter.balanceOf(owner.address)).to.be.equal(2);
     expect(await stackOsNFT.balanceOf(owner.address)).to.be.equal(0);
-    expect(await stackOsNFT.balanceOf(blackMatter.address)).to.be.equal(8);
-    expect(await stackOsNFTgen2.balanceOf(blackMatter.address)).to.be.equal(2);
+    expect(await stackOsNFT.balanceOf(darkMatter.address)).to.be.equal(8);
+    expect(await stackOsNFTgen2.balanceOf(darkMatter.address)).to.be.equal(2);
   });
 
   it("Reverts", async function () {
-    await expect(blackMatter.deposit(1337, [3, 4])).to.be.revertedWith(
+    await expect(darkMatter.deposit(1337, [3, 4])).to.be.revertedWith(
       "Generation doesn't exist"
     );
-    await expect(blackMatter.deposit(0, [5])).to.be.revertedWith(
+    await expect(darkMatter.deposit(0, [5])).to.be.revertedWith(
       "ERC721: transfer caller is not owner nor approved"
     );
-    await expect(blackMatter.mint()).to.be.revertedWith("Not enough deposited");
+    await expect(darkMatter.mint()).to.be.revertedWith("Not enough deposited");
   });
 
   it("Revert EVM state", async function () {

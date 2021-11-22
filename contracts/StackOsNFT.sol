@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@chainlink/contracts/src/v0.8/VRFConsumerBase.sol";
-import "./BlackMatter.sol";
+import "./DarkMatter.sol";
 import "./interfaces/IStackOSNFT.sol";
 import "./GenerationManager.sol";
 import "hardhat/console.sol";
@@ -26,7 +26,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
 
     Counters.Counter private _tokenIdCounter;
     IERC20 private stackOSToken;
-    BlackMatter private blackMatter;
+    DarkMatter private darkMatter;
     GenerationManager private generations;
 
     uint256[] public winningTickets;
@@ -65,7 +65,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         string memory _name,
         string memory _symbol,
         IERC20 _stackOSTokenToken,
-        BlackMatter _blackMatter,
+        DarkMatter _darkMatter,
         uint256 _participationFee,
         uint256 _maxSupply,
         uint256 _prizes,
@@ -81,7 +81,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         )
     {
         stackOSToken = _stackOSTokenToken;
-        blackMatter = _blackMatter;
+        darkMatter = _darkMatter;
         participationFee = _participationFee;
         maxSupply = _maxSupply;
         prizes = _prizes;
@@ -141,7 +141,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
 
     function getDelegator(uint256 _tokenId) public view returns (address) {
         return
-            blackMatter.ownerOfStackOrBlackMatter(
+            darkMatter.ownerOfStackOrDarkMatter(
                 IStackOSNFT(address(this)),
                 _tokenId
             );
@@ -493,7 +493,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
     function delegate(address _delegatee, uint256 tokenId) public {
         require(
             msg.sender ==
-                blackMatter.ownerOfStackOrBlackMatter(
+                darkMatter.ownerOfStackOrDarkMatter(
                     IStackOSNFT(address(this)),
                     tokenId
                 ),
