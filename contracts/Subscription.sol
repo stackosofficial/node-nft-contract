@@ -1,7 +1,7 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
 
-import "./BlackMatter.sol";
+import "./DarkMatter.sol";
 import "./GenerationManager.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -15,7 +15,7 @@ contract Subscription is Ownable, ReentrancyGuard {
     IERC20 private stackToken;
     IERC20 private paymentToken; // you buy subscriptions for this tokens
     IUniswapV2Router02 private router;
-    BlackMatter private blackMatter;
+    DarkMatter private darkMatter;
     GenerationManager private generations;
     address private taxAddress;
 
@@ -42,7 +42,7 @@ contract Subscription is Ownable, ReentrancyGuard {
         IERC20 _paymentToken,
         IERC20 _stackToken,
         GenerationManager _generations,
-        BlackMatter _blackMatter,
+        DarkMatter _darkMatter,
         IUniswapV2Router02 _router,
         address _taxAddress,
         uint256 _taxResetDeadline,
@@ -53,7 +53,7 @@ contract Subscription is Ownable, ReentrancyGuard {
         paymentToken = _paymentToken;
         stackToken = _stackToken;
         generations = _generations;
-        blackMatter = _blackMatter;
+        darkMatter = _darkMatter;
         router = _router;
         taxAddress = _taxAddress;
         taxResetDeadline = _taxResetDeadline;
@@ -99,7 +99,7 @@ contract Subscription is Ownable, ReentrancyGuard {
         uint256 generationId,
         uint256 tokenId,
         uint256 numberOfMonths
-    ) external nonReentrant {
+    ) public nonReentrant {
         require(generationId < generations.count(), "Generation doesn't exist");
         require(numberOfMonths > 0, "Zero months not allowed");
 
@@ -127,6 +127,7 @@ contract Subscription is Ownable, ReentrancyGuard {
         // convert payment token into stack token
         uint256 totalCost = price * numberOfMonths;
         uint256 amount = buyStackToken(totalCost);
+        console.log(amount);
         deposit.balance += amount;
     }
 
@@ -143,14 +144,37 @@ contract Subscription is Ownable, ReentrancyGuard {
         nonReentrant
     {
         for (uint256 i; i < tokenIds.length; i++) {
-            _withdraw(generationId, tokenIds[i]);
+            _withdraw(generationId, tokenIds[i], false, 0, 0);
         }
     }
 
-    function _withdraw(uint256 generationId, uint256 tokenId) private {
+    function reSubscribe(
+        uint256 withdrawGenerationId,
+        uint256[] calldata withdrawTokenIds,
+        uint256 subscribeGenerationId,
+        uint256 subscribeTokenId
+    ) external nonReentrant {
+        for (uint256 i; i < withdrawTokenIds.length; i++) {
+            _withdraw(
+                withdrawGenerationId,
+                withdrawTokenIds[i],
+                false,
+                subscribeGenerationId,
+                subscribeTokenId
+            );
+        }
+    }
+
+    function _withdraw(
+        uint256 generationId,
+        uint256 tokenId,
+        bool subscription,
+        uint256 subscribeGenerationId,
+        uint256 subscribeTokenId
+    ) private {
         require(generationId < generations.count(), "Generation doesn't exist");
         require(
-            blackMatter.isOwnStackOrBlackMatter(
+            darkMatter.isOwnStackOrDarkMatter(
                 msg.sender,
                 generationId,
                 tokenId
@@ -198,6 +222,7 @@ contract Subscription is Ownable, ReentrancyGuard {
 
         uint256 unwithdrawableNum = (deposit.nextPayDate -
             deposit.lastSubscriptionDate) / MONTH;
+
         uint256 amountWithdraw = deposit.balance /
             (deposit.withdrawableNum + unwithdrawableNum);
         amountWithdraw *= deposit.withdrawableNum;
@@ -216,8 +241,28 @@ contract Subscription is Ownable, ReentrancyGuard {
 
         // subtract withdrawn amount from balance (not counting tax and bonus)
         deposit.balance -= amountWithdraw;
+        if (subscription) {
+            _reSubscribe(
+                amountWithdraw,
+                subscribeGenerationId,
+                subscribeTokenId
+            );
+        } else {
+            stackToken.transfer(msg.sender, amountWithdrawWithBonus);
+        }
+    }
 
-        stackToken.transfer(msg.sender, amountWithdrawWithBonus);
+    function _reSubscribe(
+        uint256 _amountStack,
+        uint256 _generationId,
+        uint256 _tokenId
+    ) internal {
+        uint256 amountUSD = sellStackToken(_amountStack);
+        uint256 monthsToSubscribe = amountUSD / price;
+        require(monthsToSubscribe > 0, "Not enough");
+        subscribe(_generationId, _tokenId, monthsToSubscribe);
+        uint256 leftOverAmount = amountUSD - (monthsToSubscribe * price);
+        paymentToken.transfer(msg.sender, leftOverAmount);
     }
 
     /*
@@ -236,13 +281,37 @@ contract Subscription is Ownable, ReentrancyGuard {
         uint256[] memory amountOutMin = router.getAmountsOut(amount, path);
         uint256[] memory amounts = router.swapExactTokensForTokens(
             amount,
-            amountOutMin[1],
+            amountOutMin[2],
             path,
             address(this),
             deadline
         );
 
-        return amounts[1];
+        return amounts[2];
+    }
+
+    /*
+     *  @title Swap `paymentToken` for `stackToken`.
+     *  @param Amount of `paymentToken`.
+     */
+    function sellStackToken(uint256 amount) private returns (uint256) {
+        paymentToken.approve(address(router), amount);
+
+        uint256 deadline = block.timestamp + 1200;
+        address[] memory path = new address[](3);
+        path[0] = address(stackToken);
+        path[1] = address(router.WETH());
+        path[2] = address(paymentToken);
+        uint256[] memory amountOutMin = router.getAmountsOut(amount, path);
+        uint256[] memory amounts = router.swapExactTokensForTokens(
+            amount,
+            amountOutMin[2],
+            path,
+            address(this),
+            deadline
+        );
+
+        return amounts[2];
     }
 
     /*

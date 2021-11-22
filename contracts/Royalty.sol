@@ -6,7 +6,7 @@ import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 import "./GenerationManager.sol";
-import "./BlackMatter.sol";
+import "./DarkMatter.sol";
 import "./interfaces/IStackOSNFT.sol";
 import "./Subscription.sol";
 import "hardhat/console.sol";
@@ -19,7 +19,7 @@ contract Royalty is Ownable {
     uint256 private constant HUNDRED_PERCENT = 10000;
     IUniswapV2Router02 private router;
     GenerationManager private generations; // StackOS NFT contract different generations
-    BlackMatter private blackMatter;
+    DarkMatter private darkMatter;
     Subscription private subscription;
     IERC20 private stableCoin;
     address payable private feeAddress; // fee from deposits goes here
@@ -43,7 +43,7 @@ contract Royalty is Ownable {
         IERC20 _stableCoin,
         IUniswapV2Router02 _router,
         GenerationManager _generations,
-        BlackMatter _blackMatter,
+        DarkMatter _darkMatter,
         Subscription _subscription,
         address payable _feeAddress,
         uint256 _minEthToStartCycle
@@ -51,7 +51,7 @@ contract Royalty is Ownable {
         stableCoin = _stableCoin;
         router = _router;
         generations = _generations;
-        blackMatter = _blackMatter;
+        darkMatter = _darkMatter;
         feeAddress = _feeAddress;
         subscription = _subscription;
         minEthToStartCycle = _minEthToStartCycle;
@@ -228,7 +228,7 @@ contract Royalty is Ownable {
         IStackOSNFT stack = generations.get(generationId);
         require(
             stack.balanceOf(msg.sender) > 0 ||
-                blackMatter.balanceOf(msg.sender) > 0,
+                darkMatter.balanceOf(msg.sender) > 0,
             "You dont have NFTs"
         );
 
@@ -255,7 +255,7 @@ contract Royalty is Ownable {
                 uint256 tokenId = tokenIds[i];
 
                 require(
-                    blackMatter.isOwnStackOrBlackMatter(
+                    darkMatter.isOwnStackOrDarkMatter(
                         msg.sender,
                         generationId,
                         tokenId
