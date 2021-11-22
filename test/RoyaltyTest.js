@@ -624,30 +624,37 @@ describe("Royalty", function () {
   it("Paying for subscription", async function () {
     await expect(
       dude.sendTransaction({
-        // this go in 10 cycle, gen3 can't claim
         from: dude.address,
         to: royalty.address,
         value: parseEther("10.0"),
       })
     ).to.be.not.reverted;
 
-    await provider.send("evm_increaseTime", [CYCLE_DURATION]); // 10 can end
+    await provider.send("evm_increaseTime", [CYCLE_DURATION]);
     await provider.send("evm_mine");
 
-    await royalty.claim(2, [2]); // 11 cycle started, though owner didn't get ether
-
     LPaddress = await factory.getPair(stackToken.address, WETH);
-    console.log(LPaddress);
+    console.log("LPAddress " + LPaddress);
 
-    await royalty.connect(bob).paySubscription(0, [6], 0, 6);
-
-    console.log(format(await provider.getBalance(royalty.address)));
-    // expect(await provider.getBalance(royalty.address)).to.be.equal(
-    //   parseEther("0.0")
-    // );
     console.log(
+      "before paySubscription",
       format(await owner.getBalance()),
       format(await bob.getBalance())
+    );
+    await royalty.connect(bob).paySubscription(0, [6], 0, 6);
+
+    console.log("royalty eth balance: " + format(await provider.getBalance(royalty.address)));
+    console.log(
+      "after paySubscription",
+      format(await owner.getBalance()),
+      format(await bob.getBalance()),
+      format(await stackToken.balanceOf(bob.address))
+    );
+    
+    await subscription.connect(bob).withdraw(0, [6]);
+    console.log(
+      "after subscripton withdraw (stackToken bob balance): ",
+      format(await stackToken.balanceOf(bob.address))
     );
   });
 

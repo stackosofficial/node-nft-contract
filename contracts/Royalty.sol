@@ -9,7 +9,6 @@ import "./GenerationManager.sol";
 import "./DarkMatter.sol";
 import "./interfaces/IStackOSNFT.sol";
 import "./Subscription.sol";
-import "hardhat/console.sol";
 
 contract Royalty is Ownable {
     using Counters for Counters.Counter;
@@ -18,7 +17,7 @@ contract Royalty is Ownable {
 
     uint256 private constant HUNDRED_PERCENT = 10000;
     IUniswapV2Router02 private router;
-    GenerationManager private generations; // StackOS NFT contract different generations
+    GenerationManager private generations; // StackOS NFT generations manager
     DarkMatter private darkMatter;
     Subscription private subscription;
     IERC20 private stableCoin;
@@ -196,12 +195,26 @@ contract Royalty is Ownable {
                 : 0;
     }
 
+    /*
+     * @title User can take royalty for holding delegated NFTs that he owns
+     * @param generationId StackOS generation id to get royalty for
+     * @param tokenIds Token ids to get royalty for
+     * @dev tokens must be delegated and owned by the caller
+     */
     function claim(uint256 _generationId, uint256[] calldata _tokenIds)
         external
     {
         _claim(_generationId, _tokenIds, false, 0, 0);
     }
 
+    /*
+     * @title User can pay subscription with royalty 
+     * @param StackNFT generation id to get royalty for
+     * @param tokenIds Token ids to get royalty for
+     * @param StackNFT generation id to subscribe
+     * @param tokenIds Token ids to subscribe
+     * @dev tokens must be delegated and owned by the caller
+     */
     function paySubscription(
         uint256 _generationId,
         uint256[] calldata _tokenIds,
@@ -211,12 +224,6 @@ contract Royalty is Ownable {
         _claim(_generationId, _tokenIds, true, _gen, _id);
     }
 
-    /*
-     * @title User can take royalty for holding delegated NFTs that he owns
-     * @param generationId StackOS generation id to get royalty for
-     * @param tokenIds Token ids to get royalty for
-     * @dev tokens must be delegated and owned by the caller, otherwise transaction reverted
-     */
     function _claim(
         uint256 generationId,
         uint256[] calldata tokenIds,
@@ -306,14 +313,10 @@ contract Royalty is Ownable {
                     );
                     require(success, "Transfer failed");
                 } else {
-                    console.log(reward);
                     uint256 stackReceived = buyStackToken(reward);
-                    console.log(stackReceived);
                     stableCoin.approve(address(subscription), stackReceived);
                     uint256 nrOfMonth = stackReceived /
                         subscription.viewPrice();
-                    console.log(nrOfMonth);
-                    console.log(nrOfMonth * subscription.viewPrice());
                     subscription.subscribe(gen, nftID, nrOfMonth);
                     stableCoin.transfer(
                         msg.sender,
