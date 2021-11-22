@@ -442,15 +442,14 @@ describe("Subscription", function () {
   });
 
   it("Pay for subscription on NFT owned by other peoples", async function () {
-    await usdt.transfer(partner.address, parseEther("50.0"));
+    await usdt.transfer(partner.address, parseEther("500.0"));
     await usdt.connect(partner).approve(
       subscription.address,
-      parseEther("50.0")
+      parseEther("500.0")
     );
     await subscription.connect(partner).subscribe(0, 6, 1);
 
     // withdraw when other guy payed for us
-    await expect(subscription.withdraw(0, [6])).to.be.revertedWith("Already withdrawn");
     await provider.send("evm_increaseTime", [MONTH]);
     await subscription.withdraw(0, [6]);
 

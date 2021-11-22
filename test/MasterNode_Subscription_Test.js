@@ -183,32 +183,35 @@ describe("DarkMatter integration with Subscription", function () {
   });
 
   it("Add liquidity", async function () {
-    await stackToken.approve(
-      router.address,
-      parseEther("100000.0")
-    );
-    await usdt.approve(
-      router.address,
-      parseEther("100000.0")
-    );
+    await stackToken.approve(router.address, parseEther("100000000.0"));
+    await usdt.approve(router.address, parseEther("100000000.0"));
     var deadline = Math.floor(Date.now() / 1000) + 1200;
-    // TODO: can replace this shit with pair that (if) exists on rinkeby with a lot of liquidity? or find way to improve this one.
-    await router.addLiquidity(
-      usdt.address,
+
+    await router.addLiquidityETH(
       stackToken.address,
       parseEther("100000.0"),
       parseEther("100000.0"),
-      0,
-      0,
+      parseEther("3.77"),
       joe.address,
-      deadline
+      deadline,
+      { value: parseEther("3.77") }
+    );
+
+    await router.addLiquidityETH(
+      usdt.address,
+      parseEther("43637.0"),
+      parseEther("43637.0"),
+      parseEther("10.0"),
+      joe.address,
+      deadline,
+      { value: parseEther("10.0") }
     );
   });
 
   it("Subscribe 1 month and 4 months in advance for another NFT", async function () {
     await usdt.approve(
       subscription.address,
-      parseEther("200.0")
+      parseEther("5000.0")
     );
     await subscription.subscribe(0, 0, 1);
     await subscription.subscribe(0, 1, 4);
@@ -217,11 +220,13 @@ describe("DarkMatter integration with Subscription", function () {
   it("Take TAX for early withdrawal", async function () {
     await darkMatter.transferFrom(owner.address, bob.address, 0);
     expect(await stackToken.balanceOf(bob.address)).to.equal(0);
+    console.log("bob: ", formatEther(await stackToken.balanceOf(bob.address)));
+    console.log("tax: ", formatEther(await stackToken.balanceOf(tax.address)));
     await subscription.connect(bob).withdraw(0, [0]); // 1st month 75% tax (so its 0-1 month, like 1st day of the 1st month)
     console.log("bob: ", formatEther(await stackToken.balanceOf(bob.address)));
     console.log("tax: ", formatEther(await stackToken.balanceOf(tax.address)));
-    expect(await stackToken.balanceOf(bob.address)).to.be.gt(parseEther("2.9"));
-    expect(await stackToken.balanceOf(bob.address)).to.be.lt(parseEther("3.1"));
+    expect(await stackToken.balanceOf(bob.address)).to.be.gt(parseEther("18"));
+    expect(await stackToken.balanceOf(bob.address)).to.be.lt(parseEther("55"));
   });
 
   it("Unable to withdraw when low balance on bonus wallet & not owner", async function () {
@@ -311,15 +316,15 @@ describe("DarkMatter integration with Subscription", function () {
     await subscription.withdraw(0, [5]); // withdraw for 3 months, 36 * 0.25 = 9
     console.log("owner: ", formatEther(await stackToken.balanceOf(owner.address)));
     console.log("tax: ", formatEther(await stackToken.balanceOf(tax.address)));
-    expect(await stackToken.balanceOf(owner.address)).to.be.gt(parseEther("8.0"));
-    expect(await stackToken.balanceOf(owner.address)).to.be.lt(parseEther("9.1"));
+    expect(await stackToken.balanceOf(owner.address)).to.be.gt(parseEther("50"));
+    expect(await stackToken.balanceOf(owner.address)).to.be.lt(parseEther("55"));
 
     await provider.send("evm_increaseTime", [MONTH]); // wait month, tax is 50%
     await subscription.withdraw(0, [5]); // withdraw for 1 month, 12 * 0.5 = 6, total balance = 9+6=15
     console.log("owner: ", formatEther(await stackToken.balanceOf(owner.address)));
     console.log("tax: ", formatEther(await stackToken.balanceOf(tax.address)));
-    expect(await stackToken.balanceOf(owner.address)).to.be.gt(parseEther("14.0"));
-    expect(await stackToken.balanceOf(owner.address)).to.be.lt(parseEther("15.1"));
+    expect(await stackToken.balanceOf(owner.address)).to.be.gt(parseEther("88"));
+    expect(await stackToken.balanceOf(owner.address)).to.be.lt(parseEther("90"));
   });
 
   it("Mint 3rd DarkMatter NFT on stack generation 2", async function () {
@@ -386,7 +391,7 @@ describe("DarkMatter integration with Subscription", function () {
     console.log("owner: ", formatEther(await stackToken.balanceOf(owner.address)));
     console.log("tax: ", formatEther(await stackToken.balanceOf(tax.address)));
     expect(await stackToken.balanceOf(owner.address)).to.be.gt(parseEther("220.0"));
-    expect(await stackToken.balanceOf(tax.address)).to.be.lt(parseEther("18.0")); // tax was 0, should stay the same
+    expect(await stackToken.balanceOf(tax.address)).to.be.lt(parseEther("105.0")); // tax was 0, should stay the same
   });
 
   it("Pay for subscription on NFT owned by other peoples", async function () {
