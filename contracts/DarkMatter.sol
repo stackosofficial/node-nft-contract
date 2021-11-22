@@ -73,7 +73,7 @@ contract DarkMatter is ERC721, Ownable, ReentrancyGuard {
         view
         returns (address)
     {
-        uint256 generationId = generations.getId(address(_stackOsNFT));
+        uint256 generationId = generations.getIDByAddress(address(_stackOsNFT));
         if (_exists(stackToMaster[generationId][tokenId])) {
             return ownerOf(generationId, tokenId);
         }

@@ -34,7 +34,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
 
     /*
      * @title Deploy new StackOsNFT.
-     * @param Generation id.
+     * @dev All params should be same as in stack NFT constructor.
      */
     function deployNextGen(
         string memory _name,
@@ -90,7 +90,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
 
     /*
      * @title Get generation of StackNFT.
-     * @param NFT contract address
+     * @param Stack NFT contract address
      */
     function getIDByAddress(address _nftAddress) public view returns (uint256) {
         uint256 generationID = ids[_nftAddress];
@@ -98,14 +98,6 @@ contract GenerationManager is Ownable, ReentrancyGuard {
             require(address(get(0)) == _nftAddress, "Not Correct Address");
         }
         return generationID;
-    }
-
-    /*
-     * @title Get generation ID of StackNFT.
-     * @param Generation id.
-     */
-    function getId(address _stackOsNFT) public view returns (uint256) {
-        return ids[_stackOsNFT];
     }
 
     /*
