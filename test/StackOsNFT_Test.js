@@ -39,22 +39,22 @@ describe("StackOS NFT", function () {
     await generationManager.deployed();
     console.log(generationManager.address);
   });
-  it("Deploy MasterNode", async function () {
+  it("Deploy DarkMatter", async function () {
     GENERATION_MANAGER_ADDRESS = generationManager.address;
     MASTER_NODE_PRICE = 50;
-    const MasterNode = await ethers.getContractFactory("BlackMatter");
-    masterNode = await MasterNode.deploy(
+    const DarkMatter = await ethers.getContractFactory("DarkMatter");
+    darkMatter = await DarkMatter.deploy(
       GENERATION_MANAGER_ADDRESS,
       MASTER_NODE_PRICE
     );
-    await masterNode.deployed();
-    console.log(masterNode.address);
+    await darkMatter.deployed();
+    console.log(darkMatter.address);
   });
   it("Deploy StackOS NFT", async function () {
     NAME = "STACK OS NFT";
     SYMBOL = "SON";
     STACK_TOKEN_FOR_PAYMENT = currency.address;
-    MASTER_NODE_ADDRESS = masterNode.address;
+    MASTER_NODE_ADDRESS = darkMatter.address;
     PRICE = parseEther("0.1");
     MAX_SUPPLY = 25;
     PRIZES = 10;

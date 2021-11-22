@@ -6,7 +6,7 @@ const { formatEther, parseEther } = require("@ethersproject/units");
 
 use(solidity);
 
-describe("MasterNode integration with Subscription", function () {
+describe("DarkMatter integration with Subscription", function () {
 
   it("Snapshot EVM", async function () {
     snapshotId = await ethers.provider.send("evm_snapshot");
@@ -54,23 +54,23 @@ describe("MasterNode integration with Subscription", function () {
     console.log(generationManager.address);
   });
 
-  it("Deploy MasterNode", async function () {
+  it("Deploy DarkMatter", async function () {
     GENERATION_MANAGER_ADDRESS = generationManager.address;
     MASTER_NODE_PRICE = 5;
-    const MasterNode = await ethers.getContractFactory("BlackMatter");
-    masterNode = await MasterNode.deploy(
+    const DarkMatter = await ethers.getContractFactory("DarkMatter");
+    darkMatter = await DarkMatter.deploy(
       GENERATION_MANAGER_ADDRESS,
       MASTER_NODE_PRICE
     );
-    await masterNode.deployed();
-    console.log(masterNode.address);
+    await darkMatter.deployed();
+    console.log(darkMatter.address);
   });
 
   it("Deploy StackOS NFT", async function () {
     NAME = "STACK OS NFT";
     SYMBOL = "SON";
     STACK_TOKEN_FOR_PAYMENT = stackToken.address;
-    MASTER_NODE_ADDRESS = masterNode.address;
+    MASTER_NODE_ADDRESS = darkMatter.address;
     PRICE = parseEther("0.1");
     MAX_SUPPLY = 25;
     PRIZES = 10;
@@ -107,7 +107,7 @@ describe("MasterNode integration with Subscription", function () {
     PAYMENT_TOKEN = usdt.address;
     STACK_TOKEN_FOR_PAYMENT = stackToken.address;
     GENERATION_MANAGER_ADDRESS = generationManager.address;
-    MASTER_NODE_ADDRESS = masterNode.address;
+    MASTER_NODE_ADDRESS = darkMatter.address;
     ROUTER_ADDRESS = router.address;
     TAX_ADDRESS = tax.address;
 
@@ -137,24 +137,24 @@ describe("MasterNode integration with Subscription", function () {
     MONTH = (await subscription.MONTH()).toNumber();
   });
 
-  it("Mint MasterNode NFT", async function () {
+  it("Mint DarkMatter NFT", async function () {
     await stackOsNFT.startPartnerSales();
     await stackOsNFT.whitelistPartner(owner.address, 5);
     await stackToken.approve(stackOsNFT.address, parseEther("10.0"));
     await stackOsNFT.partnerMint(5);
 
-    await stackOsNFT.setApprovalForAll(masterNode.address, true);
-    await masterNode.deposit(0, [0, 1, 2]);
-    await expect(masterNode.mint()).to.be.revertedWith("Not enough deposited");
+    await stackOsNFT.setApprovalForAll(darkMatter.address, true);
+    await darkMatter.deposit(0, [0, 1, 2]);
+    await expect(darkMatter.mint()).to.be.revertedWith("Not enough deposited");
 
-    await stackOsNFT.setApprovalForAll(masterNode.address, true);
-    await masterNode.deposit(0, [3, 4]);
-    await masterNode.mint()
+    await stackOsNFT.setApprovalForAll(darkMatter.address, true);
+    await darkMatter.deposit(0, [3, 4]);
+    await darkMatter.mint()
 
     // got 1 master node
-    expect(await stackOsNFT.balanceOf(masterNode.address)).to.be.equal(5);
+    expect(await stackOsNFT.balanceOf(darkMatter.address)).to.be.equal(5);
     expect(await stackOsNFT.balanceOf(owner.address)).to.be.equal(0);
-    expect(await masterNode.balanceOf(owner.address)).to.be.equal(1);
+    expect(await darkMatter.balanceOf(owner.address)).to.be.equal(1);
 
   });
 
@@ -215,7 +215,7 @@ describe("MasterNode integration with Subscription", function () {
   });
   
   it("Take TAX for early withdrawal", async function () {
-    await masterNode.transferFrom(owner.address, bob.address, 0);
+    await darkMatter.transferFrom(owner.address, bob.address, 0);
     expect(await stackToken.balanceOf(bob.address)).to.equal(0);
     await subscription.connect(bob).withdraw(0, [0]); // 1st month 75% tax (so its 0-1 month, like 1st day of the 1st month)
     console.log("bob: ", formatEther(await stackToken.balanceOf(bob.address)));
@@ -237,7 +237,7 @@ describe("MasterNode integration with Subscription", function () {
     await provider.send("evm_increaseTime", [MONTH * 2]); // 3rd month is going 
     await stackToken.transfer(subscription.address, parseEther("100.0"));
     
-    await masterNode.connect(bob).transferFrom(bob.address, bank.address, 0);
+    await darkMatter.connect(bob).transferFrom(bob.address, bank.address, 0);
     expect(await stackToken.balanceOf(bank.address)).to.equal(0);
     console.log("bank: ", formatEther(await stackToken.balanceOf(bank.address)));
     await subscription.connect(bank).withdraw(0, [1]); // tax should be 25% as we at 3rd month, amount get 27
@@ -255,9 +255,9 @@ describe("MasterNode integration with Subscription", function () {
   it("Payed in advance, and withdraw sooner than TAX is 0%", async function () {
     // await stackToken.transfer(bank.address, parseEther("100.0"));
     // await stackToken.connect(bank).approve(subscription.address, parseEther("100.0"));
-    await masterNode.connect(bank).transferFrom(bank.address, owner.address, 0);
+    await darkMatter.connect(bank).transferFrom(bank.address, owner.address, 0);
     await subscription.subscribe(0, 2, 4); // 1st month for NFT 2 
-    await masterNode.connect(owner).transferFrom(owner.address, vera.address, 0);
+    await darkMatter.connect(owner).transferFrom(owner.address, vera.address, 0);
     await provider.send("evm_increaseTime", [MONTH]); // now 2 month
 
     // vera withdraw TAXed 2 months
@@ -270,7 +270,7 @@ describe("MasterNode integration with Subscription", function () {
     // them homer withdraw from the same NFT but 0% tax and 2 months 
     await provider.send("evm_increaseTime", [MONTH * 2]); // 4 month
     await stackToken.transfer(subscription.address, parseEther("100.0")); // not enough for bonuses
-    await masterNode.connect(vera).transferFrom(vera.address, homer.address, 0);
+    await darkMatter.connect(vera).transferFrom(vera.address, homer.address, 0);
     expect(await stackToken.balanceOf(homer.address)).to.equal(0);
     await subscription.connect(homer).withdraw(0, [2]); // withdraws for 2 months, not taxed
     console.log("homer: ", formatEther(await stackToken.balanceOf(homer.address)));
@@ -278,19 +278,19 @@ describe("MasterNode integration with Subscription", function () {
     expect(await stackToken.balanceOf(homer.address)).to.be.gt(parseEther("23.0")); // 24
   });
 
-  it("Mint 2nd MasterNode NFT", async function () {
+  it("Mint 2nd DarkMatter NFT", async function () {
     await stackOsNFT.whitelistPartner(owner.address, 5);
     await stackToken.approve(stackOsNFT.address, parseEther("10.0"));
     await stackOsNFT.partnerMint(5);
 
-    await stackOsNFT.setApprovalForAll(masterNode.address, true);
-    await masterNode.deposit(0, [5, 6, 7, 8, 9]);
-    await masterNode.mint()
+    await stackOsNFT.setApprovalForAll(darkMatter.address, true);
+    await darkMatter.deposit(0, [5, 6, 7, 8, 9]);
+    await darkMatter.mint()
 
     // got 1 master node
-    expect(await stackOsNFT.balanceOf(masterNode.address)).to.be.equal(10);
+    expect(await stackOsNFT.balanceOf(darkMatter.address)).to.be.equal(10);
     expect(await stackOsNFT.balanceOf(owner.address)).to.be.equal(0);
-    expect(await masterNode.balanceOf(owner.address)).to.be.equal(1);
+    expect(await darkMatter.balanceOf(owner.address)).to.be.equal(1);
   });
 
   it("Buy, then wait 2 month, then buy in advance, and withdraw after that", async function () {
@@ -322,7 +322,7 @@ describe("MasterNode integration with Subscription", function () {
     expect(await stackToken.balanceOf(owner.address)).to.be.lt(parseEther("15.1"));
   });
 
-  it("Mint 3rd MasterNode NFT on stack generation 2", async function () {
+  it("Mint 3rd DarkMatter NFT on stack generation 2", async function () {
     await generationManager.deployNextGen(      
       NAME,
       SYMBOL,
@@ -347,14 +347,14 @@ describe("MasterNode integration with Subscription", function () {
     await stackOsNFTGen2.startPartnerSales();
     await stackOsNFTGen2.partnerMint(5); 
 
-    await stackOsNFTGen2.setApprovalForAll(masterNode.address, true);
-    await masterNode.deposit(1, [0, 1, 2, 3, 4]);
-    await masterNode.mint()
+    await stackOsNFTGen2.setApprovalForAll(darkMatter.address, true);
+    await darkMatter.deposit(1, [0, 1, 2, 3, 4]);
+    await darkMatter.mint()
 
     // got 1 master node
-    expect(await stackOsNFTGen2.balanceOf(masterNode.address)).to.be.equal(5);
+    expect(await stackOsNFTGen2.balanceOf(darkMatter.address)).to.be.equal(5);
     expect(await stackOsNFTGen2.balanceOf(owner.address)).to.be.equal(0);
-    expect(await masterNode.balanceOf(owner.address)).to.be.equal(2);
+    expect(await darkMatter.balanceOf(owner.address)).to.be.equal(2);
   });
 
   it("Withdraw on multiple generations", async function () {

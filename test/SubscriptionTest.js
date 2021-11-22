@@ -206,11 +206,6 @@ describe("Subscription", function () {
     await subscription.subscribe(0, 0, 1);
     await subscription.subscribe(0, 1, 4);
   });
-<<<<<<< HEAD
-  
-=======
-
->>>>>>> 7412088a545a603012f71def50c43ef408467801
   it("Take TAX for early withdrawal", async function () {
     await stackOsNFT.transferFrom(owner.address, bob.address, 0);
     expect(await stackToken.balanceOf(bob.address)).to.equal(0);
