@@ -437,8 +437,21 @@ describe("Subscription", function () {
       .approve(subscription.address, parseEther("100.0"));
     await subscription.connect(partner).subscribe(0, 6, 1);
 
-    await provider.send("evm_increaseTime", [MONTH * 4]);
-    await subscription.reSubscribe(0, [6], 0, 6);
+    await provider.send("evm_increaseTime", [MONTH * 1337]);
+    // tax is 75%, we have ~360stack, count bonus & tax = ~108
+    // then sell this 108, get 29 USD, not enough for sub!
+    await expect(subscription.reSubscribe(0, [6], 0, 6)).to.be.revertedWith(
+      "Not enough on deposit for resub"
+    );
+
+    await usdt.transfer(partner.address, parseEther("400.0"));
+    await usdt
+      .connect(partner)
+      .approve(subscription.address, parseEther("400.0"));
+    await subscription.connect(partner).subscribe(0, 6, 4);
+    await provider.send("evm_increaseTime", [MONTH * 3]);
+
+    await subscription.reSubscribe(0, [6], 0, 6); // should resub for 3 months in advance
   });
 
   it("Pay for subscription on NFT owned by other peoples", async function () {
@@ -447,14 +460,15 @@ describe("Subscription", function () {
       subscription.address,
       parseEther("500.0")
     );
-    await subscription.connect(partner).subscribe(0, 6, 1);
+    await subscription.connect(partner).subscribe(0, 6, 1); // this will add on top of 3 previous subs (simply say - pay in advance)
 
-    // withdraw when other guy payed for us
-    await provider.send("evm_increaseTime", [MONTH]);
-    await subscription.withdraw(0, [6]);
+    await provider.send("evm_increaseTime", [MONTH]); // we are at 1-2 month
 
     console.log("owner: ", formatEther(await stackToken.balanceOf(owner.address)));
-    expect(await stackToken.balanceOf(owner.address)).to.be.gt(parseEther("230.0"));
+    await subscription.withdraw(0, [6]); // tax 0, withdraw for 2 months (~344*2 * 1.2) = ~850
+    console.log("owner: ", formatEther(await stackToken.balanceOf(owner.address)));
+
+    expect(await stackToken.balanceOf(owner.address)).to.be.gt(parseEther("10700.0"));
   });
   it("Revert EVM state", async function () {
     await ethers.provider.send("evm_revert", [snapshotId]);

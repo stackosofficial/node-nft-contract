@@ -13,7 +13,7 @@ import "./interfaces/IStackOSNFT.sol";
 
 contract Subscription is Ownable, ReentrancyGuard {
     IERC20 private stackToken;
-    IERC20 private paymentToken; // you buy subscriptions for this tokens
+    IERC20 private paymentToken; // you pay to subscribe via this tokens
     IUniswapV2Router02 private router;
     DarkMatter private darkMatter;
     GenerationManager private generations;
@@ -25,15 +25,15 @@ contract Subscription is Ownable, ReentrancyGuard {
     uint256 public taxResetDeadline = 7 days; // tax reduction resets if you subscribed and missed deadline
     uint256 public price = 1e18; // subscription price
     uint256 public bonusPercent = 2000; // bonus that is added for each subscription month
-    uint256 public taxReductionPercent = 2500; // how much
+    uint256 public taxReductionPercent = 2500; // tax reduced by this percent each month you subscribed in a row
 
     // per NFT deposit
     struct Deposit {
         uint256 balance; // total stack amount, NOT counting TAX and bonus.
         uint256 tax; // withdraw TAX percent
         uint256 withdrawableNum; // number of months that you able to claim bonus for.
-        uint256 nextPayDate; // subscribe can be called only after this date. and this date + deadline = is the date for TAX reset to max.
-        uint256 lastSubscriptionDate; // should be a date when subscribe function called. and when withdraw it should be next month.
+        uint256 nextPayDate; // this date + deadline = is the date for TAX reset to max.
+        uint256 lastSubscriptionDate; // the subscribe date, and when withdraw it'll be start of the next month.
     }
 
     mapping(uint256 => mapping(uint256 => Deposit)) private deposits; // generationId => tokenId => Deposit
@@ -91,15 +91,24 @@ contract Subscription is Ownable, ReentrancyGuard {
      *  @param StackNFT generation id.
      *  @param Token id.
      *  @param How many months to subscribe for.
-     *  @dev Caller must own StackNFT and approve us `price` * `numberOfMonths` amount of `paymentToken`.
-     *  @dev Caller can re-subscribe after last subscription month is ended.
-     *  @dev Tax resets to maximum if you re-subscribed too late, after `taxResetDeadline`.
+     *  @dev Caller must approve us `price` * `numberOfMonths` amount of `paymentToken`.
+     *  @dev Tax resets to maximum if you re-subscribed after `nextPayDate` + `taxResetDeadline`.
      */
+
     function subscribe(
         uint256 generationId,
         uint256 tokenId,
         uint256 numberOfMonths
     ) public nonReentrant {
+        _subscribe(generationId, tokenId, numberOfMonths, true);
+    }
+
+    function _subscribe(
+        uint256 generationId,
+        uint256 tokenId,
+        uint256 numberOfMonths,
+        bool externalBuyer
+    ) internal {
         require(generationId < generations.count(), "Generation doesn't exist");
         require(numberOfMonths > 0, "Zero months not allowed");
 
@@ -126,19 +135,19 @@ contract Subscription is Ownable, ReentrancyGuard {
 
         // convert payment token into stack token
         uint256 totalCost = price * numberOfMonths;
-        uint256 amount = buyStackToken(totalCost);
-        console.log(amount);
+        uint256 amount = buyStackToken(totalCost, externalBuyer);
         deposit.balance += amount;
     }
 
     /*
-     *  @title Withdraw accumulated deposit plus bonus minus tax.
+     *  @title Withdraw accumulated deposit taking into account bonus and tax.
      *  @param StackNFT generation id.
-     *  @param STackNFT ids.
+     *  @param Token ids.
      *  @dev Caller must own `tokenIds` and unwithdrawn bonus for current or previous months.
-     *  @dev Tax reduced by `taxReductionPercent` each month subscribed in a row until 0.
+     *  @dev Tax reduced by `taxReductionPercent` each month subscribed in a row until tax is 0.
      *  @dev Tax resets to maximum if you missed your re-subscription.
      */
+
     function withdraw(uint256 generationId, uint256[] calldata tokenIds)
         external
         nonReentrant
@@ -147,6 +156,17 @@ contract Subscription is Ownable, ReentrancyGuard {
             _withdraw(generationId, tokenIds[i], false, 0, 0);
         }
     }
+
+    /*
+     *  @title Withdraw and then ReSubscribe using the withdrawn amount.
+     *  @param StackNFT generation id to withdraw.
+     *  @param Token ids to withdraw.
+     *  @param StackNFT generation id to subscribe.
+     *  @param Token id to subscribe.
+     *  @dev Caller must own `tokenIds` and unwithdrawn bonus for current or previous months.
+     *  @dev Tax reduced by `taxReductionPercent` each month subscribed in a row until tax is 0.
+     *  @dev Tax resets to maximum if you missed your re-subscription.
+     */
 
     function reSubscribe(
         uint256 withdrawGenerationId,
@@ -158,7 +178,7 @@ contract Subscription is Ownable, ReentrancyGuard {
             _withdraw(
                 withdrawGenerationId,
                 withdrawTokenIds[i],
-                false,
+                true, 
                 subscribeGenerationId,
                 subscribeTokenId
             );
@@ -243,7 +263,7 @@ contract Subscription is Ownable, ReentrancyGuard {
         deposit.balance -= amountWithdraw;
         if (subscription) {
             _reSubscribe(
-                amountWithdraw,
+                amountWithdrawWithBonus,
                 subscribeGenerationId,
                 subscribeTokenId
             );
@@ -259,18 +279,21 @@ contract Subscription is Ownable, ReentrancyGuard {
     ) internal {
         uint256 amountUSD = sellStackToken(_amountStack);
         uint256 monthsToSubscribe = amountUSD / price;
-        require(monthsToSubscribe > 0, "Not enough");
-        subscribe(_generationId, _tokenId, monthsToSubscribe);
+        require(monthsToSubscribe > 0, "Not enough on deposit for resub");
+        _subscribe(_generationId, _tokenId, monthsToSubscribe, false);
         uint256 leftOverAmount = amountUSD - (monthsToSubscribe * price);
         paymentToken.transfer(msg.sender, leftOverAmount);
     }
 
     /*
-     *  @title Swap `paymentToken` for `stackToken`.
-     *  @param Amount of `paymentToken`.
+     *  @title Buy `stackToken` for `paymentToken`.
+     *  @param Amount of `paymentToken` to sell.
+     *  @param Called by external wallet or by this contract?
      */
-    function buyStackToken(uint256 amount) private returns (uint256) {
-        paymentToken.transferFrom(msg.sender, address(this), amount);
+    function buyStackToken(uint256 amount, bool externalBuyer) private returns (uint256) {
+        if(externalBuyer) {
+            paymentToken.transferFrom(msg.sender, address(this), amount);
+        }
         paymentToken.approve(address(router), amount);
 
         uint256 deadline = block.timestamp + 1200;
@@ -291,11 +314,11 @@ contract Subscription is Ownable, ReentrancyGuard {
     }
 
     /*
-     *  @title Swap `paymentToken` for `stackToken`.
-     *  @param Amount of `paymentToken`.
+     *  @title Buy `paymentToken` for `stackToken`.
+     *  @param Amount of `stackToken` to sell.
      */
     function sellStackToken(uint256 amount) private returns (uint256) {
-        paymentToken.approve(address(router), amount);
+        stackToken.approve(address(router), amount);
 
         uint256 deadline = block.timestamp + 1200;
         address[] memory path = new address[](3);
