@@ -2,9 +2,13 @@
 pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
+import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
+import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 import "./GenerationManager.sol";
 import "./BlackMatter.sol";
 import "./interfaces/IStackOSNFT.sol";
+import "./Subscription.sol";
 import "hardhat/console.sol";
 
 contract Royalty is Ownable {
@@ -13,9 +17,11 @@ contract Royalty is Ownable {
     Counters.Counter private counter; // counting cycles
 
     uint256 private constant HUNDRED_PERCENT = 10000;
-
+    IUniswapV2Router02 private router;
     GenerationManager private generations; // StackOS NFT contract different generations
     BlackMatter private blackMatter;
+    Subscription private subscription;
+    IERC20 private stableCoin;
     address payable private feeAddress; // fee from deposits goes here
     uint256 private feePercent; // fee percent taken from deposits
 
@@ -34,14 +40,20 @@ contract Royalty is Ownable {
     mapping(uint256 => Cycle) private cycles; // a new cycle can start when two conditions met, `CYCLE_DURATION` time passed and `minEthToStartCycle` ether deposited
 
     constructor(
+        IERC20 _stableCoin,
+        IUniswapV2Router02 _router,
         GenerationManager _generations,
         BlackMatter _blackMatter,
+        Subscription _subscription,
         address payable _feeAddress,
         uint256 _minEthToStartCycle
     ) {
+        stableCoin = _stableCoin;
+        router = _router;
         generations = _generations;
         blackMatter = _blackMatter;
         feeAddress = _feeAddress;
+        subscription = _subscription;
         minEthToStartCycle = _minEthToStartCycle;
     }
 
@@ -184,16 +196,34 @@ contract Royalty is Ownable {
                 : 0;
     }
 
+    function claim(uint256 _generationId, uint256[] calldata _tokenIds)
+        external
+    {
+        _claim(_generationId, _tokenIds, false, 0, 0);
+    }
+
+    function paySubscription(
+        uint256 _generationId,
+        uint256[] calldata _tokenIds,
+        uint256 _gen,
+        uint256 _id
+    ) external {
+        _claim(_generationId, _tokenIds, true, _gen, _id);
+    }
+
     /*
      * @title User can take royalty for holding delegated NFTs that he owns
      * @param generationId StackOS generation id to get royalty for
      * @param tokenIds Token ids to get royalty for
      * @dev tokens must be delegated and owned by the caller, otherwise transaction reverted
      */
-    function claim(uint256 generationId, uint256[] calldata tokenIds)
-        external
-        payable
-    {
+    function _claim(
+        uint256 generationId,
+        uint256[] calldata tokenIds,
+        bool _subscription,
+        uint256 gen,
+        uint256 nftID
+    ) internal {
         require(address(this).balance > 0, "No royalty");
         IStackOSNFT stack = generations.get(generationId);
         require(
@@ -270,10 +300,46 @@ contract Royalty is Ownable {
             }
 
             if (reward > 0) {
-                // finally send reward
-                (bool success, ) = payable(msg.sender).call{value: reward}("");
-                require(success, "Transfer failed");
+                if (_subscription == false) {
+                    (bool success, ) = payable(msg.sender).call{value: reward}(
+                        ""
+                    );
+                    require(success, "Transfer failed");
+                } else {
+                    console.log(reward);
+                    uint256 stackReceived = buyStackToken(reward);
+                    console.log(stackReceived);
+                    stableCoin.approve(address(subscription), stackReceived);
+                    uint256 nrOfMonth = stackReceived /
+                        subscription.viewPrice();
+                    console.log(nrOfMonth);
+                    console.log(nrOfMonth * subscription.viewPrice());
+                    subscription.subscribe(gen, nftID, nrOfMonth);
+                    stableCoin.transfer(
+                        msg.sender,
+                        stackReceived - (nrOfMonth * subscription.viewPrice())
+                    );
+                }
             }
         }
+    }
+
+    /*
+     *  @title Swap `paymentToken` for `stackToken`.
+     *  @param Amount of `paymentToken`.
+     */
+    function buyStackToken(uint256 amount) private returns (uint256) {
+        uint256 deadline = block.timestamp + 1200;
+        address[] memory path = new address[](2);
+        path[0] = address(router.WETH());
+        path[1] = address(stableCoin);
+        uint256[] memory amountOutMin = router.getAmountsOut(amount, path);
+        uint256[] memory amounts = router.swapExactETHForTokens{value: amount}(
+            amountOutMin[1],
+            path,
+            address(this),
+            deadline
+        );
+        return amounts[1];
     }
 }

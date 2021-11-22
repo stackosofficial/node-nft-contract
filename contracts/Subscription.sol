@@ -67,6 +67,10 @@ contract Subscription is Ownable, ReentrancyGuard {
         price = _price;
     }
 
+    function viewPrice() external view returns (uint256) {
+        return price;
+    }
+
     function setBonusPercent(uint256 _percent) external onlyOwner {
         require(_percent <= MAX_PERCENT, "Maximum is 100%");
         bonusPercent = _percent;
@@ -168,6 +172,7 @@ contract Subscription is Ownable, ReentrancyGuard {
         // if not subscribed
         if (deposit.nextPayDate < block.timestamp) {
             // no need for ceil, the difference should always be divisible by a month
+            // Are you getting money for the current month only or all months?
             uint256 prevWithdrawableMonths = (deposit.nextPayDate -
                 deposit.lastSubscriptionDate) / MONTH;
 
@@ -224,9 +229,10 @@ contract Subscription is Ownable, ReentrancyGuard {
         paymentToken.approve(address(router), amount);
 
         uint256 deadline = block.timestamp + 1200;
-        address[] memory path = new address[](2);
+        address[] memory path = new address[](3);
         path[0] = address(paymentToken);
-        path[1] = address(stackToken);
+        path[1] = address(router.WETH());
+        path[2] = address(stackToken);
         uint256[] memory amountOutMin = router.getAmountsOut(amount, path);
         uint256[] memory amounts = router.swapExactTokensForTokens(
             amount,
