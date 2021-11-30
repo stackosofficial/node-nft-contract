@@ -27,6 +27,13 @@ describe("StackOS NFT", function () {
     ERC20 = await ethers.getContractFactory("TestCurrency");
     usdt = await ERC20.deploy(parseEther("100000000.0"));
     await usdt.deployed();
+    console.log(usdt.address);
+  });
+ it("Deploy fake USDC", async function () {
+    ERC20 = await ethers.getContractFactory("TestCurrency");
+    usdc = await ERC20.deploy(parseEther("100000000.0"));
+    await usdc.deployed();
+    console.log(usdc.address);
   });
   it("Deploy fake LINK", async function () {
     const ERC20_2 = await ethers.getContractFactory("LinkToken");
@@ -74,7 +81,7 @@ describe("StackOS NFT", function () {
 
     const Subscription = await ethers.getContractFactory("Subscription");
     subscription = await Subscription.deploy(
-      PAYMENT_TOKEN,
+      // PAYMENT_TOKEN,
       STACK_TOKEN_FOR_PAYMENT,
       GENERATION_MANAGER_ADDRESS,
       MASTER_NODE_ADDRESS,
@@ -126,12 +133,7 @@ describe("StackOS NFT", function () {
     await stackOsNFT.deployed();
     await generationManager.add(stackOsNFT.address);
     await stackOsNFT.adjustAddressSettings(generationManager.address, router.address, subscription.address);
-    await stackOsNFT.setMintFee(MINT_FEE); // usdt
-
-    await stackOsNFT.addPaymentToken(usdt.address); // usdt
-    // await stackOsNFT.addPaymentToken("0xdAC17F958D2ee523a2206206994597C13D831ec7"); // usdt
-    await stackOsNFT.addPaymentToken("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"); // usdc
-    await stackOsNFT.addPaymentToken("0x6B175474E89094C44Da98b954EedeAC495271d0F"); // dai 
+    await stackOsNFT.setMintFee(MINT_FEE);
   });
   it("Stake for tickets", async function () {
     await stackToken.approve(stackOsNFT.address, parseEther("10.0"));
@@ -222,7 +224,7 @@ describe("StackOS NFT", function () {
     );
   });
   it("Partners can't mint", async function () {
-    await expect(stackOsNFT.partnerMint(4, stackToken.address)).to.be.revertedWith(
+    await expect(stackOsNFT.partnerMint(4, usdt.address)).to.be.revertedWith(
       "Sales not started"
     );
     await stackOsNFT.startPartnerSales();
@@ -230,26 +232,10 @@ describe("StackOS NFT", function () {
       "Amount Too Big"
     );
   });
-
-  it("Partners mint", async function () {
-    console.log(formatEther(await stackToken.balanceOf(stackOsNFT.address)));
-
-    await stackOsNFT.whitelistPartner(joe.address, 2);
-    await stackToken.transfer(joe.address, parseEther("2.0"));
-    await stackToken.connect(joe).approve(stackOsNFT.address, parseEther("2.0"));
-    await expect(stackOsNFT.connect(joe).partnerMint(4, stackToken.address)).to.be.revertedWith(
-      "Amount Too Big"
-    );
-    await stackOsNFT.connect(joe).partnerMint(2, stackToken.address);
-    expect(await stackOsNFT.balanceOf(joe.address)).to.be.equal(2);
-    expect(await stackToken.balanceOf(stackOsNFT.address)).to.be.equal(
-      parseEther("1.16")
-    );
-  });
-
   it("Add liquidity", async function () {
     await stackToken.approve(router.address, parseEther("100.0"));
     await usdt.approve(router.address, parseEther("100.0"));
+    await usdc.approve(router.address, parseEther("100.0"));
     var deadline = Math.floor(Date.now() / 1000) + 1200;
 
     await router.addLiquidityETH(
@@ -271,6 +257,32 @@ describe("StackOS NFT", function () {
       deadline,
       { value: parseEther("10.0") }
     );
+
+    await router.addLiquidityETH(
+      usdc.address,
+      parseEther("4.3637"),
+      parseEther("4.3637"),
+      parseEther("1.0"),
+      joe.address,
+      deadline,
+      { value: parseEther("10.0") }
+    );
+  });
+
+  it("Partners mint", async function () {
+    console.log(formatEther(await stackToken.balanceOf(stackOsNFT.address)));
+
+    await stackOsNFT.whitelistPartner(joe.address, 2);
+    await usdc.transfer(joe.address, parseEther("2.0"));
+    await usdc.connect(joe).approve(stackOsNFT.address, parseEther("2.0"));
+    await expect(stackOsNFT.connect(joe).partnerMint(4, usdc.address)).to.be.revertedWith(
+      "Amount Too Big"
+    );
+    await stackOsNFT.connect(joe).partnerMint(2, usdc.address);
+    expect(await stackOsNFT.balanceOf(joe.address)).to.be.equal(2);
+    expect(await stackToken.balanceOf(stackOsNFT.address)).to.be.equal(
+      parseEther("1.16")
+    );
   });
 
   it("Partners mint for usdt", async function () {
@@ -288,7 +300,7 @@ describe("StackOS NFT", function () {
     expect(await stackOsNFT.getDelegatee(0)).to.equal(
       ethers.constants.AddressZero
     );
-    await stackOsNFT.delegate(joe.address, 0);
+    await stackOsNFT.delegate(joe.address, [0]);
     expect(await stackOsNFT.getDelegatee(0)).to.equal(joe.address);
   });
 

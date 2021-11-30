@@ -82,8 +82,8 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
     )
         ERC721(_name, _symbol)
         VRFConsumerBase(
-            0x89842f40928f81FC4415b39bfBFC3205eB6161cB, // VRF Coordinator
-            0x6Aea593F1E70beb836049929487F7AF3d5e4432F // LINK Token
+            0xE71AC7A1ccB822423576EfFdb0B74564C49BEcBA, // VRF Coordinator
+            0x89842f40928f81FC4415b39bfBFC3205eB6161cB // LINK Token
         )
     {
         stackOSToken = _stackOSTokenToken;
@@ -97,7 +97,9 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         timeLock = block.timestamp + _timeLock;
         generations = GenerationManager(msg.sender);
         
-        stablecoins.push(_stackOSTokenToken); // stackOs token 
+        stablecoins.push(IERC20(0xB678B953dD909a4386ED1cA7841550a89fb508cc)); // fake USDT  
+        stablecoins.push(IERC20(0x6Aea593F1E70beb836049929487F7AF3d5e4432F)); // fake USDC
+        // stablecoins.push(IERC20(0xB678B953dD909a4386ED1cA7841550a89fb508cc)); // fake DAI  
     }
 
 
@@ -113,19 +115,6 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
     {
         require(_fee <= 10000, "Max is 100%");
         mintFee = _fee;
-    }
-
-    /*
-     * @title Add stable coin to be able to mint for that coin
-     * @param address of stablecoin
-     * @dev Could only be invoked by the contract owner.
-     */
-
-    function addPaymentToken(IERC20 _coin)
-        public
-        onlyOwner
-    {
-        stablecoins.push(_coin);
     }
 
     /*
@@ -477,15 +466,12 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         require(salesStarted, "Sales not started");
         require(supportsCoin(_stablecoin), "Unsupported payment coin");
         require(strategicPartner[msg.sender] >= _nftAmount, "Amount Too Big");
-        // if `_stablecoin` is stackToken then just take it, otherwise convert coin to stack token
+
         uint256 stackAmount = participationFee.mul(_nftAmount);
-        if(_stablecoin == stackOSToken) {
-            stackOSToken.transferFrom(msg.sender, address(this), stackAmount);
-        } else {
-            // calculate amount of `_stablecoin` needed to buy `stackAmount` of stack token
-            uint256 amountIn = getAmountIn(stackAmount, _stablecoin);
-            stackAmount = buyStackToken(amountIn, _stablecoin);
-        }
+        // calculate amount of `_stablecoin` needed to buy `stackAmount` of stack token
+        uint256 amountIn = getAmountIn(stackAmount, _stablecoin);
+        stackAmount = buyStackToken(amountIn, _stablecoin);
+
         uint256 subscriptionPart = stackAmount * mintFee / 10000;
         stackAmount -= subscriptionPart;
         stackOSToken.transfer(address(subscription), subscriptionPart);

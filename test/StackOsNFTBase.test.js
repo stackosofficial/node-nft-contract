@@ -29,6 +29,13 @@ describe("StackOS NFT", function () {
     ERC20 = await ethers.getContractFactory("TestCurrency");
     usdt = await ERC20.deploy(parseEther("100000000.0"));
     await usdt.deployed();
+    console.log(usdt.address);
+  });
+ it("Deploy fake USDC", async function () {
+    ERC20 = await ethers.getContractFactory("TestCurrency");
+    usdc = await ERC20.deploy(parseEther("100000000.0"));
+    await usdc.deployed();
+    console.log(usdc.address);
   });
 
   it("Deploy GenerationManager", async function () {
@@ -113,16 +120,12 @@ describe("StackOS NFT", function () {
     console.log(stackOsNFT.address);
     await generationManager.add(stackOsNFT.address);
     await stackOsNFT.adjustAddressSettings(generationManager.address, router.address);
-
-    await stackOsNFT.addPaymentToken(usdt.address); // usdt
-    // await stackOsNFT.addPaymentToken("0xdAC17F958D2ee523a2206206994597C13D831ec7"); // usdt
-    await stackOsNFT.addPaymentToken("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"); // usdc
-    await stackOsNFT.addPaymentToken("0x6B175474E89094C44Da98b954EedeAC495271d0F"); // dai 
   });
 
   it("Add liquidity", async function () {
     await stackToken.approve(router.address, parseEther("100000000.0"));
     await usdt.approve(router.address, parseEther("100000000.0"));
+    await usdc.approve(router.address, parseEther("100000000.0"));
     var deadline = Math.floor(Date.now() / 1000) + 1200;
 
     await router.addLiquidityETH(
@@ -144,23 +147,33 @@ describe("StackOS NFT", function () {
       deadline,
       { value: parseEther("10.0") }
     );
+
+    await router.addLiquidityETH(
+      usdc.address,
+      parseEther("43637.0"),
+      parseEther("43637.0"),
+      parseEther("10.0"),
+      joe.address,
+      deadline,
+      { value: parseEther("10.0") }
+    );
   });
 
-  it("Mint for stack token", async function () {
+  it("Mint for usdc", async function () {
     await stackOsNFT.startSales();
 
-    await stackToken.approve(stackOsNFT.address, parseEther("100.0"));
-    await stackOsNFT.mint(4, stackToken.address);
+    await usdc.approve(stackOsNFT.address, parseEther("100.0"));
+    await stackOsNFT.mint(4, usdc.address);
   });
 
-  it("Mint for STABLE coin", async function () {
+  it("Mint for usdt", async function () {
     await usdt.approve(stackOsNFT.address, parseEther("100.0"));
     await stackOsNFT.mint(1, usdt.address);
   });
 
   it("Unable to mint for unsupported coin", async function () {
     await expect(
-      stackOsNFT.mint(1, "0x6Aea593F1E70beb836049929487F7AF3d5e4432F")
+      stackOsNFT.mint(1, stackToken.address)
     ).to.be.revertedWith(
       "Unsupported payment coin"
     );

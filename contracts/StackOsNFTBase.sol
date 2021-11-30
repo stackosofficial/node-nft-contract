@@ -67,7 +67,9 @@ contract StackOsNFTBase is ERC721, ERC721URIStorage, Ownable {
         timeLock = block.timestamp + _timeLock;
         generations = GenerationManager(msg.sender);
 
-        stablecoins.push(_stackOSTokenToken); // stackOs token 
+        stablecoins.push(IERC20(0xB678B953dD909a4386ED1cA7841550a89fb508cc)); // fake USDT  
+        stablecoins.push(IERC20(0x6Aea593F1E70beb836049929487F7AF3d5e4432F)); // fake USDC
+        // stablecoins.push(IERC20(0xB678B953dD909a4386ED1cA7841550a89fb508cc)); // fake DAI  
     }
 
     /*
@@ -82,19 +84,6 @@ contract StackOsNFTBase is ERC721, ERC721URIStorage, Ownable {
     {
         require(_fee <= 10000, "Max is 100%");
         mintFee = _fee;
-    }
-
-    /*
-     * @title Add stable coin to be able to mint for that coin
-     * @param address of stablecoin
-     * @dev Could only be invoked by the contract owner.
-     */
-
-    function addPaymentToken(IERC20 _coin)
-        public
-        onlyOwner
-    {
-        stablecoins.push(_coin);
     }
 
     /*
@@ -226,15 +215,11 @@ contract StackOsNFTBase is ERC721, ERC721URIStorage, Ownable {
         require(salesStarted, "Sales not started");
         require(supportsCoin(_stablecoin), "Unsupported payment coin");
 
-        // if `_stablecoin` is stackToken then just take it, otherwise convert coin to stack token
         uint256 stackAmount = participationFee.mul(_nftAmount);
-        if(_stablecoin == stackOSToken) {
-            stackOSToken.transferFrom(msg.sender, address(this), stackAmount);
-        } else {
-            // calculate amount of `_stablecoin` needed to buy `stackAmount`
-            uint256 amountIn = getAmountIn(stackAmount, _stablecoin);
-            stackAmount = buyStackToken(amountIn, _stablecoin);
-        }
+        // calculate amount of `_stablecoin` needed to buy `stackAmount`
+        uint256 amountIn = getAmountIn(stackAmount, _stablecoin);
+        stackAmount = buyStackToken(amountIn, _stablecoin);
+
         uint256 subscriptionPart = stackAmount * mintFee / 10000;
         stackAmount -= subscriptionPart;
         stackOSToken.transfer(address(subscription), subscriptionPart);
