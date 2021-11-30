@@ -66,7 +66,7 @@ describe("StackOS NFT", function () {
     FEE = parseEther("0.1");
     TRANSFER_DISCOUNT = 2000;
     TIMELOCK = 6442850;
-    const StackOS = await ethers.getContractFactory("StackOsNFT");
+    StackOS = await ethers.getContractFactory("StackOsNFT");
     stackOsNFT = await StackOS.deploy(
       NAME,
       SYMBOL,
@@ -243,8 +243,8 @@ describe("StackOS NFT", function () {
     await stackOsNFT.finalizeAuction();
   });
 
-  it("Deploy stackOsNFT generation 2 from manager", async function () {
-    await generationManager.deployNextGen(
+  it("Deploy stackOsNFT generation 2", async function () {
+    stackOsNFTgen2 = await StackOS.deploy(
       NAME,
       SYMBOL,
       STACK_TOKEN_FOR_PAYMENT,
@@ -257,11 +257,9 @@ describe("StackOS NFT", function () {
       TRANSFER_DISCOUNT,
       TIMELOCK
     );
-    stackOsNFTgen2 = await ethers.getContractAt(
-      "StackOsNFT",
-      await generationManager.get(1)
-    );
-    expect(await stackOsNFTgen2.owner()).to.be.equal(owner.address);
+    await stackOsNFTgen2.deployed();
+    await generationManager.add(stackOsNFTgen2.address);
+    await stackOsNFTgen2.adjustGenerationManagerAddress(generationManager.address);
   });
   it("Get some 'not winning' tickets on stack generation 2", async function () {
     await currency.approve(stackOsNFTgen2.address, parseEther("10.0"));
@@ -306,7 +304,7 @@ describe("StackOS NFT", function () {
 
   it("Deploy stackOsNFT generation 3 from manager", async function () {
     PRIZES = 2;
-    await generationManager.deployNextGen(
+    stackOsNFTgen3 = await StackOS.deploy(
       NAME,
       SYMBOL,
       STACK_TOKEN_FOR_PAYMENT,
@@ -319,11 +317,9 @@ describe("StackOS NFT", function () {
       TRANSFER_DISCOUNT,
       TIMELOCK
     );
-    stackOsNFTgen3 = await ethers.getContractAt(
-      "StackOsNFT",
-      await generationManager.get(2)
-    );
-    expect(await stackOsNFTgen3.owner()).to.be.equal(owner.address);
+    await stackOsNFTgen3.deployed();
+    await generationManager.add(stackOsNFTgen3.address);
+    await stackOsNFTgen3.adjustGenerationManagerAddress(generationManager.address);
   });
 
   it("Try to buy directly using transferFromLastGen", async function () {

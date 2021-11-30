@@ -11,6 +11,7 @@ import "@chainlink/contracts/src/v0.8/VRFConsumerBase.sol";
 import "./DarkMatter.sol";
 import "./interfaces/IStackOSNFT.sol";
 import "./GenerationManager.sol";
+import "hardhat/console.sol";
 
 contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
     using Counters for Counters.Counter;
@@ -314,7 +315,6 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
     function transferTicket(uint256[] calldata _ticketID, address _address)
         public
     {
-        // TODO: wtf?
         generations.getIDByAddress(_address);
         require(winningTickets.length > 0, "Not Decided Yet.");
         require(ticketStatusAssigned == true, "Not Assigned Yet!");
@@ -344,6 +344,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
             "Cant transfer to the same address"
         );
         // check that caller is stackNFT contract
+        console.log(address(generations), msg.sender);
         generations.getIDByAddress(msg.sender);
         uint256 participationFeeDiscount = participationFee
             .mul(10000 - transferDiscount)
