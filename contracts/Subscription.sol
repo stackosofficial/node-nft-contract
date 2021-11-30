@@ -11,14 +11,16 @@ import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 import "./interfaces/IStackOSNFT.sol";
+import "hardhat/console.sol";
 
 contract Subscription is Ownable, ReentrancyGuard {
     IERC20 private stackToken;
-    IERC20 private paymentToken; // you pay to subscribe via this tokens
     IUniswapV2Router02 private router;
     DarkMatter private darkMatter;
     GenerationManager private generations;
     address private taxAddress;
+
+    IERC20[] public stablecoins;
 
     uint256 private constant MAX_PERCENT = 10000; // for convinience 100%
     uint256 public constant MONTH = 28 days; // define what's a month. if changing this, then also change in test
@@ -40,7 +42,6 @@ contract Subscription is Ownable, ReentrancyGuard {
     mapping(uint256 => mapping(uint256 => Deposit)) private deposits; // generationId => tokenId => Deposit
 
     constructor(
-        IERC20 _paymentToken,
         IERC20 _stackToken,
         GenerationManager _generations,
         DarkMatter _darkMatter,
@@ -51,7 +52,6 @@ contract Subscription is Ownable, ReentrancyGuard {
         uint256 _bonusPercent,
         uint256 _taxReductionPercent
     ) {
-        paymentToken = _paymentToken;
         stackToken = _stackToken;
         generations = _generations;
         darkMatter = _darkMatter;
@@ -61,6 +61,23 @@ contract Subscription is Ownable, ReentrancyGuard {
         price = _price;
         bonusPercent = _bonusPercent;
         taxReductionPercent = _taxReductionPercent;
+
+        // TODO: should have addStableCoin function instead? or its fine?
+        stablecoins.push(IERC20(0xB678B953dD909a4386ED1cA7841550a89fb508cc));
+        stablecoins.push(IERC20(0x6Aea593F1E70beb836049929487F7AF3d5e4432F));
+    }
+
+    /*
+     * @title Whether or not stackNFT can be bought for `_address` coin.
+     */
+
+    function supportsCoin(IERC20 _address) public view returns (bool) {
+        for(uint256 i; i < stablecoins.length; i++) {
+            if(_address == stablecoins[i]) {
+                return true;
+            }
+        }
+        return false;
     }
 
     function setPrice(uint256 _price) external onlyOwner {
@@ -99,15 +116,18 @@ contract Subscription is Ownable, ReentrancyGuard {
     function subscribe(
         uint256 generationId,
         uint256 tokenId,
-        uint256 numberOfMonths
+        uint256 numberOfMonths,
+        IERC20 _stablecoin
     ) public nonReentrant {
-        _subscribe(generationId, tokenId, numberOfMonths, true);
+        require(supportsCoin(_stablecoin), "Unsupported payment coin");
+        _subscribe(generationId, tokenId, numberOfMonths, _stablecoin, true);
     }
 
     function _subscribe(
         uint256 generationId,
         uint256 tokenId,
         uint256 numberOfMonths,
+        IERC20 _stablecoin,
         bool externalBuyer
     ) internal {
         require(generationId < generations.count(), "Generation doesn't exist");
@@ -136,7 +156,8 @@ contract Subscription is Ownable, ReentrancyGuard {
 
         // convert payment token into stack token
         uint256 totalCost = price * numberOfMonths;
-        uint256 amount = buyStackToken(totalCost, externalBuyer);
+        uint256 amount = buyStackToken(totalCost, _stablecoin, externalBuyer);
+        console.log("s:", amount);
         deposit.balance += amount;
     }
 
@@ -154,7 +175,7 @@ contract Subscription is Ownable, ReentrancyGuard {
         nonReentrant
     {
         for (uint256 i; i < tokenIds.length; i++) {
-            _withdraw(generationId, tokenIds[i], false, 0, 0);
+            _withdraw(generationId, tokenIds[i], false, 0, 0, IERC20(address(0)));
         }
     }
 
@@ -173,15 +194,18 @@ contract Subscription is Ownable, ReentrancyGuard {
         uint256 withdrawGenerationId,
         uint256[] calldata withdrawTokenIds,
         uint256 subscribeGenerationId,
-        uint256 subscribeTokenId
+        uint256 subscribeTokenId,
+        IERC20 _stablecoin
     ) external nonReentrant {
+        require(supportsCoin(_stablecoin), "Unsupported payment coin");
         for (uint256 i; i < withdrawTokenIds.length; i++) {
             _withdraw(
                 withdrawGenerationId,
                 withdrawTokenIds[i],
                 true, 
                 subscribeGenerationId,
-                subscribeTokenId
+                subscribeTokenId,
+                _stablecoin
             );
         }
     }
@@ -191,7 +215,8 @@ contract Subscription is Ownable, ReentrancyGuard {
         uint256 tokenId,
         bool subscription,
         uint256 subscribeGenerationId,
-        uint256 subscribeTokenId
+        uint256 subscribeTokenId,
+        IERC20 _stablecoin
     ) private {
         require(generationId < generations.count(), "Generation doesn't exist");
         require(
@@ -266,7 +291,8 @@ contract Subscription is Ownable, ReentrancyGuard {
             _reSubscribe(
                 amountWithdrawWithBonus,
                 subscribeGenerationId,
-                subscribeTokenId
+                subscribeTokenId,
+                _stablecoin
             );
         } else {
             stackToken.transfer(msg.sender, amountWithdrawWithBonus);
@@ -276,14 +302,15 @@ contract Subscription is Ownable, ReentrancyGuard {
     function _reSubscribe(
         uint256 _amountStack,
         uint256 _generationId,
-        uint256 _tokenId
+        uint256 _tokenId,
+        IERC20 _stablecoin
     ) internal {
-        uint256 amountUSD = sellStackToken(_amountStack);
+        uint256 amountUSD = sellStackToken(_amountStack, _stablecoin);
         uint256 monthsToSubscribe = amountUSD / price;
         require(monthsToSubscribe > 0, "Not enough on deposit for resub");
-        _subscribe(_generationId, _tokenId, monthsToSubscribe, false);
+        _subscribe(_generationId, _tokenId, monthsToSubscribe, _stablecoin, false);
         uint256 leftOverAmount = amountUSD - (monthsToSubscribe * price);
-        paymentToken.transfer(msg.sender, leftOverAmount);
+        _stablecoin.transfer(msg.sender, leftOverAmount);
     }
 
     /*
@@ -291,15 +318,15 @@ contract Subscription is Ownable, ReentrancyGuard {
      *  @param Amount of `paymentToken` to sell.
      *  @param Called by external wallet or by this contract?
      */
-    function buyStackToken(uint256 amount, bool externalBuyer) private returns (uint256) {
+    function buyStackToken(uint256 amount, IERC20 _stablecoin, bool externalBuyer) private returns (uint256) {
         if(externalBuyer) {
-            paymentToken.transferFrom(msg.sender, address(this), amount);
+            _stablecoin.transferFrom(msg.sender, address(this), amount);
         }
-        paymentToken.approve(address(router), amount);
+        _stablecoin.approve(address(router), amount);
 
         uint256 deadline = block.timestamp + 1200;
         address[] memory path = new address[](3);
-        path[0] = address(paymentToken);
+        path[0] = address(_stablecoin);
         path[1] = address(router.WETH());
         path[2] = address(stackToken);
         uint256[] memory amountOutMin = router.getAmountsOut(amount, path);
@@ -318,14 +345,14 @@ contract Subscription is Ownable, ReentrancyGuard {
      *  @title Buy `paymentToken` for `stackToken`.
      *  @param Amount of `stackToken` to sell.
      */
-    function sellStackToken(uint256 amount) private returns (uint256) {
+    function sellStackToken(uint256 amount, IERC20 _stablecoin) private returns (uint256) {
         stackToken.approve(address(router), amount);
 
         uint256 deadline = block.timestamp + 1200;
         address[] memory path = new address[](3);
         path[0] = address(stackToken);
         path[1] = address(router.WETH());
-        path[2] = address(paymentToken);
+        path[2] = address(_stablecoin);
         uint256[] memory amountOutMin = router.getAmountsOut(amount, path);
         uint256[] memory amounts = router.swapExactTokensForTokens(
             amount,

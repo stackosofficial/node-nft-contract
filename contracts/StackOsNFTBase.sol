@@ -231,7 +231,7 @@ contract StackOsNFTBase is ERC721, ERC721URIStorage, Ownable {
         if(_stablecoin == stackOSToken) {
             stackOSToken.transferFrom(msg.sender, address(this), stackAmount);
         } else {
-            // calculate amount of `_stablecoin` needed to buy `stackAmount` of stack token
+            // calculate amount of `_stablecoin` needed to buy `stackAmount`
             uint256 amountIn = getAmountIn(stackAmount, _stablecoin);
             stackAmount = buyStackToken(amountIn, _stablecoin);
         }

@@ -20,7 +20,7 @@ contract Royalty is Ownable {
     GenerationManager private generations; // StackOS NFT generations manager
     DarkMatter private darkMatter;
     Subscription private subscription;
-    IERC20 private stableCoin;
+    // IERC20 private stableCoin;
     address payable private feeAddress; // fee from deposits goes here
     uint256 private feePercent; // fee percent taken from deposits
 
@@ -39,7 +39,7 @@ contract Royalty is Ownable {
     mapping(uint256 => Cycle) private cycles; // a new cycle can start when two conditions met, `CYCLE_DURATION` time passed and `minEthToStartCycle` ether deposited
 
     constructor(
-        IERC20 _stableCoin,
+        // IERC20 _stableCoin,
         IUniswapV2Router02 _router,
         GenerationManager _generations,
         DarkMatter _darkMatter,
@@ -47,7 +47,7 @@ contract Royalty is Ownable {
         address payable _feeAddress,
         uint256 _minEthToStartCycle
     ) {
-        stableCoin = _stableCoin;
+        // stableCoin = _stableCoin;
         router = _router;
         generations = _generations;
         darkMatter = _darkMatter;
@@ -204,7 +204,7 @@ contract Royalty is Ownable {
     function claim(uint256 _generationId, uint256[] calldata _tokenIds)
         external
     {
-        _claim(_generationId, _tokenIds, false, 0, 0);
+        _claim(_generationId, _tokenIds, false, 0, 0, IERC20(address(0)));
     }
 
     /*
@@ -219,9 +219,10 @@ contract Royalty is Ownable {
         uint256 _generationId,
         uint256[] calldata _tokenIds,
         uint256 _gen,
-        uint256 _id
+        uint256 _id,
+        IERC20 _stablecoin
     ) external {
-        _claim(_generationId, _tokenIds, true, _gen, _id);
+        _claim(_generationId, _tokenIds, true, _gen, _id, _stablecoin);
     }
 
     function _claim(
@@ -229,7 +230,8 @@ contract Royalty is Ownable {
         uint256[] calldata tokenIds,
         bool _subscription,
         uint256 gen,
-        uint256 nftID
+        uint256 nftID,
+        IERC20 _stablecoin
     ) internal {
         require(address(this).balance > 0, "No royalty");
         IStackOSNFT stack = generations.get(generationId);
@@ -313,12 +315,12 @@ contract Royalty is Ownable {
                     );
                     require(success, "Transfer failed");
                 } else {
-                    uint256 stackReceived = buyStackToken(reward);
-                    stableCoin.approve(address(subscription), stackReceived);
+                    uint256 stackReceived = buyStackToken(reward, _stablecoin);
+                    _stablecoin.approve(address(subscription), stackReceived);
                     uint256 nrOfMonth = stackReceived /
                         subscription.viewPrice();
-                    subscription.subscribe(gen, nftID, nrOfMonth);
-                    stableCoin.transfer(
+                    subscription.subscribe(gen, nftID, nrOfMonth, _stablecoin);
+                    _stablecoin.transfer(
                         msg.sender,
                         stackReceived - (nrOfMonth * subscription.viewPrice())
                     );
@@ -331,11 +333,11 @@ contract Royalty is Ownable {
      *  @title Swap `paymentToken` for `stackToken`.
      *  @param Amount of `paymentToken`.
      */
-    function buyStackToken(uint256 amount) private returns (uint256) {
+    function buyStackToken(uint256 amount, IERC20 _stablecoin) private returns (uint256) {
         uint256 deadline = block.timestamp + 1200;
         address[] memory path = new address[](2);
         path[0] = address(router.WETH());
-        path[1] = address(stableCoin);
+        path[1] = address(_stablecoin);
         uint256[] memory amountOutMin = router.getAmountsOut(amount, path);
         uint256[] memory amounts = router.swapExactETHForTokens{value: amount}(
             amountOutMin[1],
