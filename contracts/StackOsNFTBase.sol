@@ -268,6 +268,12 @@ contract StackOsNFTBase is ERC721, ERC721URIStorage, Ownable {
         delegationTimestamp[tokenId] = block.timestamp;
     }
 
+    function delegate(address _delegatee, uint256[] calldata tokenIds) public {
+        for(uint256 i; i < tokenIds.length; i++) {
+            delegate(_delegatee, tokenIds[i]);
+        }
+    }
+
     function _mint(address _address) internal {
         require(totalSupply < maxSupply, "Max supply reached");
         _safeMint(_address, _tokenIdCounter.current());
@@ -319,7 +325,7 @@ contract StackOsNFTBase is ERC721, ERC721URIStorage, Ownable {
 
         uint256 deadline = block.timestamp + 1200;
         address[] memory path = new address[](3);
-        // TODO: is this correct?
+        // TODO: is this correct? 3 step instead of two.
         path[0] = address(_stablecoin);
         path[1] = address(router.WETH());
         path[2] = address(stackOSToken);

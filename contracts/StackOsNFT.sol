@@ -45,7 +45,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
     uint256 private prizes;
     uint256 private totalDelegated;
     uint256 private iterationCount;
-    // TODO: this is never set, wtf?
+    // TODO: this was never set, why?
     uint256 internal fee = 1e17;
     uint256 internal mintFee;
 
