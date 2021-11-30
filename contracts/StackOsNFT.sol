@@ -572,6 +572,12 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         delegationTimestamp[tokenId] = block.timestamp;
     }
 
+    function delegate(address _delegatee, uint256[] calldata tokenIds) public {
+        for(uint256 i; i < tokenIds.length; i++) {
+            delegate(_delegatee, tokenIds[i]);
+        }
+    }
+
     // TODO: reentrancy attack possible? if receiver is contract, then probably yes?
     function mint(address _address) internal {
         require(totalSupply < maxSupply, "Max supply reached");

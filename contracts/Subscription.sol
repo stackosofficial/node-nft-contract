@@ -62,7 +62,7 @@ contract Subscription is Ownable, ReentrancyGuard {
         bonusPercent = _bonusPercent;
         taxReductionPercent = _taxReductionPercent;
 
-        // TODO: should have addStableCoin function instead? or its fine?
+        // TODO: should have addStableCoin function instead? or its fine? the same question applies to other contracts with this logic
         stablecoins.push(IERC20(0xB678B953dD909a4386ED1cA7841550a89fb508cc));
         stablecoins.push(IERC20(0x6Aea593F1E70beb836049929487F7AF3d5e4432F));
     }
