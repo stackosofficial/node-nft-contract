@@ -314,6 +314,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
     function transferTicket(uint256[] calldata _ticketID, address _address)
         public
     {
+        // TODO: wtf?
         generations.getIDByAddress(_address);
         require(winningTickets.length > 0, "Not Decided Yet.");
         require(ticketStatusAssigned == true, "Not Assigned Yet!");
@@ -342,6 +343,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
             address(this) != address(msg.sender),
             "Cant transfer to the same address"
         );
+        // TODO: wtf?
         generations.getIDByAddress(msg.sender);
         uint256 participationFeeDiscount = participationFee
             .mul(10000 - transferDiscount)
