@@ -5,8 +5,10 @@ import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "./interfaces/IStackOSNFT.sol";
-import "./StackOsNFT.sol";
+// import "./StackOsNFT.sol";
+import "./StackOsNFTBase.sol";
 
 contract GenerationManager is Ownable, ReentrancyGuard {
     IStackOSNFT[] private generations; // StackNFT contract generations
@@ -40,28 +42,22 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         string memory _symbol,
         IERC20 _stackOSTokenToken,
         DarkMatter _darkMatter,
+        IUniswapV2Router02 _router,
         uint256 _participationFee,
         uint256 _maxSupply,
-        uint256 _prizes,
-        uint256 _auctionedNFTs,
-        // address _vrfCoordinator,
-        // address _linkToken,
-        bytes32 _keyHash,
         uint256 _transferDiscount,
         uint256 _timeLock
     ) public onlyOwner returns (IStackOSNFT) {
         IStackOSNFT stack = IStackOSNFT(
             address(
-                new StackOsNFT(
+                new StackOsNFTBase(
                     _name,
                     _symbol,
                     _stackOSTokenToken,
                     _darkMatter,
+                    _router,
                     _participationFee,
                     _maxSupply,
-                    _prizes,
-                    _auctionedNFTs,
-                    _keyHash,
                     _transferDiscount,
                     _timeLock
                 )

@@ -7,9 +7,11 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "./DarkMatter.sol";
 import "./interfaces/IStackOSNFT.sol";
 import "./GenerationManager.sol";
+import "hardhat/console.sol";
 
 contract StackOsNFTBase is ERC721, ERC721URIStorage, Ownable {
     using Counters for Counters.Counter;
@@ -19,6 +21,7 @@ contract StackOsNFTBase is ERC721, ERC721URIStorage, Ownable {
     IERC20 private stackOSToken;
     DarkMatter private darkMatter;
     GenerationManager private generations;
+    IUniswapV2Router02 private router;
 
     uint256 public timeLock;
     uint256 public adminWithdrawableAmount;
@@ -42,6 +45,8 @@ contract StackOsNFTBase is ERC721, ERC721URIStorage, Ownable {
         string memory _symbol,
         IERC20 _stackOSTokenToken,
         DarkMatter _darkMatter,
+        IUniswapV2Router02 _router,
+        uint256 _participationFee,
         uint256 _maxSupply,
         uint256 _transferDiscount,
         uint256 _timeLock
@@ -50,15 +55,26 @@ contract StackOsNFTBase is ERC721, ERC721URIStorage, Ownable {
     {
         stackOSToken = _stackOSTokenToken;
         darkMatter = _darkMatter;
+        router = _router;
+        participationFee = _participationFee;
         maxSupply = _maxSupply;
         transferDiscount = _transferDiscount;
         timeLock = block.timestamp + _timeLock;
         generations = GenerationManager(msg.sender);
 
         stablecoins.push(_stackOSTokenToken); // stackOs token 
-        stablecoins.push(IERC20(0xdAC17F958D2ee523a2206206994597C13D831ec7)); // usdt
-        stablecoins.push(IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48)); // usdc
-        stablecoins.push(IERC20(0x6B175474E89094C44Da98b954EedeAC495271d0F)); // dai
+    }
+
+    /*
+     * @title On first NFT contract deployment the msg.sender is the deployer not contract
+     * @param address of generation manager contract
+     */
+
+    function addPaymentToken(IERC20 _coin)
+        public
+        onlyOwner
+    {
+        stablecoins.push(_coin);
     }
 
     /*
@@ -130,8 +146,8 @@ contract StackOsNFTBase is ERC721, ERC721URIStorage, Ownable {
             address(this) != address(msg.sender),
             "Cant transfer to the same address"
         );
-        // TODO: wtf? (same line in full nft, but why)
-        // generations.getIDByAddress(msg.sender);
+        // check that caller is stackNFT contract
+        generations.getIDByAddress(msg.sender);
         uint256 participationFeeDiscount = participationFee
             .mul(10000 - transferDiscount)
             .div(10000);
@@ -187,11 +203,18 @@ contract StackOsNFTBase is ERC721, ERC721URIStorage, Ownable {
         require(salesStarted, "Sales not started");
         require(supportsCoin(_stablecoin), "Unsupported payment coin");
 
-        _stablecoin.transferFrom(
-            msg.sender,
-            address(this),
-            participationFee.mul(_nftAmount)
-        );
+        // convert to stack token if `_stablecoin` isn't stack token
+        uint256 stackAmount = participationFee.mul(_nftAmount);
+        if(_stablecoin == stackOSToken) {
+            stackOSToken.transferFrom(msg.sender, address(this), stackAmount);
+        } else {
+            // calculate amount of `stablecoin` needed to buy `stackAmount` of stack token
+            uint256 amountIn = getAmountIn(stackAmount, _stablecoin);
+            console.log(amountIn);
+            console.log(stackAmount);
+            stackAmount = buyStackToken(amountIn, _stablecoin);
+        }
+
         adminWithdrawableAmount += participationFee.mul(_nftAmount);
         for (uint256 i; i < _nftAmount; i++) {
             _mint(msg.sender);
@@ -255,5 +278,36 @@ contract StackOsNFTBase is ERC721, ERC721URIStorage, Ownable {
         require(block.timestamp > timeLock, "Locked!");
         stackOSToken.transfer(msg.sender, adminWithdrawableAmount);
         adminWithdrawableAmount.sub(adminWithdrawableAmount);
+    }
+
+    function getAmountIn(uint256 amount, IERC20 _stablecoin) private view returns (uint256) {
+        address[] memory path = new address[](3);
+        path[0] = address(_stablecoin);
+        path[1] = address(router.WETH());
+        path[2] = address(stackOSToken);
+        uint256[] memory amountsIn = router.getAmountsIn(amount, path);
+        return amountsIn[0];
+    }
+
+    function buyStackToken(uint256 amount, IERC20 _stablecoin) private returns (uint256) {
+        _stablecoin.transferFrom(msg.sender, address(this), amount);
+        _stablecoin.approve(address(router), amount);
+
+        uint256 deadline = block.timestamp + 1200;
+        address[] memory path = new address[](3);
+        // TODO: is this correct?
+        path[0] = address(_stablecoin);
+        path[1] = address(router.WETH());
+        path[2] = address(stackOSToken);
+        uint256[] memory amountOutMin = router.getAmountsOut(amount, path);
+        uint256[] memory amounts = router.swapExactTokensForTokens(
+            amount,
+            amountOutMin[2],
+            path,
+            address(this),
+            deadline
+        );
+
+        return amounts[2];
     }
 }

@@ -343,7 +343,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
             address(this) != address(msg.sender),
             "Cant transfer to the same address"
         );
-        // TODO: wtf?
+        // check that caller is stackNFT contract
         generations.getIDByAddress(msg.sender);
         uint256 participationFeeDiscount = participationFee
             .mul(10000 - transferDiscount)
@@ -506,6 +506,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         delegationTimestamp[tokenId] = block.timestamp;
     }
 
+    // TODO: reentrancy attack possible? if receiver is contract, then probably yes
     function mint(address _address) internal {
         require(totalSupply < maxSupply, "Max supply reached");
         _safeMint(_address, _tokenIdCounter.current());
