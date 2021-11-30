@@ -28,6 +28,8 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
     IERC20 private stackOSToken;
     DarkMatter private darkMatter;
     GenerationManager private generations;
+    IUniswapV2Router02 private router;
+    Subscription private subscription;
 
     uint256[] public winningTickets;
     uint256 public timeLock;
@@ -43,7 +45,9 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
     uint256 private prizes;
     uint256 private totalDelegated;
     uint256 private iterationCount;
-    uint256 internal fee;
+    // TODO: this is never set, wtf?
+    uint256 internal fee = 1e17;
+    uint256 internal mintFee;
 
     mapping(uint256 => bool) public randomUniqueNumbers;
     mapping(uint256 => address) public ticketOwner;
@@ -53,6 +57,8 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
     mapping(uint256 => uint256) private delegationTimestamp;
     mapping(uint256 => address) private delegates;
     mapping(address => uint256) private strategicPartner;
+
+    IERC20[] public stablecoins;
 
     bool private auctionFinalized;
     bool private ticketStatusAssigned;
@@ -76,8 +82,8 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
     )
         ERC721(_name, _symbol)
         VRFConsumerBase(
-            0x6Aea593F1E70beb836049929487F7AF3d5e4432F, // VRF Coordinator
-            0xB678B953dD909a4386ED1cA7841550a89fb508cc // LINK Token
+            0x89842f40928f81FC4415b39bfBFC3205eB6161cB, // VRF Coordinator
+            0x6Aea593F1E70beb836049929487F7AF3d5e4432F // LINK Token
         )
     {
         stackOSToken = _stackOSTokenToken;
@@ -90,18 +96,53 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         auctionedNFTs = _auctionedNFTs;
         timeLock = block.timestamp + _timeLock;
         generations = GenerationManager(msg.sender);
+        
+        stablecoins.push(_stackOSTokenToken); // stackOs token 
+    }
+
+
+    /*
+     * @title Set % that is sended to Subscription contract on mint
+     * @param percent
+     * @dev Could only be invoked by the contract owner.
+     */
+
+    function setMintFee(uint256 _fee)
+        public
+        onlyOwner
+    {
+        require(_fee <= 10000, "Max is 100%");
+        mintFee = _fee;
+    }
+
+    /*
+     * @title Add stable coin to be able to mint for that coin
+     * @param address of stablecoin
+     * @dev Could only be invoked by the contract owner.
+     */
+
+    function addPaymentToken(IERC20 _coin)
+        public
+        onlyOwner
+    {
+        stablecoins.push(_coin);
     }
 
     /*
      * @title On first NFT contract deployment the msg.sender is the deployer not contract
      * @param address of generation manager contract
+     * @param address of router contract, such as uniswap
+     * @param address of subscription contract
+     * @dev Could only be invoked by the contract owner.
      */
 
-    function adjustGenerationManagerAddress(address _genManager)
+    function adjustAddressSettings(address _genManager, address _router, address _subscription)
         public
         onlyOwner
     {
         generations = GenerationManager(_genManager);
+        router = IUniswapV2Router02(_router);
+        subscription = Subscription(_subscription);
     }
 
     /*
@@ -344,7 +385,6 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
             "Cant transfer to the same address"
         );
         // check that caller is stackNFT contract
-        console.log(address(generations), msg.sender);
         generations.getIDByAddress(msg.sender);
         uint256 participationFeeDiscount = participationFee
             .mul(10000 - transferDiscount)
@@ -396,6 +436,19 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
     }
 
     /*
+     * @title Whether or not stackNFT can be bought for `_address` coin.
+     */
+
+    function supportsCoin(IERC20 _address) public view returns (bool) {
+        for(uint256 i; i < stablecoins.length; i++) {
+            if(_address == stablecoins[i]) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /*
      * @title Allow wallets to start staking for lottery tickets.
      * @dev Could only be invoked by the contract owner.
      */
@@ -420,15 +473,27 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
      * @param Number of tokens to mint.
      */
 
-    function partnerMint(uint256 _nftAmount) public {
+    function partnerMint(uint256 _nftAmount, IERC20 _stablecoin) public {
         require(salesStarted, "Sales not started");
+        require(supportsCoin(_stablecoin), "Unsupported payment coin");
         require(strategicPartner[msg.sender] >= _nftAmount, "Amount Too Big");
-        stackOSToken.transferFrom(
-            msg.sender,
-            address(this),
-            participationFee.mul(_nftAmount)
-        );
-        adminWithdrawableAmount += participationFee.mul(_nftAmount);
+        // if `_stablecoin` is stackToken then just take it, otherwise convert coin to stack token
+        uint256 stackAmount = participationFee.mul(_nftAmount);
+        if(_stablecoin == stackOSToken) {
+            stackOSToken.transferFrom(msg.sender, address(this), stackAmount);
+        } else {
+            // calculate amount of `_stablecoin` needed to buy `stackAmount` of stack token
+            uint256 amountIn = getAmountIn(stackAmount, _stablecoin);
+            stackAmount = buyStackToken(amountIn, _stablecoin);
+        }
+        uint256 subscriptionPart = stackAmount * mintFee / 10000;
+        stackAmount -= subscriptionPart;
+        stackOSToken.transfer(address(subscription), subscriptionPart);
+        console.log("pm");
+        console.log(stackAmount);
+        console.log(subscriptionPart);
+        
+        adminWithdrawableAmount += stackAmount;
         for (uint256 i; i < _nftAmount; i++) {
             strategicPartner[msg.sender]--;
             mint(msg.sender);
@@ -507,7 +572,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         delegationTimestamp[tokenId] = block.timestamp;
     }
 
-    // TODO: reentrancy attack possible? if receiver is contract, then probably yes
+    // TODO: reentrancy attack possible? if receiver is contract, then probably yes?
     function mint(address _address) internal {
         require(totalSupply < maxSupply, "Max supply reached");
         _safeMint(_address, _tokenIdCounter.current());
@@ -543,5 +608,35 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         require(ticketStatusAssigned == true, "Not Assigned.");
         stackOSToken.transfer(msg.sender, adminWithdrawableAmount);
         adminWithdrawableAmount.sub(adminWithdrawableAmount);
+    }
+
+    function getAmountIn(uint256 amount, IERC20 _stablecoin) private view returns (uint256) {
+        address[] memory path = new address[](3);
+        path[0] = address(_stablecoin);
+        path[1] = address(router.WETH());
+        path[2] = address(stackOSToken);
+        uint256[] memory amountsIn = router.getAmountsIn(amount, path);
+        return amountsIn[0];
+    }
+
+    function buyStackToken(uint256 amount, IERC20 _stablecoin) private returns (uint256) {
+        _stablecoin.transferFrom(msg.sender, address(this), amount);
+        _stablecoin.approve(address(router), amount);
+
+        uint256 deadline = block.timestamp + 1200;
+        address[] memory path = new address[](3);
+        path[0] = address(_stablecoin);
+        path[1] = address(router.WETH());
+        path[2] = address(stackOSToken);
+        uint256[] memory amountOutMin = router.getAmountsOut(amount, path);
+        uint256[] memory amounts = router.swapExactTokensForTokens(
+            amount,
+            amountOutMin[2],
+            path,
+            address(this),
+            deadline
+        );
+
+        return amounts[2];
     }
 }

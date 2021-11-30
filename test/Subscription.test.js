@@ -68,41 +68,6 @@ describe("Subscription", function () {
     console.log(darkMatter.address);
   });
 
-  it("Deploy StackOS NFT", async function () {
-    NAME = "STACK OS NFT";
-    SYMBOL = "SON";
-    STACK_TOKEN_FOR_PAYMENT = stackToken.address;
-    MASTER_NODE_ADDRESS = darkMatter.address;
-    PRICE = parseEther("0.1");
-    MAX_SUPPLY = 25;
-    PRIZES = 10;
-    AUCTIONED_NFTS = 10;
-    VRF_COORDINATOR = coordinator.address;
-    LINK_TOKEN = link.address;
-    KEY_HASH =
-      "0x2ed0feb3e7fd2022120aa84fab1945545a9f2ffc9076fd6156fa96eaff4c1311";
-    FEE = parseEther("0.1");
-    TRANSFER_DISCOUNT = 2000;
-    TIMELOCK = 6442850;
-
-    const StackOS = await ethers.getContractFactory("StackOsNFT");
-    stackOsNFT = await StackOS.deploy(
-      NAME,
-      SYMBOL,
-      STACK_TOKEN_FOR_PAYMENT,
-      MASTER_NODE_ADDRESS,
-      PRICE,
-      MAX_SUPPLY,
-      PRIZES,
-      AUCTIONED_NFTS,
-      KEY_HASH,
-      TRANSFER_DISCOUNT,
-      TIMELOCK
-    );
-    await stackOsNFT.deployed();
-    await generationManager.add(stackOsNFT.address);
-  });
-
   it("Deploy subscription", async function () {
     PAYMENT_TOKEN = usdt.address;
     STACK_TOKEN_FOR_PAYMENT = stackToken.address;
@@ -137,19 +102,62 @@ describe("Subscription", function () {
     MONTH = (await subscription.MONTH()).toNumber();
   });
 
+  it("Deploy StackOS NFT", async function () {
+    NAME = "STACK OS NFT";
+    SYMBOL = "SON";
+    STACK_TOKEN_FOR_PAYMENT = stackToken.address;
+    MASTER_NODE_ADDRESS = darkMatter.address;
+    PRICE = parseEther("0.1");
+    MAX_SUPPLY = 25;
+    PRIZES = 10;
+    AUCTIONED_NFTS = 10;
+    VRF_COORDINATOR = coordinator.address;
+    LINK_TOKEN = link.address;
+    KEY_HASH =
+      "0x2ed0feb3e7fd2022120aa84fab1945545a9f2ffc9076fd6156fa96eaff4c1311";
+    FEE = parseEther("0.1");
+    MINT_FEE = 2000;
+    TRANSFER_DISCOUNT = 2000;
+    TIMELOCK = 6442850;
+
+    StackOS = await ethers.getContractFactory("StackOsNFT");
+    stackOsNFT = await StackOS.deploy(
+      NAME,
+      SYMBOL,
+      STACK_TOKEN_FOR_PAYMENT,
+      MASTER_NODE_ADDRESS,
+      PRICE,
+      MAX_SUPPLY,
+      PRIZES,
+      AUCTIONED_NFTS,
+      KEY_HASH,
+      TRANSFER_DISCOUNT,
+      TIMELOCK
+    );
+    await stackOsNFT.deployed();
+    await generationManager.add(stackOsNFT.address);
+    await stackOsNFT.adjustAddressSettings(generationManager.address, router.address, subscription.address);
+    await stackOsNFT.setMintFee(MINT_FEE); // usdt
+
+    await stackOsNFT.addPaymentToken(usdt.address); // usdt
+    // await stackOsNFT.addPaymentToken("0xdAC17F958D2ee523a2206206994597C13D831ec7"); // usdt
+    await stackOsNFT.addPaymentToken("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"); // usdc
+    await stackOsNFT.addPaymentToken("0x6B175474E89094C44Da98b954EedeAC495271d0F"); // dai 
+  });
+
   it("Mint some NFTs", async function () {
     await stackToken.transfer(partner.address, parseEther("100.0"));
     await stackOsNFT.startPartnerSales();
 
     await stackOsNFT.whitelistPartner(owner.address, 4);
     await stackToken.approve(stackOsNFT.address, parseEther("10.0"));
-    await stackOsNFT.partnerMint(4);
+    await stackOsNFT.partnerMint(4, stackToken.address);
 
     await stackOsNFT.whitelistPartner(partner.address, 1);
     await stackToken
       .connect(partner)
       .approve(stackOsNFT.address, parseEther("10.0"));
-    await stackOsNFT.connect(partner).partnerMint(1);
+    await stackOsNFT.connect(partner).partnerMint(1, stackToken.address);
   });
 
   it("Unable to withdraw without subs and foreign ids", async function () {
@@ -178,7 +186,6 @@ describe("Subscription", function () {
     await stackToken.approve(router.address, parseEther("100000000.0"));
     await usdt.approve(router.address, parseEther("100000000.0"));
     var deadline = Math.floor(Date.now() / 1000) + 1200;
-    // TODO: can replace this shit with pair that (if) exists on rinkeby with a lot of liquidity? or find way to improve this one.
 
     await router.addLiquidityETH(
       stackToken.address,
@@ -290,7 +297,7 @@ describe("Subscription", function () {
       .connect(tax)
       .transfer(owner.address, await stackToken.balanceOf(tax.address));
     await stackOsNFT.whitelistPartner(owner.address, 4);
-    await stackOsNFT.partnerMint(4); // 5-9
+    await stackOsNFT.partnerMint(4, stackToken.address); // 5-9
 
     await subscription.subscribe(0, 5, 2); // 5 is subscribed for 2 months
     await provider.send("evm_increaseTime", [MONTH * 4]); // wait 4 months, tax is max
@@ -338,7 +345,7 @@ describe("Subscription", function () {
   });
 
   it("Withdraw on multiple generations", async function () {
-    await generationManager.deployNextGen(
+    stackOsNFTGen2 = await StackOS.deploy(
       NAME,
       SYMBOL,
       STACK_TOKEN_FOR_PAYMENT,
@@ -351,14 +358,20 @@ describe("Subscription", function () {
       TRANSFER_DISCOUNT,
       TIMELOCK
     );
-    stackOsNFTGen2 = await ethers.getContractAt(
-      "StackOsNFT",
-      await generationManager.get(1)
-    );
+    await stackOsNFTGen2.deployed();
+    await generationManager.add(stackOsNFTGen2.address);
+    await stackOsNFTGen2.adjustAddressSettings(generationManager.address, router.address, subscription.address);
+    await stackOsNFTGen2.setMintFee(MINT_FEE); // usdt
+
+    await stackOsNFTGen2.addPaymentToken(usdt.address); // usdt
+    // await stackOsNFTGen2.addPaymentToken("0xdAC17F958D2ee523a2206206994597C13D831ec7"); // usdt
+    await stackOsNFTGen2.addPaymentToken("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"); // usdc
+    await stackOsNFTGen2.addPaymentToken("0x6B175474E89094C44Da98b954EedeAC495271d0F"); // dai 
+
     await stackOsNFTGen2.whitelistPartner(owner.address, 1);
     await stackToken.approve(stackOsNFTGen2.address, parseEther("10000.0"));
     await stackOsNFTGen2.startPartnerSales();
-    await stackOsNFTGen2.partnerMint(1);
+    await stackOsNFTGen2.partnerMint(1, stackToken.address);
 
     await usdt.approve(subscription.address, parseEther("20000.0"));
     await subscription.subscribe(0, 6, 10); // gen 0, token 6, 10 months

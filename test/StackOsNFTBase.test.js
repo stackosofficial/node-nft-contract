@@ -112,7 +112,7 @@ describe("StackOS NFT", function () {
     await stackOsNFT.deployed();
     console.log(stackOsNFT.address);
     await generationManager.add(stackOsNFT.address);
-    await stackOsNFT.adjustGenerationManagerAddress(generationManager.address);
+    await stackOsNFT.adjustAddressSettings(generationManager.address, router.address);
 
     await stackOsNFT.addPaymentToken(usdt.address); // usdt
     // await stackOsNFT.addPaymentToken("0xdAC17F958D2ee523a2206206994597C13D831ec7"); // usdt

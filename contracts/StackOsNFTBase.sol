@@ -48,7 +48,6 @@ contract StackOsNFTBase is ERC721, ERC721URIStorage, Ownable {
         string memory _symbol,
         IERC20 _stackOSTokenToken,
         DarkMatter _darkMatter,
-        IUniswapV2Router02 _router,
         Subscription _subscription,
         uint256 _participationFee,
         uint256 _mintFee,
@@ -60,7 +59,6 @@ contract StackOsNFTBase is ERC721, ERC721URIStorage, Ownable {
     {
         stackOSToken = _stackOSTokenToken;
         darkMatter = _darkMatter;
-        router = _router;
         subscription = _subscription;
         participationFee = _participationFee;
         mintFee = _mintFee;
@@ -73,8 +71,23 @@ contract StackOsNFTBase is ERC721, ERC721URIStorage, Ownable {
     }
 
     /*
-     * @title On first NFT contract deployment the msg.sender is the deployer not contract
-     * @param address of generation manager contract
+     * @title Set % that is sended to Subscription contract on mint
+     * @param percent
+     * @dev Could only be invoked by the contract owner.
+     */
+
+    function setMintFee(uint256 _fee)
+        public
+        onlyOwner
+    {
+        require(_fee <= 10000, "Max is 100%");
+        mintFee = _fee;
+    }
+
+    /*
+     * @title Add stable coin to be able to mint for that coin
+     * @param address of stablecoin
+     * @dev Could only be invoked by the contract owner.
      */
 
     function addPaymentToken(IERC20 _coin)
@@ -87,13 +100,15 @@ contract StackOsNFTBase is ERC721, ERC721URIStorage, Ownable {
     /*
      * @title On first NFT contract deployment the msg.sender is the deployer not contract
      * @param address of generation manager contract
+     * @dev Could only be invoked by the contract owner.
      */
 
-    function adjustGenerationManagerAddress(address _genManager)
+    function adjustAddressSettings(address _genManager, address _router)
         public
         onlyOwner
     {
         generations = GenerationManager(_genManager);
+        router = IUniswapV2Router02(_router);
     }
 
     /*
@@ -175,7 +190,6 @@ contract StackOsNFTBase is ERC721, ERC721URIStorage, Ownable {
         );
 
         for (uint256 i; i < ticketAmount; i++) {
-            // TODO: should be _mint or mint? the later one has some check such as salesStared.
             _mint(msg.sender);
         }
     }
@@ -220,15 +234,10 @@ contract StackOsNFTBase is ERC721, ERC721URIStorage, Ownable {
             // calculate amount of `_stablecoin` needed to buy `stackAmount` of stack token
             uint256 amountIn = getAmountIn(stackAmount, _stablecoin);
             stackAmount = buyStackToken(amountIn, _stablecoin);
-            console.log(amountIn);
-            console.log(stackAmount);
         }
         uint256 subscriptionPart = stackAmount * mintFee / 10000;
         stackAmount -= subscriptionPart;
         stackOSToken.transfer(address(subscription), subscriptionPart);
-
-        console.log(stackAmount);
-        console.log(subscriptionPart);
         
         adminWithdrawableAmount += stackAmount;
         for (uint256 i; i < _nftAmount; i++) {

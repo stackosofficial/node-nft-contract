@@ -42,7 +42,6 @@ describe("Royalty", function () {
       .connect(pepe)
       .approve(router.address, parseEther("100000.0"));
     var deadline = Math.floor(Date.now() / 1000) + 1200;
-    // TODO: can replace this shit with pair that (if) exists on rinkeby with a lot of liquidity? or find way to improve this one.
     WETH = await router.WETH();
 
     await router
@@ -66,7 +65,6 @@ describe("Royalty", function () {
     await usdt.transfer(pepe.address, parseEther("100000.0"));
     await usdt.connect(pepe).approve(router.address, parseEther("100000.0"));
     var deadline = Math.floor(Date.now() / 1000) + 1200;
-    // TODO: can replace this shit with pair that (if) exists on rinkeby with a lot of liquidity? or find way to improve this one.
     await router
       .connect(pepe)
       .addLiquidityETH(
