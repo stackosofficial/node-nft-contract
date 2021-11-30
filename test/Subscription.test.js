@@ -144,49 +144,7 @@ describe("Subscription", function () {
     await stackOsNFT.deployed();
     await generationManager.add(stackOsNFT.address);
     await stackOsNFT.adjustAddressSettings(generationManager.address, router.address, subscription.address);
-    await stackOsNFT.setMintFee(MINT_FEE); // usdt
-
-    await stackOsNFT.addPaymentToken(usdt.address); // usdt
-    // await stackOsNFT.addPaymentToken("0xdAC17F958D2ee523a2206206994597C13D831ec7"); // usdt
-    await stackOsNFT.addPaymentToken("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"); // usdc
-    await stackOsNFT.addPaymentToken("0x6B175474E89094C44Da98b954EedeAC495271d0F"); // dai 
-  });
-
-  it("Mint some NFTs", async function () {
-    await stackToken.transfer(partner.address, parseEther("100.0"));
-    await stackOsNFT.startPartnerSales();
-
-    await stackOsNFT.whitelistPartner(owner.address, 4);
-    await stackToken.approve(stackOsNFT.address, parseEther("10.0"));
-    await stackOsNFT.partnerMint(4, stackToken.address);
-
-    await stackOsNFT.whitelistPartner(partner.address, 1);
-    await stackToken
-      .connect(partner)
-      .approve(stackOsNFT.address, parseEther("10.0"));
-    await stackOsNFT.connect(partner).partnerMint(1, stackToken.address);
-  });
-
-  it("Unable to withdraw without subs and foreign ids", async function () {
-    await expect(subscription.withdraw(0, [0])).to.be.revertedWith(
-      "No subscription"
-    );
-    await expect(subscription.withdraw(0, [4])).to.be.revertedWith("Not owner");
-  });
-
-  it("Unable to subscribe for 0 months", async function () {
-    await expect(subscription.subscribe(0, 0, 0, usdt.address)).to.be.revertedWith(
-      "Zero months not allowed"
-    );
-  });
-
-  it("Unable to subscribe and withdraw on wrong generation id", async function () {
-    await expect(subscription.subscribe(1337, 0, 0, usdt.address)).to.be.revertedWith(
-      "Generation doesn't exist"
-    );
-    await expect(subscription.withdraw(1337, [0])).to.be.revertedWith(
-      "Generation doesn't exist"
-    );
+    await stackOsNFT.setMintFee(MINT_FEE); 
   });
 
   it("Add liquidity", async function () {
@@ -223,6 +181,43 @@ describe("Subscription", function () {
       joe.address,
       deadline,
       { value: parseEther("10.0") }
+    );
+  });
+
+  it("Mint some NFTs", async function () {
+    await usdt.transfer(partner.address, parseEther("100.0"));
+    await stackOsNFT.startPartnerSales();
+
+    await stackOsNFT.whitelistPartner(owner.address, 4);
+    await usdt.approve(stackOsNFT.address, parseEther("10.0"));
+    await stackOsNFT.partnerMint(4, usdt.address);
+
+    await stackOsNFT.whitelistPartner(partner.address, 1);
+    await usdt
+      .connect(partner)
+      .approve(stackOsNFT.address, parseEther("10.0"));
+    await stackOsNFT.connect(partner).partnerMint(1, usdt.address);
+  });
+
+  it("Unable to withdraw without subs and foreign ids", async function () {
+    await expect(subscription.withdraw(0, [0])).to.be.revertedWith(
+      "No subscription"
+    );
+    await expect(subscription.withdraw(0, [4])).to.be.revertedWith("Not owner");
+  });
+
+  it("Unable to subscribe for 0 months", async function () {
+    await expect(subscription.subscribe(0, 0, 0, usdt.address)).to.be.revertedWith(
+      "Zero months not allowed"
+    );
+  });
+
+  it("Unable to subscribe and withdraw on wrong generation id", async function () {
+    await expect(subscription.subscribe(1337, 0, 0, usdt.address)).to.be.revertedWith(
+      "Generation doesn't exist"
+    );
+    await expect(subscription.withdraw(1337, [0])).to.be.revertedWith(
+      "Generation doesn't exist"
     );
   });
 
@@ -318,11 +313,11 @@ describe("Subscription", function () {
   });
   it("Buy, then wait 2 month, then buy in advance, and withdraw after that", async function () {
     // clear tax balance for simplicity
-    await stackToken
+    await usdt 
       .connect(tax)
-      .transfer(owner.address, await stackToken.balanceOf(tax.address));
+      .transfer(owner.address, await usdt.balanceOf(tax.address));
     await stackOsNFT.whitelistPartner(owner.address, 4);
-    await stackOsNFT.partnerMint(4, stackToken.address); // 5-9
+    await stackOsNFT.partnerMint(4, usdt.address); // 5-9
 
     await subscription.subscribe(0, 5, 2, usdt.address); // 5 is subscribed for 2 months
     await provider.send("evm_increaseTime", [MONTH * 4]); // wait 4 months, tax is max
@@ -388,15 +383,10 @@ describe("Subscription", function () {
     await stackOsNFTGen2.adjustAddressSettings(generationManager.address, router.address, subscription.address);
     await stackOsNFTGen2.setMintFee(MINT_FEE); // usdt
 
-    await stackOsNFTGen2.addPaymentToken(usdt.address); // usdt
-    // await stackOsNFTGen2.addPaymentToken("0xdAC17F958D2ee523a2206206994597C13D831ec7"); // usdt
-    await stackOsNFTGen2.addPaymentToken("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"); // usdc
-    await stackOsNFTGen2.addPaymentToken("0x6B175474E89094C44Da98b954EedeAC495271d0F"); // dai 
-
     await stackOsNFTGen2.whitelistPartner(owner.address, 1);
-    await stackToken.approve(stackOsNFTGen2.address, parseEther("10000.0"));
+    await usdt.approve(stackOsNFTGen2.address, parseEther("10000.0"));
     await stackOsNFTGen2.startPartnerSales();
-    await stackOsNFTGen2.partnerMint(1, stackToken.address);
+    await stackOsNFTGen2.partnerMint(1, usdt.address);
 
     await usdt.approve(subscription.address, parseEther("20000.0"));
     await subscription.subscribe(0, 6, 10, usdt.address); // gen 0, token 6, 10 months
