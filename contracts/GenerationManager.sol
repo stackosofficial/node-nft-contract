@@ -9,6 +9,7 @@ import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "./interfaces/IStackOSNFT.sol";
 // import "./StackOsNFT.sol";
 import "./StackOsNFTBase.sol";
+import "./Subscription.sol";
 
 contract GenerationManager is Ownable, ReentrancyGuard {
     IStackOSNFT[] private generations; // StackNFT contract generations
@@ -43,7 +44,9 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         IERC20 _stackOSTokenToken,
         DarkMatter _darkMatter,
         IUniswapV2Router02 _router,
+        Subscription _subscription,
         uint256 _participationFee,
+        uint256 _mintFee,
         uint256 _maxSupply,
         uint256 _transferDiscount,
         uint256 _timeLock
@@ -56,7 +59,9 @@ contract GenerationManager is Ownable, ReentrancyGuard {
                     _stackOSTokenToken,
                     _darkMatter,
                     _router,
+                    _subscription,
                     _participationFee,
+                    _mintFee,
                     _maxSupply,
                     _transferDiscount,
                     _timeLock

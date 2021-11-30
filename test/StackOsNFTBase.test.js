@@ -12,7 +12,7 @@ describe("StackOS NFT", function () {
   it("Defining Generals", async function () {
     // General
     provider = ethers.provider;
-    [owner, joe] = await hre.ethers.getSigners();
+    [owner, joe, tax] = await hre.ethers.getSigners();
 
     router = await ethers.getContractAt(
       "IUniswapV2Router02",
@@ -50,13 +50,48 @@ describe("StackOS NFT", function () {
     await darkMatter.deployed();
     console.log(darkMatter.address);
   });
+  it("Deploy subscription", async function () {
+    PAYMENT_TOKEN = usdt.address;
+    STACK_TOKEN_FOR_PAYMENT = stackToken.address;
+    GENERATION_MANAGER_ADDRESS = generationManager.address;
+    MASTER_NODE_ADDRESS = darkMatter.address;
+    ROUTER_ADDRESS = router.address;
+    TAX_ADDRESS = tax.address;
+
+    SUBSCRIPTION_PRICE = parseEther("10.0");
+    BONUS_PECENT = 2000;
+    TAX_REDUCTION_PERCENT = 2500; // 25% means: 1month withdraw 75% tax, 2 month 50%, 3 month 25%, 4 month 0%
+    TAX_RESET_DEADLINE = 60 * 60 * 24 * 7; // 1 week
+
+    const Subscription = await ethers.getContractFactory("Subscription");
+    subscription = await Subscription.deploy(
+      PAYMENT_TOKEN,
+      STACK_TOKEN_FOR_PAYMENT,
+      GENERATION_MANAGER_ADDRESS,
+      MASTER_NODE_ADDRESS,
+      ROUTER_ADDRESS,
+      TAX_ADDRESS,
+      TAX_RESET_DEADLINE,
+      SUBSCRIPTION_PRICE,
+      BONUS_PECENT,
+      TAX_REDUCTION_PERCENT
+    );
+    await subscription.deployed();
+    await subscription.setPrice(SUBSCRIPTION_PRICE);
+    await subscription.setBonusPercent(BONUS_PECENT);
+    await subscription.setTaxReductionPercent(TAX_REDUCTION_PERCENT);
+    await subscription.setTaxResetDeadline(TAX_RESET_DEADLINE);
+    MONTH = (await subscription.MONTH()).toNumber();
+  });
   it("Deploy StackOS NFT Basic", async function () {
     NAME = "STACK OS NFT";
     SYMBOL = "SON";
     STACK_TOKEN_FOR_PAYMENT = stackToken.address;
     MASTER_NODE_ADDRESS = darkMatter.address;
     ROUTER = router.address;
+    SUBSCRIPTION = subscription.address;
     PRICE = parseEther("5");
+    MINT_FEE = 2000;
     MAX_SUPPLY = 25;
     TRANSFER_DISCOUNT = 2000;
     TIMELOCK = 6442850;
@@ -67,7 +102,9 @@ describe("StackOS NFT", function () {
       STACK_TOKEN_FOR_PAYMENT,
       MASTER_NODE_ADDRESS,
       ROUTER,
+      SUBSCRIPTION,
       PRICE,
+      MINT_FEE,
       MAX_SUPPLY,
       TRANSFER_DISCOUNT,
       TIMELOCK
@@ -109,15 +146,19 @@ describe("StackOS NFT", function () {
     );
   });
 
-  it("Mint some NFTs", async function () {
+  it("Mint for stack token", async function () {
     await stackOsNFT.startSales();
 
     await stackToken.approve(stackOsNFT.address, parseEther("100.0"));
     await stackOsNFT.mint(4, stackToken.address);
-    
+  });
+
+  it("Mint for STABLE coin", async function () {
     await usdt.approve(stackOsNFT.address, parseEther("100.0"));
     await stackOsNFT.mint(1, usdt.address);
+  });
 
+  it("Unable to mint for unsupported coin", async function () {
     await expect(
       stackOsNFT.mint(1, "0x6Aea593F1E70beb836049929487F7AF3d5e4432F")
     ).to.be.revertedWith(
@@ -140,7 +181,9 @@ describe("StackOS NFT", function () {
       STACK_TOKEN_FOR_PAYMENT,
       MASTER_NODE_ADDRESS,
       ROUTER,
+      SUBSCRIPTION,
       PRICE,
+      MINT_FEE,
       MAX_SUPPLY,
       TRANSFER_DISCOUNT,
       TIMELOCK
@@ -160,7 +203,9 @@ describe("StackOS NFT", function () {
       STACK_TOKEN_FOR_PAYMENT,
       MASTER_NODE_ADDRESS,
       ROUTER,
+      SUBSCRIPTION,
       PRICE,
+      MINT_FEE,
       MAX_SUPPLY,
       TRANSFER_DISCOUNT,
       TIMELOCK

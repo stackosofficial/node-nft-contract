@@ -1,5 +1,6 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
+
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
@@ -8,9 +9,10 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
-import "./DarkMatter.sol";
+// import "./DarkMatter.sol";
 import "./interfaces/IStackOSNFT.sol";
-import "./GenerationManager.sol";
+// import "./GenerationManager.sol";
+import "./Subscription.sol";
 import "hardhat/console.sol";
 
 contract StackOsNFTBase is ERC721, ERC721URIStorage, Ownable {
@@ -22,6 +24,7 @@ contract StackOsNFTBase is ERC721, ERC721URIStorage, Ownable {
     DarkMatter private darkMatter;
     GenerationManager private generations;
     IUniswapV2Router02 private router;
+    Subscription private subscription;
 
     uint256 public timeLock;
     uint256 public adminWithdrawableAmount;
@@ -30,7 +33,7 @@ contract StackOsNFTBase is ERC721, ERC721URIStorage, Ownable {
     uint256 private participationFee;
     uint256 private transferDiscount;
     uint256 private totalDelegated;
-    uint256 internal fee;
+    uint256 internal mintFee;
 
     mapping(uint256 => uint256) private delegationTimestamp;
     mapping(uint256 => address) private delegates;
@@ -46,7 +49,9 @@ contract StackOsNFTBase is ERC721, ERC721URIStorage, Ownable {
         IERC20 _stackOSTokenToken,
         DarkMatter _darkMatter,
         IUniswapV2Router02 _router,
+        Subscription _subscription,
         uint256 _participationFee,
+        uint256 _mintFee,
         uint256 _maxSupply,
         uint256 _transferDiscount,
         uint256 _timeLock
@@ -56,7 +61,9 @@ contract StackOsNFTBase is ERC721, ERC721URIStorage, Ownable {
         stackOSToken = _stackOSTokenToken;
         darkMatter = _darkMatter;
         router = _router;
+        subscription = _subscription;
         participationFee = _participationFee;
+        mintFee = _mintFee;
         maxSupply = _maxSupply;
         transferDiscount = _transferDiscount;
         timeLock = block.timestamp + _timeLock;
@@ -140,7 +147,6 @@ contract StackOsNFTBase is ERC721, ERC721URIStorage, Ownable {
         return _exists(tokenId);
     }
 
-    // TODO: it should just receive `_amount`?
     function transferFromLastGen(address _ticketOwner, uint256 _amount) public {
         require(
             address(this) != address(msg.sender),
@@ -148,12 +154,15 @@ contract StackOsNFTBase is ERC721, ERC721URIStorage, Ownable {
         );
         // check that caller is stackNFT contract
         generations.getIDByAddress(msg.sender);
+
         uint256 participationFeeDiscount = participationFee
             .mul(10000 - transferDiscount)
             .div(10000);
+
         uint256 ticketAmount = _amount.div(participationFeeDiscount);
-        // from stakeForTickets function
+
         uint256 depositAmount = participationFeeDiscount.mul(ticketAmount);
+
         stackOSToken.transferFrom(
             address(msg.sender),
             address(this),
@@ -203,19 +212,25 @@ contract StackOsNFTBase is ERC721, ERC721URIStorage, Ownable {
         require(salesStarted, "Sales not started");
         require(supportsCoin(_stablecoin), "Unsupported payment coin");
 
-        // convert to stack token if `_stablecoin` isn't stack token
+        // if `_stablecoin` is stackToken then just take it, otherwise convert coin to stack token
         uint256 stackAmount = participationFee.mul(_nftAmount);
         if(_stablecoin == stackOSToken) {
             stackOSToken.transferFrom(msg.sender, address(this), stackAmount);
         } else {
-            // calculate amount of `stablecoin` needed to buy `stackAmount` of stack token
+            // calculate amount of `_stablecoin` needed to buy `stackAmount` of stack token
             uint256 amountIn = getAmountIn(stackAmount, _stablecoin);
+            stackAmount = buyStackToken(amountIn, _stablecoin);
             console.log(amountIn);
             console.log(stackAmount);
-            stackAmount = buyStackToken(amountIn, _stablecoin);
         }
+        uint256 subscriptionPart = stackAmount * mintFee / 10000;
+        stackAmount -= subscriptionPart;
+        stackOSToken.transfer(address(subscription), subscriptionPart);
 
-        adminWithdrawableAmount += participationFee.mul(_nftAmount);
+        console.log(stackAmount);
+        console.log(subscriptionPart);
+        
+        adminWithdrawableAmount += stackAmount;
         for (uint256 i; i < _nftAmount; i++) {
             _mint(msg.sender);
         }
