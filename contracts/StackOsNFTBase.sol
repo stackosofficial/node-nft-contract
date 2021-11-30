@@ -253,7 +253,7 @@ contract StackOsNFTBase is ERC721, ERC721URIStorage, Ownable {
      * @dev Delegation can be done only once.
      */
 
-    function delegate(address _delegatee, uint256 tokenId) public {
+    function _delegate(address _delegatee, uint256 tokenId) private {
         require(
             msg.sender ==
                 darkMatter.ownerOfStackOrDarkMatter(
@@ -270,7 +270,7 @@ contract StackOsNFTBase is ERC721, ERC721URIStorage, Ownable {
 
     function delegate(address _delegatee, uint256[] calldata tokenIds) public {
         for(uint256 i; i < tokenIds.length; i++) {
-            delegate(_delegatee, tokenIds[i]);
+            _delegate(_delegatee, tokenIds[i]);
         }
     }
 

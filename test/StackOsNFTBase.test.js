@@ -65,7 +65,7 @@ describe("StackOS NFT", function () {
 
     const Subscription = await ethers.getContractFactory("Subscription");
     subscription = await Subscription.deploy(
-      PAYMENT_TOKEN,
+      // PAYMENT_TOKEN,
       STACK_TOKEN_FOR_PAYMENT,
       GENERATION_MANAGER_ADDRESS,
       MASTER_NODE_ADDRESS,
@@ -101,7 +101,7 @@ describe("StackOS NFT", function () {
       SYMBOL,
       STACK_TOKEN_FOR_PAYMENT,
       MASTER_NODE_ADDRESS,
-      ROUTER,
+      // ROUTER,
       SUBSCRIPTION,
       PRICE,
       MINT_FEE,
@@ -170,7 +170,7 @@ describe("StackOS NFT", function () {
     expect(await stackOsNFT.getDelegatee(0)).to.equal(
       ethers.constants.AddressZero
     );
-    await stackOsNFT.delegate(joe.address, 0);
+    await stackOsNFT.delegate(joe.address, [0]);
     expect(await stackOsNFT.getDelegatee(0)).to.equal(joe.address);
   });
 
@@ -180,7 +180,7 @@ describe("StackOS NFT", function () {
       SYMBOL,
       STACK_TOKEN_FOR_PAYMENT,
       MASTER_NODE_ADDRESS,
-      ROUTER,
+      // ROUTER,
       SUBSCRIPTION,
       PRICE,
       MINT_FEE,
@@ -202,7 +202,7 @@ describe("StackOS NFT", function () {
       SYMBOL,
       STACK_TOKEN_FOR_PAYMENT,
       MASTER_NODE_ADDRESS,
-      ROUTER,
+      // ROUTER,
       SUBSCRIPTION,
       PRICE,
       MINT_FEE,
