@@ -94,7 +94,6 @@ describe("Royalty", function () {
 
     const Royalty = await ethers.getContractFactory("Royalty");
     royalty = await Royalty.deploy(
-      usdt.address,
       ROUTER_ADDRESS,
       GENERATION_MANAGER_ADDRESS,
       MASTER_NODE_ADDRESS,
@@ -102,8 +101,8 @@ describe("Royalty", function () {
       DEPOSIT_FEE_ADDRESS,
       MIN_CYCLE_ETHER
     );
-    // await royalty.deployed();
-    // await royalty.setFeePercent(DEPOSIT_FEE_PERCENT);
+    await royalty.deployed();
+    await royalty.setFeePercent(DEPOSIT_FEE_PERCENT);
   });
 
   it("Mint some NFTs", async function () {
@@ -136,7 +135,7 @@ describe("Royalty", function () {
     await provider.send("evm_increaseTime", [CYCLE_DURATION]); // at this point first cycle have enough royalty and passed time, but no delegates
     await provider.send("evm_mine");
     await royalty.connect(partner).claim(0, [0]); // just (re)sets first cycle's timestamp, there is still no delegates
-    await stackOsNFT.connect(partner).delegate(owner.address, 0); // first cycle is special, it won't start if delegates dont exist!
+    await stackOsNFT.connect(partner).delegate(owner.address, [0]); // first cycle is special, it won't start if delegates dont exist!
 
     await royalty.connect(partner).claim(0, [0]); // first cycle STARTed.
     await provider.send("evm_increaseTime", [CYCLE_DURATION / 2]);
@@ -162,7 +161,7 @@ describe("Royalty", function () {
     ).to.be.not.reverted;
     await provider.send("evm_increaseTime", [CYCLE_DURATION]); // second cycle can end in next claim or deposit
     await provider.send("evm_mine");
-    await stackOsNFT.connect(partner).delegate(owner.address, 2); // this delegate will go in cycle 3, because cycle 2 started earlier
+    await stackOsNFT.connect(partner).delegate(owner.address, [2]); // this delegate will go in cycle 3, because cycle 2 started earlier
     console.log(
       formatEther(await partner.getBalance()),
       formatEther(await provider.getBalance(royalty.address))
@@ -182,7 +181,7 @@ describe("Royalty", function () {
     ).to.be.not.reverted;
     await provider.send("evm_increaseTime", [CYCLE_DURATION]); // enough time for cycle 3 to end
     await provider.send("evm_mine");
-    await stackOsNFT.connect(partner).delegate(stackOsNFT.address, 1); // will claim this later, this delegate will be counted from cycle 4
+    await stackOsNFT.connect(partner).delegate(stackOsNFT.address, [1]); // will claim this later, this delegate will be counted from cycle 4
 
     expect(await partner.getBalance()).to.be.lt(parseEther("10006.0"));
     await expect(royalty.connect(partner).claim(0, [0])).to.be.not.reverted; // 4 cycle starts here (claim 0.9 eth, 6.3 total)
@@ -200,33 +199,33 @@ describe("Royalty", function () {
     await stackOsNFT.whitelistPartner(bob.address, 2);
     await stackOsNFT.whitelistPartner(owner.address, 2);
 
-    await stackToken.transfer(vera.address, parseEther("100.0"));
-    await stackToken.transfer(bob.address, parseEther("100.0"));
+    await usdt.transfer(vera.address, parseEther("100.0"));
+    await usdt.transfer(bob.address, parseEther("100.0"));
     await dude.sendTransaction({
       // this should be divided by 3 previous delegates
       from: dude.address,
       to: royalty.address,
       value: parseEther("100.0"),
     });
-    await stackToken
+    await usdt
       .connect(bob)
       .approve(stackOsNFT.address, parseEther("5.0"));
-    await stackOsNFT.connect(bob).partnerMint(1);
-    await stackToken
+    await stackOsNFT.connect(bob).partnerMint(1, usdt.address);
+    await usdt
       .connect(vera)
       .approve(stackOsNFT.address, parseEther("5.0"));
-    await stackOsNFT.connect(vera).partnerMint(1);
-    await stackToken.approve(stackOsNFT.address, parseEther("5.0"));
-    await stackOsNFT.partnerMint(1);
+    await stackOsNFT.connect(vera).partnerMint(1, usdt.address);
+    await usdt.approve(stackOsNFT.address, parseEther("5.0"));
+    await stackOsNFT.partnerMint(1, usdt.address);
 
     await expect(royalty.claim(0, [0])).to.be.revertedWith("Not owner");
     await expect(royalty.connect(vera).claim(0, [4])).to.be.revertedWith(
       "NFT should be delegated"
     );
     // +3 delegates for 5 cycle
-    await stackOsNFT.connect(bob).delegate(stackOsNFT.address, 3);
-    await stackOsNFT.connect(vera).delegate(stackOsNFT.address, 4);
-    await stackOsNFT.delegate(stackOsNFT.address, 5);
+    await stackOsNFT.connect(bob).delegate(stackOsNFT.address, [3]);
+    await stackOsNFT.connect(vera).delegate(stackOsNFT.address, [4]);
+    await stackOsNFT.delegate(stackOsNFT.address, [5]);
 
     await provider.send("evm_increaseTime", [CYCLE_DURATION]); // 4 can end, with 100 eth
     await provider.send("evm_mine");
@@ -265,23 +264,8 @@ describe("Royalty", function () {
   it("StackOS generation 2 with multiple claimers", async function () {
     // generation 2
     // delegates of gen2 will be only counted in future cycles
-    await generationManager.deployNextGen(
-      NAME,
-      SYMBOL,
-      STACK_TOKEN_FOR_PAYMENT,
-      MASTER_NODE_ADDRESS,
-      PRICE,
-      MAX_SUPPLY,
-      PRIZES,
-      AUCTIONED_NFTS,
-      KEY_HASH,
-      TRANSFER_DISCOUNT,
-      TIMELOCK
-    );
-    stackOsNFTgen2 = await ethers.getContractAt(
-      "StackOsNFT",
-      await generationManager.get(1)
-    );
+
+    stackOsNFTgen2 = await deployStackOS();
 
     await expect(
       dude.sendTransaction({
@@ -295,34 +279,34 @@ describe("Royalty", function () {
     await provider.send("evm_increaseTime", [CYCLE_DURATION]); // 6 cycle can end
     await provider.send("evm_mine");
 
-    await stackOsNFT.connect(bob).partnerMint(1);
-    await stackOsNFT.connect(vera).partnerMint(1);
-    await stackOsNFT.partnerMint(1);
+    await stackOsNFT.connect(bob).partnerMint(1, usdt.address);
+    await stackOsNFT.connect(vera).partnerMint(1, usdt.address);
+    await stackOsNFT.partnerMint(1, usdt.address);
 
     await stackOsNFTgen2.whitelistPartner(vera.address, 2);
     await stackOsNFTgen2.whitelistPartner(bob.address, 2);
     await stackOsNFTgen2.whitelistPartner(owner.address, 2);
     await stackOsNFTgen2.startPartnerSales();
 
-    await stackToken
+    await usdt
       .connect(bob)
       .approve(stackOsNFTgen2.address, parseEther("5.0"));
-    await stackOsNFTgen2.connect(bob).partnerMint(1);
-    await stackToken
+    await stackOsNFTgen2.connect(bob).partnerMint(1, usdt.address);
+    await usdt
       .connect(vera)
       .approve(stackOsNFTgen2.address, parseEther("5.0"));
-    await stackOsNFTgen2.connect(vera).partnerMint(1);
-    await stackToken.approve(stackOsNFTgen2.address, parseEther("5.0"));
-    await stackOsNFTgen2.partnerMint(1);
+    await stackOsNFTgen2.connect(vera).partnerMint(1, usdt.address);
+    await usdt.approve(stackOsNFTgen2.address, parseEther("5.0"));
+    await stackOsNFTgen2.partnerMint(1, usdt.address);
 
     //+6 delegates for 7 cycle
-    await stackOsNFT.connect(bob).delegate(stackOsNFT.address, 6);
-    await stackOsNFT.connect(vera).delegate(stackOsNFT.address, 7);
-    await stackOsNFT.delegate(stackOsNFT.address, 8);
+    await stackOsNFT.connect(bob).delegate(stackOsNFT.address, [6]);
+    await stackOsNFT.connect(vera).delegate(stackOsNFT.address, [7]);
+    await stackOsNFT.delegate(stackOsNFT.address, [8]);
 
-    await stackOsNFTgen2.connect(bob).delegate(stackOsNFTgen2.address, 0);
-    await stackOsNFTgen2.connect(vera).delegate(stackOsNFTgen2.address, 1);
-    await stackOsNFTgen2.delegate(stackOsNFTgen2.address, 2);
+    await stackOsNFTgen2.connect(bob).delegate(stackOsNFTgen2.address, [0]);
+    await stackOsNFTgen2.connect(vera).delegate(stackOsNFTgen2.address, [1]);
+    await stackOsNFTgen2.delegate(stackOsNFTgen2.address, [2]);
 
     await expect(
       dude.sendTransaction({
@@ -427,44 +411,28 @@ describe("Royalty", function () {
   });
   it("StackOS generation 3 with multiple claimers", async function () {
     // gen3
-    await generationManager.deployNextGen(
-      NAME,
-      SYMBOL,
-      STACK_TOKEN_FOR_PAYMENT,
-      MASTER_NODE_ADDRESS,
-      PRICE,
-      MAX_SUPPLY,
-      PRIZES,
-      AUCTIONED_NFTS,
-      KEY_HASH,
-      TRANSFER_DISCOUNT,
-      TIMELOCK
-    );
-    stackOsNFTgen3 = await ethers.getContractAt(
-      "StackOsNFT",
-      await generationManager.get(2)
-    );
+    stackOsNFTgen3 = await deployStackOS();
 
     await stackOsNFTgen3.whitelistPartner(vera.address, 1);
     await stackOsNFTgen3.whitelistPartner(bob.address, 1);
     await stackOsNFTgen3.whitelistPartner(owner.address, 1);
     await stackOsNFTgen3.startPartnerSales();
 
-    await stackToken
+    await usdt
       .connect(bob)
       .approve(stackOsNFTgen3.address, parseEther("5.0"));
-    await stackOsNFTgen3.connect(bob).partnerMint(1);
-    await stackToken
+    await stackOsNFTgen3.connect(bob).partnerMint(1, usdt.address);
+    await usdt
       .connect(vera)
       .approve(stackOsNFTgen3.address, parseEther("5.0"));
-    await stackOsNFTgen3.connect(vera).partnerMint(1);
-    await stackToken.approve(stackOsNFTgen3.address, parseEther("5.0"));
-    await stackOsNFTgen3.partnerMint(1);
+    await stackOsNFTgen3.connect(vera).partnerMint(1, usdt.address);
+    await usdt.approve(stackOsNFTgen3.address, parseEther("5.0"));
+    await stackOsNFTgen3.partnerMint(1, usdt.address);
 
     // delegates for 11 cycle
-    await stackOsNFTgen3.connect(bob).delegate(stackOsNFTgen3.address, 0);
-    await stackOsNFTgen3.connect(vera).delegate(stackOsNFTgen3.address, 1);
-    await stackOsNFTgen3.delegate(stackOsNFTgen3.address, 2);
+    await stackOsNFTgen3.connect(bob).delegate(stackOsNFTgen3.address, [0]);
+    await stackOsNFTgen3.connect(vera).delegate(stackOsNFTgen3.address, [1]);
+    await stackOsNFTgen3.delegate(stackOsNFTgen3.address, [2]);
 
     await expect(
       dude.sendTransaction({
@@ -543,7 +511,7 @@ describe("Royalty", function () {
       formatEther(await owner.getBalance()),
       formatEther(await bob.getBalance())
     );
-    await royalty.connect(bob).paySubscription(0, [6], 0, 6);
+    await royalty.connect(bob).paySubscription(0, [6], 0, 6, usdt.address);
 
     console.log("royalty eth balance: " + formatEther(await provider.getBalance(royalty.address)));
     console.log(
