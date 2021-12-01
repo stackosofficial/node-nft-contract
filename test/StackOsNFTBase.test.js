@@ -3,7 +3,7 @@ const { use, expect } = require("chai");
 const { solidity } = require("ethereum-waffle");
 const { BigNumber } = require("@ethersproject/bignumber");
 const { parseEther, formatEther } = require("@ethersproject/units");
-const { deployStackOS, setup } = require("./utils");
+const { deployStackOS, setup, deploySimp } = require("./utils");
 // const timeMachine = require("@atixlabs/hardhat-time-n-mine");
 
 describe("StackOS NFT", function () {
@@ -33,6 +33,7 @@ describe("StackOS NFT", function () {
       darkMatter,
       subscription,
       stackOsNFT] = await setup();
+      stackOsNFT = await deploySimp();
   });
 
   it("Add liquidity", async function () {
