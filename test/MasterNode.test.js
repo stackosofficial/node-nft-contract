@@ -238,14 +238,8 @@ describe("DarkMatter", function () {
   });
 
   it("Get DarkMatter ID (stack tokens used to create this dark matter)", async function () {
-    let generationCount = (await generationManager.count()).toNumber();
-    let ids = [] 
-    for(let i = 0; i < generationCount; i++) {
-      let _stackIds = await darkMatter.ID(1, i);
-      _stackIds = _stackIds.map(id => id.toNumber())
-      ids.push({ generation: i, tokens: _stackIds })
-    }
-    console.log("ids:", ids);
+    let _stackIds = await darkMatter.ID(1);
+    console.log("DarkMatterID:", _stackIds.map((g, i) => { return { generation: i, tokens: g.map(t => t.toNumber()) } }));
   });
 
   it("Reverts", async function () {

@@ -31,12 +31,20 @@ contract DarkMatter is ERC721, Ownable, ReentrancyGuard {
         mintPrice = _mintPrice;
     }
 
-    function ID(uint256 _darkMatterId, uint256 _generationId)
+    /*
+     * @title Return stack token ids owned by DarkMatter token.
+     * @param DarkMatter token id.
+     */
+    function ID(uint256 _darkMatterId)
         public
         view
-        returns (uint256[] memory)
+        returns (uint256[][] memory)
     {
-        return masterToStack[_darkMatterId][_generationId];
+        uint256[][] memory stackTokenIds = new uint256[][](generations.count());
+        for(uint256 i; i < stackTokenIds.length; i ++) {
+            stackTokenIds[i] = masterToStack[_darkMatterId][i];
+        }
+        return stackTokenIds;
     }
 
     /*

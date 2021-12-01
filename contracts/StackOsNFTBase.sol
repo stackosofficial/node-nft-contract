@@ -310,7 +310,6 @@ contract StackOsNFTBase is ERC721, ERC721URIStorage, Ownable {
 
         uint256 deadline = block.timestamp + 1200;
         address[] memory path = new address[](3);
-        // TODO: is this correct? 3 step instead of two.
         path[0] = address(_stablecoin);
         path[1] = address(router.WETH());
         path[2] = address(stackOSToken);
