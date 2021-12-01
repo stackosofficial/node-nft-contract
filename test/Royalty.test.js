@@ -2,10 +2,11 @@ const { ethers } = require("hardhat");
 const { use, expect } = require("chai");
 const { solidity } = require("ethereum-waffle");
 const { Signer } = require("@ethersproject/abstract-signer");
+const { parseEther, formatEther } = require("@ethersproject/units");
+const { deployStackOS, setup } = require("./utils");
 
 describe("Royalty", function () {
-  const parseEther = ethers.utils.parseEther;
-  const format = ethers.utils.formatEther;
+
   const CYCLE_DURATION = 60 * 60 * 24 * 31;
   it("Snapshot EVM", async function () {
     snapshotId = await ethers.provider.send("evm_snapshot");
@@ -25,15 +26,17 @@ describe("Royalty", function () {
     factory = await ethers.getContractAt("IUniswapV2Factory", Factory);
   });
 
-  it("Deploy fake StackToken", async function () {
-    ERC20 = await ethers.getContractFactory("TestCurrency");
-    stackToken = await ERC20.deploy(parseEther("1000000.0"));
-    await stackToken.deployed();
-  });
-
-  it("Deploy USDT", async function () {
-    usdt = await ERC20.deploy(parseEther("1000000.0"));
-    await usdt.deployed();
+  it("Deploy full SETUP", async function () {
+    [stackToken,
+      usdt,
+      usdc,
+      dai,
+      link,
+      coordinator,
+      generationManager,
+      darkMatter,
+      subscription,
+      stackOsNFT] = await setup();
   });
 
   it("Add liquidity STACK", async function () {
@@ -82,106 +85,6 @@ describe("Royalty", function () {
     console.log(LPaddressUSDT);
   });
 
-  it("Deploy fake LINK", async function () {
-    const ERC20_2 = await ethers.getContractFactory("LinkToken");
-    link = await ERC20_2.deploy();
-    await link.deployed();
-    console.log(link.address);
-  });
-  it("Deploy VRF Coordinator", async function () {
-    const Coordinator = await ethers.getContractFactory("VRFCoordinatorMock");
-    coordinator = await Coordinator.deploy(link.address);
-    await coordinator.deployed();
-    console.log(coordinator.address);
-  });
-  it("Deploy GenerationManager", async function () {
-    const GenerationManager = await ethers.getContractFactory(
-      "GenerationManager"
-    );
-    generationManager = await GenerationManager.deploy();
-    await generationManager.deployed();
-    console.log(generationManager.address);
-  });
-
-  it("Deploy DarkMatter", async function () {
-    GENERATION_MANAGER_ADDRESS = generationManager.address;
-    MASTER_NODE_PRICE = 50;
-    const DarkMatter = await ethers.getContractFactory("DarkMatter");
-    darkMatter = await DarkMatter.deploy(
-      GENERATION_MANAGER_ADDRESS,
-      MASTER_NODE_PRICE
-    );
-    await darkMatter.deployed();
-    console.log(darkMatter.address);
-  });
-
-  it("Deploy subscription", async function () {
-    PAYMENT_TOKEN = usdt.address;
-    STACK_TOKEN_FOR_PAYMENT = stackToken.address;
-    GENERATION_MANAGER_ADDRESS = generationManager.address;
-    MASTER_NODE_ADDRESS = darkMatter.address;
-    ROUTER_ADDRESS = router.address;
-    TAX_ADDRESS = tax.address;
-
-    SUBSCRIPTION_PRICE = parseEther("10.0");
-    BONUS_PECENT = 2000;
-    TAX_REDUCTION_PERCENT = 2500; // 25% means: 1month withdraw 75% tax, 2 month 50%, 3 month 25%, 4 month 0%
-    TAX_RESET_DEADLINE = 60 * 60 * 24 * 7; // 1 week
-
-    const Subscription = await ethers.getContractFactory("Subscription");
-    subscription = await Subscription.deploy(
-      PAYMENT_TOKEN,
-      STACK_TOKEN_FOR_PAYMENT,
-      GENERATION_MANAGER_ADDRESS,
-      MASTER_NODE_ADDRESS,
-      ROUTER_ADDRESS,
-      TAX_ADDRESS,
-      TAX_RESET_DEADLINE,
-      SUBSCRIPTION_PRICE,
-      BONUS_PECENT,
-      TAX_REDUCTION_PERCENT
-    );
-    await subscription.deployed();
-    await subscription.setPrice(SUBSCRIPTION_PRICE);
-    await subscription.setBonusPercent(BONUS_PECENT);
-    await subscription.setTaxReductionPercent(TAX_REDUCTION_PERCENT);
-    await subscription.setTaxResetDeadline(TAX_RESET_DEADLINE);
-    MONTH = (await subscription.MONTH()).toNumber();
-  });
-
-  it("Deploy StackOS NFT", async function () {
-    NAME = "STACK OS NFT";
-    SYMBOL = "SON";
-    STACK_TOKEN_FOR_PAYMENT = stackToken.address;
-    MASTER_NODE_ADDRESS = darkMatter.address;
-    PRICE = parseEther("0.1");
-    MAX_SUPPLY = 25;
-    PRIZES = 10;
-    AUCTIONED_NFTS = 10;
-    VRF_COORDINATOR = coordinator.address;
-    LINK_TOKEN = link.address;
-    KEY_HASH =
-      "0x2ed0feb3e7fd2022120aa84fab1945545a9f2ffc9076fd6156fa96eaff4c1311";
-    TRANSFER_DISCOUNT = 2000;
-    TIMELOCK = 6442850;
-
-    const StackOS = await ethers.getContractFactory("StackOsNFT");
-    stackOsNFT = await StackOS.deploy(
-      NAME,
-      SYMBOL,
-      STACK_TOKEN_FOR_PAYMENT,
-      MASTER_NODE_ADDRESS,
-      PRICE,
-      MAX_SUPPLY,
-      PRIZES,
-      AUCTIONED_NFTS,
-      KEY_HASH,
-      TRANSFER_DISCOUNT,
-      TIMELOCK
-    );
-    await stackOsNFT.deployed();
-    await generationManager.add(stackOsNFT.address);
-  });
   it("Deploy royalty", async function () {
     GENERATION_MANAGER_ADDRESS = generationManager.address;
     MASTER_NODE_ADDRESS = darkMatter.address;
@@ -199,17 +102,18 @@ describe("Royalty", function () {
       DEPOSIT_FEE_ADDRESS,
       MIN_CYCLE_ETHER
     );
-    await royalty.deployed();
-    await royalty.setFeePercent(DEPOSIT_FEE_PERCENT);
+    // await royalty.deployed();
+    // await royalty.setFeePercent(DEPOSIT_FEE_PERCENT);
   });
+
   it("Mint some NFTs", async function () {
-    await stackToken.transfer(partner.address, parseEther("100.0"));
+    await usdt.transfer(partner.address, parseEther("100.0"));
     await stackOsNFT.startPartnerSales();
     await stackOsNFT.whitelistPartner(partner.address, 3);
-    await stackToken
+    await usdt
       .connect(partner)
       .approve(stackOsNFT.address, parseEther("10.0"));
-    await stackOsNFT.connect(partner).partnerMint(3);
+    await stackOsNFT.connect(partner).partnerMint(3, usdt.address);
   });
   it("Bank takes percent", async function () {
     await owner.sendTransaction({
@@ -242,8 +146,8 @@ describe("Royalty", function () {
     await royalty.connect(partner).claim(0, [0]); // second cycle STARTed
 
     console.log(
-      format(await partner.getBalance()),
-      format(await provider.getBalance(royalty.address))
+      formatEther(await partner.getBalance()),
+      formatEther(await provider.getBalance(royalty.address))
     );
     await expect(royalty.connect(partner).claim(0, [0])).to.be.revertedWith(
       "No royalty"
@@ -260,13 +164,13 @@ describe("Royalty", function () {
     await provider.send("evm_mine");
     await stackOsNFT.connect(partner).delegate(owner.address, 2); // this delegate will go in cycle 3, because cycle 2 started earlier
     console.log(
-      format(await partner.getBalance()),
-      format(await provider.getBalance(royalty.address))
+      formatEther(await partner.getBalance()),
+      formatEther(await provider.getBalance(royalty.address))
     );
     await expect(royalty.connect(partner).claim(0, [0])).to.be.not.reverted; //(claim 5.4 eth) third cycle starts, it counts 2 delegated tokens
     console.log(
-      format(await partner.getBalance()),
-      format(await provider.getBalance(royalty.address))
+      formatEther(await partner.getBalance()),
+      formatEther(await provider.getBalance(royalty.address))
     );
     await expect(
       joe.sendTransaction({
@@ -284,8 +188,8 @@ describe("Royalty", function () {
     await expect(royalty.connect(partner).claim(0, [0])).to.be.not.reverted; // 4 cycle starts here (claim 0.9 eth, 6.3 total)
     expect(await partner.getBalance()).to.be.gt(parseEther("10006.0"));
     console.log(
-      format(await partner.getBalance()),
-      format(await provider.getBalance(royalty.address))
+      formatEther(await partner.getBalance()),
+      formatEther(await provider.getBalance(royalty.address))
     );
   });
   it("Can't claim claimed", async function () {
@@ -338,20 +242,20 @@ describe("Royalty", function () {
     await provider.send("evm_increaseTime", [CYCLE_DURATION]); // 5 can end
     await provider.send("evm_mine");
     console.log(
-      format(await partner.getBalance()),
-      format(await owner.getBalance()),
-      format(await bob.getBalance()),
-      format(await vera.getBalance())
+      formatEther(await partner.getBalance()),
+      formatEther(await owner.getBalance()),
+      formatEther(await bob.getBalance()),
+      formatEther(await vera.getBalance())
     );
     await royalty.claim(0, [5]); // 6 cycle start
     await royalty.connect(bob).claim(0, [3]);
     await royalty.connect(vera).claim(0, [4]);
     await royalty.connect(partner).claim(0, [0, 1, 2]);
     console.log(
-      format(await partner.getBalance()),
-      format(await owner.getBalance()),
-      format(await bob.getBalance()),
-      format(await vera.getBalance())
+      formatEther(await partner.getBalance()),
+      formatEther(await owner.getBalance()),
+      formatEther(await bob.getBalance()),
+      formatEther(await vera.getBalance())
     );
 
     expect(await bob.getBalance()).to.be.gt(parseEther("10000.28")); // should be ((2 - 10% fee) / 6 tokens) = 0.3, but transfer fees also here...
@@ -433,30 +337,30 @@ describe("Royalty", function () {
     await provider.send("evm_mine");
 
     console.log(
-      format(await owner.getBalance()),
-      format(await bob.getBalance()),
-      format(await vera.getBalance())
+      formatEther(await owner.getBalance()),
+      formatEther(await bob.getBalance()),
+      formatEther(await vera.getBalance())
     );
     await royalty.connect(bob).claim(0, [6]); // 8 cycle start
     await royalty.connect(vera).claim(0, [7]);
     await royalty.claim(0, [8]);
     console.log(
-      format(await owner.getBalance()),
-      format(await bob.getBalance()),
-      format(await vera.getBalance())
+      formatEther(await owner.getBalance()),
+      formatEther(await bob.getBalance()),
+      formatEther(await vera.getBalance())
     );
 
     // await generationManager.add(stackOsNFTgen2.address);
-    // console.log("balance after add generation: ", format(await provider.getBalance(royalty.address)));
+    // console.log("balance after add generation: ", formatEther(await provider.getBalance(royalty.address)));
 
     await royalty.claim(1, [2]);
 
-    // console.log(format(await owner.getBalance()), format(await bob.getBalance()), format(await vera.getBalance()))
+    // console.log(formatEther(await owner.getBalance()), formatEther(await bob.getBalance()), formatEther(await vera.getBalance()))
     await royalty.claim(0, [5]);
     await royalty.connect(bob).claim(0, [3]);
     await royalty.connect(vera).claim(0, [4]);
     await royalty.connect(partner).claim(0, [0, 1, 2]);
-    // console.log(format(await owner.getBalance()), format(await bob.getBalance()), format(await vera.getBalance()));
+    // console.log(formatEther(await owner.getBalance()), formatEther(await bob.getBalance()), formatEther(await vera.getBalance()));
 
     await expect(
       dude.sendTransaction({
@@ -510,15 +414,15 @@ describe("Royalty", function () {
     await royalty.connect(partner).claim(0, [0, 1, 2]);
 
     // should be zero + last cycle unclaimed
-    console.log(format(await provider.getBalance(royalty.address)));
+    console.log(formatEther(await provider.getBalance(royalty.address)));
     expect(await provider.getBalance(royalty.address)).to.be.equal(
       parseEther("0.0")
     );
     console.log(
-      format(await owner.getBalance()),
-      format(await partner.getBalance()),
-      format(await bob.getBalance()),
-      format(await vera.getBalance())
+      formatEther(await owner.getBalance()),
+      formatEther(await partner.getBalance()),
+      formatEther(await bob.getBalance()),
+      formatEther(await vera.getBalance())
     );
   });
   it("StackOS generation 3 with multiple claimers", async function () {
@@ -607,15 +511,15 @@ describe("Royalty", function () {
     await royalty.connect(vera).claim(0, [4]);
     await royalty.connect(partner).claim(0, [0, 1, 2]);
 
-    console.log(format(await provider.getBalance(royalty.address)));
+    console.log(formatEther(await provider.getBalance(royalty.address)));
     expect(await provider.getBalance(royalty.address)).to.be.equal(
       parseEther("0.0")
     );
     console.log(
-      format(await owner.getBalance()),
-      format(await partner.getBalance()),
-      format(await bob.getBalance()),
-      format(await vera.getBalance())
+      formatEther(await owner.getBalance()),
+      formatEther(await partner.getBalance()),
+      formatEther(await bob.getBalance()),
+      formatEther(await vera.getBalance())
     );
   });
 
@@ -636,23 +540,23 @@ describe("Royalty", function () {
 
     console.log(
       "before paySubscription",
-      format(await owner.getBalance()),
-      format(await bob.getBalance())
+      formatEther(await owner.getBalance()),
+      formatEther(await bob.getBalance())
     );
     await royalty.connect(bob).paySubscription(0, [6], 0, 6);
 
-    console.log("royalty eth balance: " + format(await provider.getBalance(royalty.address)));
+    console.log("royalty eth balance: " + formatEther(await provider.getBalance(royalty.address)));
     console.log(
       "after paySubscription",
-      format(await owner.getBalance()),
-      format(await bob.getBalance()),
-      format(await stackToken.balanceOf(bob.address))
+      formatEther(await owner.getBalance()),
+      formatEther(await bob.getBalance()),
+      formatEther(await stackToken.balanceOf(bob.address))
     );
     
     await subscription.connect(bob).withdraw(0, [6]);
     console.log(
       "after subscripton withdraw (stackToken bob balance): ",
-      format(await stackToken.balanceOf(bob.address))
+      formatEther(await stackToken.balanceOf(bob.address))
     );
   });
 
