@@ -69,7 +69,7 @@ contract StackOsNFTBase is ERC721, ERC721URIStorage, Ownable {
 
         stablecoins.push(IERC20(0xB678B953dD909a4386ED1cA7841550a89fb508cc)); // fake USDT  
         stablecoins.push(IERC20(0x6Aea593F1E70beb836049929487F7AF3d5e4432F)); // fake USDC
-        // stablecoins.push(IERC20(0xB678B953dD909a4386ED1cA7841550a89fb508cc)); // fake DAI  
+        stablecoins.push(IERC20(0x89842f40928f81FC4415b39bfBFC3205eB6161cB)); // fake DAI  
     }
 
     /*
