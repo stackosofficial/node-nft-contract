@@ -33,7 +33,7 @@ describe("Subscription", function () {
       generationManager, 
       darkMatter, 
       subscription, 
-      stackOsNFT ] = await setup(parseEther("100000000.0"));
+      stackOsNFT ] = await setup();
   });
 
   it("Add liquidity", async function () {

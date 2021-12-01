@@ -34,7 +34,7 @@ describe("DarkMatter", function () {
       generationManager,
       darkMatter,
       subscription,
-      stackOsNFT] = await setup(parseEther("100000000.0"));
+      stackOsNFT] = await setup();
   });
 
   it("Deploy StackOS NFT generation 2", async function () {
