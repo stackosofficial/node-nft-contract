@@ -315,14 +315,14 @@ contract Royalty is Ownable {
                     );
                     require(success, "Transfer failed");
                 } else {
-                    uint256 stackReceived = buyStackToken(reward, _stablecoin);
-                    _stablecoin.approve(address(subscription), stackReceived);
-                    uint256 nrOfMonth = stackReceived /
+                    uint256 usdReceived = buyStable(reward, _stablecoin);
+                    _stablecoin.approve(address(subscription), usdReceived);
+                    uint256 nrOfMonth = usdReceived /
                         subscription.viewPrice();
                     subscription.subscribe(gen, nftID, nrOfMonth, _stablecoin);
                     _stablecoin.transfer(
                         msg.sender,
-                        stackReceived - (nrOfMonth * subscription.viewPrice())
+                        usdReceived - (nrOfMonth * subscription.viewPrice())
                     );
                 }
             }
@@ -333,7 +333,7 @@ contract Royalty is Ownable {
      *  @title Swap `paymentToken` for `stackToken`.
      *  @param Amount of `paymentToken`.
      */
-    function buyStackToken(uint256 amount, IERC20 _stablecoin) private returns (uint256) {
+    function buyStable(uint256 amount, IERC20 _stablecoin) private returns (uint256) {
         uint256 deadline = block.timestamp + 1200;
         address[] memory path = new address[](2);
         path[0] = address(router.WETH());
