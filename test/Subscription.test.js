@@ -3,7 +3,7 @@ const { use, expect } = require("chai");
 const { solidity } = require("ethereum-waffle");
 const { Signer } = require("@ethersproject/abstract-signer");
 const { formatEther, parseEther } = require("@ethersproject/units");
-const { setup } = require("./utils");
+const { deployStackOS, setup } = require("./utils");
 
 use(solidity);
 
@@ -254,23 +254,7 @@ describe("Subscription", function () {
   });
 
   it("Withdraw on multiple generations", async function () {
-    stackOsNFTGen2 = await StackOS.deploy(
-      NAME,
-      SYMBOL,
-      STACK_TOKEN_FOR_PAYMENT,
-      MASTER_NODE_ADDRESS,
-      PRICE,
-      MAX_SUPPLY,
-      PRIZES,
-      AUCTIONED_NFTS,
-      KEY_HASH,
-      TRANSFER_DISCOUNT,
-      TIMELOCK
-    );
-    await stackOsNFTGen2.deployed();
-    await generationManager.add(stackOsNFTGen2.address);
-    await stackOsNFTGen2.adjustAddressSettings(generationManager.address, router.address, subscription.address);
-    await stackOsNFTGen2.setMintFee(MINT_FEE); // usdt
+    stackOsNFTGen2 = await deployStackOS();
 
     await stackOsNFTGen2.whitelistPartner(owner.address, 1);
     await usdt.approve(stackOsNFTGen2.address, parseEther("10000.0"));
