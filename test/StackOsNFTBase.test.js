@@ -3,6 +3,7 @@ const { use, expect } = require("chai");
 const { solidity } = require("ethereum-waffle");
 const { BigNumber } = require("@ethersproject/bignumber");
 const { parseEther, formatEther } = require("@ethersproject/units");
+const { deployStackOS, setup } = require("./utils");
 // const timeMachine = require("@atixlabs/hardhat-time-n-mine");
 
 describe("StackOS NFT", function () {
@@ -20,106 +21,18 @@ describe("StackOS NFT", function () {
     );
     
   });
-  it("Deploy fake StackToken", async function () {
-    ERC20 = await ethers.getContractFactory("TestCurrency");
-    stackToken = await ERC20.deploy(parseEther("100000000.0"));
-    await stackToken.deployed();
-  });
-  it("Deploy fake USDT", async function () {
-    ERC20 = await ethers.getContractFactory("TestCurrency");
-    usdt = await ERC20.deploy(parseEther("100000000.0"));
-    await usdt.deployed();
-    console.log(usdt.address);
-  });
- it("Deploy fake USDC", async function () {
-    ERC20 = await ethers.getContractFactory("TestCurrency");
-    usdc = await ERC20.deploy(parseEther("100000000.0"));
-    await usdc.deployed();
-    console.log(usdc.address);
-  });
-
-  it("Deploy GenerationManager", async function () {
-    const GenerationManager = await ethers.getContractFactory(
-      "GenerationManager"
-    );
-    generationManager = await GenerationManager.deploy();
-    await generationManager.deployed();
-    console.log(generationManager.address);
-  });
-  it("Deploy DarkMatter", async function () {
-    GENERATION_MANAGER_ADDRESS = generationManager.address;
-    MASTER_NODE_PRICE = 50;
-    const DarkMatter = await ethers.getContractFactory("DarkMatter");
-    darkMatter = await DarkMatter.deploy(
-      GENERATION_MANAGER_ADDRESS,
-      MASTER_NODE_PRICE
-    );
-    await darkMatter.deployed();
-    console.log(darkMatter.address);
-  });
-  it("Deploy subscription", async function () {
-    PAYMENT_TOKEN = usdt.address;
-    STACK_TOKEN_FOR_PAYMENT = stackToken.address;
-    GENERATION_MANAGER_ADDRESS = generationManager.address;
-    MASTER_NODE_ADDRESS = darkMatter.address;
-    ROUTER_ADDRESS = router.address;
-    TAX_ADDRESS = tax.address;
-
-    SUBSCRIPTION_PRICE = parseEther("10.0");
-    BONUS_PECENT = 2000;
-    TAX_REDUCTION_PERCENT = 2500; // 25% means: 1month withdraw 75% tax, 2 month 50%, 3 month 25%, 4 month 0%
-    TAX_RESET_DEADLINE = 60 * 60 * 24 * 7; // 1 week
-
-    const Subscription = await ethers.getContractFactory("Subscription");
-    subscription = await Subscription.deploy(
-      // PAYMENT_TOKEN,
-      STACK_TOKEN_FOR_PAYMENT,
-      GENERATION_MANAGER_ADDRESS,
-      MASTER_NODE_ADDRESS,
-      ROUTER_ADDRESS,
-      TAX_ADDRESS,
-      TAX_RESET_DEADLINE,
-      SUBSCRIPTION_PRICE,
-      BONUS_PECENT,
-      TAX_REDUCTION_PERCENT
-    );
-    await subscription.deployed();
-    await subscription.setPrice(SUBSCRIPTION_PRICE);
-    await subscription.setBonusPercent(BONUS_PECENT);
-    await subscription.setTaxReductionPercent(TAX_REDUCTION_PERCENT);
-    await subscription.setTaxResetDeadline(TAX_RESET_DEADLINE);
-    MONTH = (await subscription.MONTH()).toNumber();
-  });
-  it("Deploy StackOS NFT Basic", async function () {
-    NAME = "STACK OS NFT";
-    SYMBOL = "SON";
-    STACK_TOKEN_FOR_PAYMENT = stackToken.address;
-    MASTER_NODE_ADDRESS = darkMatter.address;
-    ROUTER = router.address;
-    SUBSCRIPTION = subscription.address;
-    PRICE = parseEther("5");
-    MINT_FEE = 2000;
-    MAX_SUPPLY = 25;
-    TRANSFER_DISCOUNT = 2000;
-    TIMELOCK = 6442850;
-    const StackOS = await ethers.getContractFactory("StackOsNFTBase");
-    stackOsNFT = await StackOS.deploy(
-      NAME,
-      SYMBOL,
-      STACK_TOKEN_FOR_PAYMENT,
-      MASTER_NODE_ADDRESS,
-      // ROUTER,
-      SUBSCRIPTION,
-      PRICE,
-      MINT_FEE,
-      MAX_SUPPLY,
-      TRANSFER_DISCOUNT,
-      TIMELOCK
-    );
-    await stackOsNFT.deployed();
-    console.log(stackOsNFT.address);
-    await generationManager.add(stackOsNFT.address);
-    await stackOsNFT.adjustAddressSettings(generationManager.address, router.address);
+ 
+  it("Deploy full SETUP", async function () {
+    [stackToken,
+      usdt,
+      usdc,
+      dai,
+      link,
+      coordinator,
+      generationManager,
+      darkMatter,
+      subscription,
+      stackOsNFT] = await setup();
   });
 
   it("Add liquidity", async function () {
