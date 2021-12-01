@@ -18,6 +18,8 @@ contract DarkMatter is ERC721, Ownable, ReentrancyGuard {
     mapping(address => uint256[]) private toBeMinted; // owner => DarkMatterNFT ids to be minted
     mapping(uint256 => mapping(uint256 => uint256)) private stackToMaster; // generation => stackNFT id => darkmatter id
 
+    mapping(uint256 => mapping(uint256 => uint256[])) private masterToStack; // darkmatter id => generation => stackNFT ids 
+
     GenerationManager private generations;
 
     uint256 immutable mintPrice; // number of StackNFTs that must be deposited in order to be able to mint a DarkMatter.
@@ -27,6 +29,14 @@ contract DarkMatter is ERC721, Ownable, ReentrancyGuard {
     {
         generations = _generations;
         mintPrice = _mintPrice;
+    }
+
+    function ID(uint256 _darkMatterId, uint256 _generationId)
+        public
+        view
+        returns (uint256[] memory)
+    {
+        return masterToStack[_darkMatterId][_generationId];
     }
 
     /*
@@ -110,6 +120,7 @@ contract DarkMatter is ERC721, Ownable, ReentrancyGuard {
             uint256 tokenId = tokenIds[i];
             stackNFT.transferFrom(msg.sender, address(this), tokenId);
 
+
             if (deposits[msg.sender] == 0) {
                 lastUserDarkMatter[msg.sender] = _tokenIdCounter.current();
                 _tokenIdCounter.increment();
@@ -120,11 +131,13 @@ contract DarkMatter is ERC721, Ownable, ReentrancyGuard {
                 stackToMaster[generationId][tokenId] = lastUserDarkMatter[
                     msg.sender
                 ];
+                masterToStack[lastUserDarkMatter[msg.sender]][generationId].push(tokenId);
                 toBeMinted[msg.sender].push(lastUserDarkMatter[msg.sender]);
             } else {
                 stackToMaster[generationId][tokenId] = lastUserDarkMatter[
                     msg.sender
                 ];
+                masterToStack[lastUserDarkMatter[msg.sender]][generationId].push(tokenId);
             }
         }
     }
