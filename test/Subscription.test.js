@@ -23,7 +23,7 @@ describe("Subscription", function () {
     );
   });
 
-  it("Deploy GenerationManager", async function () {
+  it("Deploy full SETUP", async function () {
     [ stackToken, 
       usdt, 
       usdc, 
