@@ -157,8 +157,16 @@ contract Subscription is Ownable, ReentrancyGuard {
         // convert payment token into stack token
         uint256 totalCost = price * numberOfMonths;
         uint256 amount = buyStackToken(totalCost, _stablecoin, externalBuyer);
-        console.log("s:", amount);
         deposit.balance += amount;
+
+        // if(_stablecoin == stablecoins[0]) {
+        //     console.log("usdt sub:", totalCost);
+        //     console.log("usdt sub:", amount);
+        // }
+        // if(_stablecoin == stablecoins[2]) {
+        //     console.log("dai sub:", totalCost);
+        //     console.log("dai sub:", amount);
+        // }
     }
 
     /*
@@ -296,6 +304,8 @@ contract Subscription is Ownable, ReentrancyGuard {
             );
         } else {
             stackToken.transfer(msg.sender, amountWithdrawWithBonus);
+            console.log("tax", deposit.tax);
+            deposit.tax = MAX_PERCENT;
         }
     }
 
