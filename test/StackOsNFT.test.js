@@ -243,22 +243,7 @@ describe("StackOS NFT", function () {
   });
 
   it("Deploy stackOsNFT generation 2", async function () {
-    stackOsNFTgen2 = await StackOS.deploy(
-      NAME,
-      SYMBOL,
-      STACK_TOKEN_FOR_PAYMENT,
-      MASTER_NODE_ADDRESS,
-      PRICE,
-      MAX_SUPPLY,
-      PRIZES,
-      AUCTIONED_NFTS,
-      KEY_HASH,
-      TRANSFER_DISCOUNT,
-      TIMELOCK
-    );
-    await stackOsNFTgen2.deployed();
-    await generationManager.add(stackOsNFTgen2.address);
-    await stackOsNFTgen2.adjustAddressSettings(generationManager.address, router.address, subscription.address);
+    stackOsNFTgen2 = await deployStackOS();
   });
   it("Get some 'not winning' tickets on stack generation 2", async function () {
     await stackToken.approve(stackOsNFTgen2.address, parseEther("10.0"));
@@ -303,22 +288,7 @@ describe("StackOS NFT", function () {
 
   it("Deploy stackOsNFT generation 3 from manager", async function () {
     PRIZES = 2;
-    stackOsNFTgen3 = await StackOS.deploy(
-      NAME,
-      SYMBOL,
-      STACK_TOKEN_FOR_PAYMENT,
-      MASTER_NODE_ADDRESS,
-      PRICE,
-      MAX_SUPPLY,
-      PRIZES,
-      AUCTIONED_NFTS,
-      KEY_HASH,
-      TRANSFER_DISCOUNT,
-      TIMELOCK
-    );
-    await stackOsNFTgen3.deployed();
-    await generationManager.add(stackOsNFTgen3.address);
-    await stackOsNFTgen3.adjustAddressSettings(generationManager.address, router.address, subscription.address);
+    stackOsNFTgen3 = await deployStackOS();
   });
 
   it("Try to buy directly using transferFromLastGen", async function () {
