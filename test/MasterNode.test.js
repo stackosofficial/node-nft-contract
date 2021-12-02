@@ -2,8 +2,8 @@ const { ethers } = require("hardhat");
 const { use, expect } = require("chai");
 const { solidity } = require("ethereum-waffle");
 const { Signer } = require("@ethersproject/abstract-signer");
-const { formatEther, parseEther } = require("@ethersproject/units");
-const { deployStackOS, setup } = require("./utils");
+const { parseEther } = require("@ethersproject/units");
+const { deployStackOS, setup, print } = require("./utils");
 
 use(solidity);
 
@@ -123,7 +123,7 @@ describe("DarkMatter", function () {
 
   it("Get DarkMatter ID (stack tokens used to create this dark matter)", async function () {
     let _stackIds = await darkMatter.ID(1);
-    console.log("DarkMatterID:", _stackIds.map((g, i) => { return { generation: i, tokens: g.map(t => t.toNumber()) } }));
+    print("DarkMatterID:", _stackIds.map((g, i) => { return { generation: i, tokens: g.map(t => t.toNumber()) } }));
   });
 
   it("Reverts", async function () {

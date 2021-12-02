@@ -2,8 +2,8 @@ const { ethers } = require("hardhat");
 const { use, expect } = require("chai");
 const { solidity } = require("ethereum-waffle");
 const { Signer } = require("@ethersproject/abstract-signer");
-const { parseEther, formatEther } = require("@ethersproject/units");
-const { deployStackOS, setup } = require("./utils");
+const { parseEther } = require("@ethersproject/units");
+const { deployStackOS, setup, print } = require("./utils");
 
 describe("Royalty", function () {
 
@@ -22,7 +22,7 @@ describe("Royalty", function () {
     );
 
     Factory = await router.factory();
-    console.log(Factory);
+    print(Factory);
     factory = await ethers.getContractAt("IUniswapV2Factory", Factory);
   });
 
@@ -59,9 +59,9 @@ describe("Royalty", function () {
         { value: parseEther("100.0") }
       );
 
-    console.log(stackToken.address);
+    print(stackToken.address);
     LPaddress = await factory.getPair(WETH, stackToken.address);
-    console.log(LPaddress);
+    print(LPaddress);
   });
 
   it("Add liquidity USDT", async function () {
@@ -80,9 +80,9 @@ describe("Royalty", function () {
         { value: parseEther("100.0") }
       );
 
-    console.log(usdt.address);
+    print(usdt.address);
     LPaddressUSDT = await factory.getPair(WETH, usdt.address);
-    console.log(LPaddressUSDT);
+    print(LPaddressUSDT);
   });
 
   it("Deploy royalty", async function () {
@@ -144,9 +144,9 @@ describe("Royalty", function () {
     await provider.send("evm_mine");
     await royalty.connect(partner).claim(0, [0]); // second cycle STARTed
 
-    console.log(
-      formatEther(await partner.getBalance()),
-      formatEther(await provider.getBalance(royalty.address))
+    print(
+      (await partner.getBalance()),
+      (await provider.getBalance(royalty.address))
     );
     await expect(royalty.connect(partner).claim(0, [0])).to.be.revertedWith(
       "No royalty"
@@ -162,14 +162,14 @@ describe("Royalty", function () {
     await provider.send("evm_increaseTime", [CYCLE_DURATION]); // second cycle can end in next claim or deposit
     await provider.send("evm_mine");
     await stackOsNFT.connect(partner).delegate(owner.address, [2]); // this delegate will go in cycle 3, because cycle 2 started earlier
-    console.log(
-      formatEther(await partner.getBalance()),
-      formatEther(await provider.getBalance(royalty.address))
+    print(
+      (await partner.getBalance()),
+      (await provider.getBalance(royalty.address))
     );
     await expect(royalty.connect(partner).claim(0, [0])).to.be.not.reverted; //(claim 5.4 eth) third cycle starts, it counts 2 delegated tokens
-    console.log(
-      formatEther(await partner.getBalance()),
-      formatEther(await provider.getBalance(royalty.address))
+    print(
+      (await partner.getBalance()),
+      (await provider.getBalance(royalty.address))
     );
     await expect(
       joe.sendTransaction({
@@ -186,9 +186,9 @@ describe("Royalty", function () {
     expect(await partner.getBalance()).to.be.lt(parseEther("10006.0"));
     await expect(royalty.connect(partner).claim(0, [0])).to.be.not.reverted; // 4 cycle starts here (claim 0.9 eth, 6.3 total)
     expect(await partner.getBalance()).to.be.gt(parseEther("10006.0"));
-    console.log(
-      formatEther(await partner.getBalance()),
-      formatEther(await provider.getBalance(royalty.address))
+    print(
+      (await partner.getBalance()),
+      (await provider.getBalance(royalty.address))
     );
   });
   it("Can't claim claimed", async function () {
@@ -240,21 +240,21 @@ describe("Royalty", function () {
 
     await provider.send("evm_increaseTime", [CYCLE_DURATION]); // 5 can end
     await provider.send("evm_mine");
-    console.log(
-      formatEther(await partner.getBalance()),
-      formatEther(await owner.getBalance()),
-      formatEther(await bob.getBalance()),
-      formatEther(await vera.getBalance())
+    print(
+      (await partner.getBalance()),
+      (await owner.getBalance()),
+      (await bob.getBalance()),
+      (await vera.getBalance())
     );
     await royalty.claim(0, [5]); // 6 cycle start
     await royalty.connect(bob).claim(0, [3]);
     await royalty.connect(vera).claim(0, [4]);
     await royalty.connect(partner).claim(0, [0, 1, 2]);
-    console.log(
-      formatEther(await partner.getBalance()),
-      formatEther(await owner.getBalance()),
-      formatEther(await bob.getBalance()),
-      formatEther(await vera.getBalance())
+    print(
+      (await partner.getBalance()),
+      (await owner.getBalance()),
+      (await bob.getBalance()),
+      (await vera.getBalance())
     );
 
     expect(await bob.getBalance()).to.be.gt(parseEther("10000.28")); // should be ((2 - 10% fee) / 6 tokens) = 0.3, but transfer fees also here...
@@ -320,31 +320,31 @@ describe("Royalty", function () {
     await provider.send("evm_increaseTime", [CYCLE_DURATION]); // 7 cycle can end
     await provider.send("evm_mine");
 
-    console.log(
-      formatEther(await owner.getBalance()),
-      formatEther(await bob.getBalance()),
-      formatEther(await vera.getBalance())
+    print(
+      (await owner.getBalance()),
+      (await bob.getBalance()),
+      (await vera.getBalance())
     );
     await royalty.connect(bob).claim(0, [6]); // 8 cycle start
     await royalty.connect(vera).claim(0, [7]);
     await royalty.claim(0, [8]);
-    console.log(
-      formatEther(await owner.getBalance()),
-      formatEther(await bob.getBalance()),
-      formatEther(await vera.getBalance())
+    print(
+      (await owner.getBalance()),
+      (await bob.getBalance()),
+      (await vera.getBalance())
     );
 
     // await generationManager.add(stackOsNFTgen2.address);
-    // console.log("balance after add generation: ", formatEther(await provider.getBalance(royalty.address)));
+    // print("balance after add generation: ", (await provider.getBalance(royalty.address)));
 
     await royalty.claim(1, [2]);
 
-    // console.log(formatEther(await owner.getBalance()), formatEther(await bob.getBalance()), formatEther(await vera.getBalance()))
+    // print((await owner.getBalance()), (await bob.getBalance()), (await vera.getBalance()))
     await royalty.claim(0, [5]);
     await royalty.connect(bob).claim(0, [3]);
     await royalty.connect(vera).claim(0, [4]);
     await royalty.connect(partner).claim(0, [0, 1, 2]);
-    // console.log(formatEther(await owner.getBalance()), formatEther(await bob.getBalance()), formatEther(await vera.getBalance()));
+    // print((await owner.getBalance()), (await bob.getBalance()), (await vera.getBalance()));
 
     await expect(
       dude.sendTransaction({
@@ -398,15 +398,15 @@ describe("Royalty", function () {
     await royalty.connect(partner).claim(0, [0, 1, 2]);
 
     // should be zero + last cycle unclaimed
-    console.log(formatEther(await provider.getBalance(royalty.address)));
+    print((await provider.getBalance(royalty.address)));
     expect(await provider.getBalance(royalty.address)).to.be.equal(
       parseEther("0.0")
     );
-    console.log(
-      formatEther(await owner.getBalance()),
-      formatEther(await partner.getBalance()),
-      formatEther(await bob.getBalance()),
-      formatEther(await vera.getBalance())
+    print(
+      (await owner.getBalance()),
+      (await partner.getBalance()),
+      (await bob.getBalance()),
+      (await vera.getBalance())
     );
   });
   it("StackOS generation 3 with multiple claimers", async function () {
@@ -479,15 +479,15 @@ describe("Royalty", function () {
     await royalty.connect(vera).claim(0, [4]);
     await royalty.connect(partner).claim(0, [0, 1, 2]);
 
-    console.log(formatEther(await provider.getBalance(royalty.address)));
+    print((await provider.getBalance(royalty.address)));
     expect(await provider.getBalance(royalty.address)).to.be.equal(
       parseEther("0.0")
     );
-    console.log(
-      formatEther(await owner.getBalance()),
-      formatEther(await partner.getBalance()),
-      formatEther(await bob.getBalance()),
-      formatEther(await vera.getBalance())
+    print(
+      (await owner.getBalance()),
+      (await partner.getBalance()),
+      (await bob.getBalance()),
+      (await vera.getBalance())
     );
   });
 
@@ -504,27 +504,27 @@ describe("Royalty", function () {
     await provider.send("evm_mine");
 
     LPaddress = await factory.getPair(stackToken.address, WETH);
-    console.log("LPAddress " + LPaddress);
+    print("LPAddress " + LPaddress);
 
-    console.log(
+    print(
       "before paySubscription",
-      formatEther(await owner.getBalance()),
-      formatEther(await bob.getBalance())
+      (await owner.getBalance()),
+      (await bob.getBalance())
     );
     await royalty.connect(bob).paySubscription(0, [6], 0, 6, usdt.address);
 
-    console.log("royalty eth balance: " + formatEther(await provider.getBalance(royalty.address)));
-    console.log(
+    print("royalty eth balance: " + (await provider.getBalance(royalty.address)));
+    print(
       "after paySubscription",
-      formatEther(await owner.getBalance()),
-      formatEther(await bob.getBalance()),
-      formatEther(await stackToken.balanceOf(bob.address))
+      (await owner.getBalance()),
+      (await bob.getBalance()),
+      (await stackToken.balanceOf(bob.address))
     );
     
     await subscription.connect(bob).withdraw(0, [6]);
-    console.log(
+    print(
       "after subscripton withdraw (stackToken bob balance): ",
-      formatEther(await stackToken.balanceOf(bob.address))
+      (await stackToken.balanceOf(bob.address))
     );
   });
 

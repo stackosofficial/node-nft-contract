@@ -2,8 +2,8 @@ const { ethers } = require("hardhat");
 const { use, expect } = require("chai");
 const { solidity } = require("ethereum-waffle");
 const { Signer } = require("@ethersproject/abstract-signer");
-const { formatEther, parseEther } = require("@ethersproject/units");
-const { deployStackOS, setup } = require("./utils");
+const { parseEther } = require("@ethersproject/units");
+const { deployStackOS, setup, print } = require("./utils");
 
 use(solidity);
 
@@ -126,8 +126,8 @@ describe("Subscription", function () {
     await stackOsNFT.transferFrom(owner.address, bob.address, 0);
     expect(await stackToken.balanceOf(bob.address)).to.equal(0);
     await subscription.connect(bob).withdraw(0, [0]); // 1st month 75% tax (so its 0-1 month, like 1st day of the 1st month)
-    console.log("bob: ", formatEther(await stackToken.balanceOf(bob.address)));
-    console.log("tax: ", formatEther(await stackToken.balanceOf(tax.address)));
+    print("bob: ", (await stackToken.balanceOf(bob.address)));
+    print("tax: ", (await stackToken.balanceOf(tax.address)));
     // 599 Deposit + 20% = 718. Withdraw first month tax 75% - 179
     expect(await stackToken.balanceOf(bob.address)).to.be.gt(parseEther("179"));
     expect(await stackToken.balanceOf(bob.address)).to.be.lt(parseEther("718"));
@@ -146,24 +146,24 @@ describe("Subscription", function () {
     await stackOsNFT.transferFrom(owner.address, bank.address, 1);
     // 4 months no bonus = 2301. 3 Month has passed -> 1725 available - 25% tax = 1293 + 20% = 1551.6
     expect(await stackToken.balanceOf(bank.address)).to.equal(0);
-    console.log(
+    print(
       "bank: ",
-      formatEther(await stackToken.balanceOf(bank.address))
+      (await stackToken.balanceOf(bank.address))
     );
     await subscription.connect(bank).withdraw(0, [1]); // tax should be 25% as we at 3rd month, amount get 27
-    console.log(
+    print(
       "bank: ",
-      formatEther(await stackToken.balanceOf(bank.address))
+      (await stackToken.balanceOf(bank.address))
     );
 
     await provider.send("evm_increaseTime", [MONTH]); // 4th month started
     await subscription.connect(bank).withdraw(0, [1]);
 
-    console.log(
+    print(
       "bank: ",
-      formatEther(await stackToken.balanceOf(bank.address))
+      (await stackToken.balanceOf(bank.address))
     );
-    console.log("tax: ", formatEther(await stackToken.balanceOf(tax.address)));
+    print("tax: ", (await stackToken.balanceOf(tax.address)));
     expect(await stackToken.balanceOf(bank.address)).to.be.gt(
       parseEther("1057.0")
     );
@@ -179,11 +179,11 @@ describe("Subscription", function () {
     expect(await stackToken.balanceOf(vera.address)).to.be.gt(
       parseEther("11.0")
     );
-    console.log(
+    print(
       "vera: ",
-      formatEther(await stackToken.balanceOf(vera.address))
+      (await stackToken.balanceOf(vera.address))
     );
-    console.log("tax: ", formatEther(await stackToken.balanceOf(tax.address)));
+    print("tax: ", (await stackToken.balanceOf(tax.address)));
 
     // // them homer withdraw from the same NFT but 0% tax and 2 months
     await provider.send("evm_increaseTime", [MONTH * 2]); // 4 month
@@ -191,12 +191,12 @@ describe("Subscription", function () {
     await stackOsNFT.connect(vera).transferFrom(vera.address, homer.address, 2);
     expect(await stackToken.balanceOf(homer.address)).to.equal(0);
     await subscription.connect(homer).withdraw(0, [2]); // withdraws for 2 months, tax restarted after previous withdraw. 50% now
-    console.log(
+    print(
       "homer: ",
-      formatEther(await stackToken.balanceOf(homer.address))
+      (await stackToken.balanceOf(homer.address))
     );
 
-    console.log("tax: ", formatEther(await stackToken.balanceOf(tax.address)));
+    print("tax: ", (await stackToken.balanceOf(tax.address)));
     expect(await stackToken.balanceOf(homer.address)).to.be.gt(
       parseEther("658.0")
     );
@@ -220,18 +220,18 @@ describe("Subscription", function () {
     expect(await stackToken.balanceOf(owner.address)).to.equal(0);
     await subscription.subscribe(0, 5, 2, usdt.address); // 5 is sub for 4 months, tax max
 
-    console.log(
+    print(
       "owner: ",
-      formatEther(await stackToken.balanceOf(owner.address))
+      (await stackToken.balanceOf(owner.address))
     );
-    console.log("tax: ", formatEther(await stackToken.balanceOf(tax.address)));
+    print("tax: ", (await stackToken.balanceOf(tax.address)));
     // Restart tax because skipped subs.
     await subscription.withdraw(0, [5]); // withdraw for 3 months, tax 75%
-    console.log(
+    print(
       "owner: ",
-      formatEther(await stackToken.balanceOf(owner.address))
+      (await stackToken.balanceOf(owner.address))
     );
-    console.log("tax: ", formatEther(await stackToken.balanceOf(tax.address)));
+    print("tax: ", (await stackToken.balanceOf(tax.address)));
     expect(await stackToken.balanceOf(owner.address)).to.be.gt(
       parseEther("456.0")
     );
@@ -241,11 +241,11 @@ describe("Subscription", function () {
 
     await provider.send("evm_increaseTime", [MONTH]); // wait month, tax is 75% after previous withdraw
     await subscription.withdraw(0, [5]); // withdraw for 1 month
-    console.log(
+    print(
       "owner: ",
-      formatEther(await stackToken.balanceOf(owner.address))
+      (await stackToken.balanceOf(owner.address))
     );
-    console.log("tax: ", formatEther(await stackToken.balanceOf(tax.address)));
+    print("tax: ", (await stackToken.balanceOf(tax.address)));
     expect(await stackToken.balanceOf(owner.address)).to.be.gt(
       parseEther("618.0")
     );
@@ -275,18 +275,18 @@ describe("Subscription", function () {
       await stackToken.balanceOf(owner.address)
     );
 
-    console.log(
+    print(
       "owner: ",
-      formatEther(await stackToken.balanceOf(owner.address))
+      (await stackToken.balanceOf(owner.address))
     );
-    console.log("tax: ", formatEther(await stackToken.balanceOf(tax.address)));
+    print("tax: ", (await stackToken.balanceOf(tax.address)));
     await subscription.withdraw(0, [6]); // +3 (tax is 75%, X * 0.25)
     await subscription.withdraw(1, [0]); // +3
-    console.log(
+    print(
       "owner: ",
-      formatEther(await stackToken.balanceOf(owner.address))
+      (await stackToken.balanceOf(owner.address))
     );
-    console.log("tax: ", formatEther(await stackToken.balanceOf(tax.address)));
+    print("tax: ", (await stackToken.balanceOf(tax.address)));
     expect(await stackToken.balanceOf(owner.address)).to.be.gt(
       parseEther("256.0")
     );
@@ -296,11 +296,11 @@ describe("Subscription", function () {
 
     await subscription.withdraw(0, [6]); // 100% + 20%
     await subscription.withdraw(1, [0]);
-    console.log(
+    print(
       "owner: ",
-      formatEther(await stackToken.balanceOf(owner.address))
+      (await stackToken.balanceOf(owner.address))
     );
-    console.log("tax: ", formatEther(await stackToken.balanceOf(tax.address)));
+    print("tax: ", (await stackToken.balanceOf(tax.address)));
     expect(await stackToken.balanceOf(owner.address)).to.be.gt(
       parseEther("256.0")
     );
@@ -323,9 +323,9 @@ describe("Subscription", function () {
     await provider.send("evm_increaseTime", [MONTH]);
     await subscription.withdraw(0, [6]);
 
-    console.log(
+    print(
       "owner: ",
-      formatEther(await stackToken.balanceOf(owner.address))
+      (await stackToken.balanceOf(owner.address))
     );
     expect(await stackToken.balanceOf(owner.address)).to.be.gt(
       parseEther("9738.0")
@@ -366,9 +366,9 @@ describe("Subscription", function () {
 
     await provider.send("evm_increaseTime", [MONTH]); // we are at 1-2 month
 
-    console.log("owner: ", formatEther(await stackToken.balanceOf(owner.address)));
+    print("owner: ", (await stackToken.balanceOf(owner.address)));
     await subscription.withdraw(0, [6]); // tax 0, withdraw for 2 months (~344*2 * 1.2) = ~850
-    console.log("owner: ", formatEther(await stackToken.balanceOf(owner.address)));
+    print("owner: ", (await stackToken.balanceOf(owner.address)));
   });
   it("Revert EVM state", async function () {
     await ethers.provider.send("evm_revert", [snapshotId]);

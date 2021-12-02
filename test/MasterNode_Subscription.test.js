@@ -2,7 +2,8 @@ const { ethers } = require("hardhat");
 const { use, expect } = require("chai");
 const { solidity } = require("ethereum-waffle");
 const { Signer } = require("@ethersproject/abstract-signer");
-const { formatEther, parseEther } = require("@ethersproject/units");
+const { parseEther } = require("@ethersproject/units");
+const { print } = require("./utils");
 
 use(solidity);
 
@@ -37,21 +38,21 @@ describe("DarkMatter integration with Subscription", function () {
     const ERC20_2 = await ethers.getContractFactory("LinkToken");
     link = await ERC20_2.deploy();
     await link.deployed();
-    console.log(link.address);
+    print(link.address);
   });
 
   it("Deploy VRF Coordinator", async function () {
     const Coordinator = await ethers.getContractFactory("VRFCoordinatorMock");
     coordinator = await Coordinator.deploy(link.address);
     await coordinator.deployed();
-    console.log(coordinator.address);
+    print(coordinator.address);
   });
 
   it("Deploy GenerationManager", async function () {
     const GenerationManager = await ethers.getContractFactory("GenerationManager");
     generationManager = await GenerationManager.deploy();
     await generationManager.deployed();
-    console.log(generationManager.address);
+    print(generationManager.address);
   });
 
   it("Deploy DarkMatter", async function () {
@@ -63,7 +64,7 @@ describe("DarkMatter integration with Subscription", function () {
       MASTER_NODE_PRICE
     );
     await darkMatter.deployed();
-    console.log(darkMatter.address);
+    print(darkMatter.address);
   });
 
   it("Deploy StackOS NFT", async function () {
@@ -220,11 +221,11 @@ describe("DarkMatter integration with Subscription", function () {
   it("Take TAX for early withdrawal", async function () {
     await darkMatter.transferFrom(owner.address, bob.address, 0);
     expect(await stackToken.balanceOf(bob.address)).to.equal(0);
-    console.log("bob: ", formatEther(await stackToken.balanceOf(bob.address)));
-    console.log("tax: ", formatEther(await stackToken.balanceOf(tax.address)));
+    print("bob: ", (await stackToken.balanceOf(bob.address)));
+    print("tax: ", (await stackToken.balanceOf(tax.address)));
     await subscription.connect(bob).withdraw(0, [0]); // 1st month 75% tax (so its 0-1 month, like 1st day of the 1st month)
-    console.log("bob: ", formatEther(await stackToken.balanceOf(bob.address)));
-    console.log("tax: ", formatEther(await stackToken.balanceOf(tax.address)));
+    print("bob: ", (await stackToken.balanceOf(bob.address)));
+    print("tax: ", (await stackToken.balanceOf(tax.address)));
     expect(await stackToken.balanceOf(bob.address)).to.be.gt(parseEther("18"));
     expect(await stackToken.balanceOf(bob.address)).to.be.lt(parseEther("55"));
   });
@@ -244,16 +245,16 @@ describe("DarkMatter integration with Subscription", function () {
     
     await darkMatter.connect(bob).transferFrom(bob.address, bank.address, 0);
     expect(await stackToken.balanceOf(bank.address)).to.equal(0);
-    console.log("bank: ", formatEther(await stackToken.balanceOf(bank.address)));
+    print("bank: ", (await stackToken.balanceOf(bank.address)));
     await subscription.connect(bank).withdraw(0, [1]); // tax should be 25% as we at 3rd month, amount get 27
-    console.log("bank: ", formatEther(await stackToken.balanceOf(bank.address)));
+    print("bank: ", (await stackToken.balanceOf(bank.address)));
 
     await provider.send("evm_increaseTime", [MONTH]); // 4th month started
     await subscription.connect(bank).withdraw(0, [1]);
 
     // TODO: gets 48 here, but should get less!
-    console.log("bank: ", formatEther(await stackToken.balanceOf(bank.address)));
-    console.log("tax: ", formatEther(await stackToken.balanceOf(tax.address)));
+    print("bank: ", (await stackToken.balanceOf(bank.address)));
+    print("tax: ", (await stackToken.balanceOf(tax.address)));
     expect(await stackToken.balanceOf(bank.address)).to.be.gt(parseEther("38.0")); // 27 + 12 = 39 
 
   });
@@ -269,8 +270,8 @@ describe("DarkMatter integration with Subscription", function () {
     expect(await stackToken.balanceOf(vera.address)).to.equal(0);
     await subscription.connect(vera).withdraw(0, [2]); // withdraws for 2 months, TAX taken should be 50%.
     expect(await stackToken.balanceOf(vera.address)).to.be.gt(parseEther("11.0"));
-    console.log("vera: ", formatEther(await stackToken.balanceOf(vera.address)));
-    console.log("tax: ", formatEther(await stackToken.balanceOf(tax.address)));
+    print("vera: ", (await stackToken.balanceOf(vera.address)));
+    print("tax: ", (await stackToken.balanceOf(tax.address)));
 
     // them homer withdraw from the same NFT but 0% tax and 2 months 
     await provider.send("evm_increaseTime", [MONTH * 2]); // 4 month
@@ -278,8 +279,8 @@ describe("DarkMatter integration with Subscription", function () {
     await darkMatter.connect(vera).transferFrom(vera.address, homer.address, 0);
     expect(await stackToken.balanceOf(homer.address)).to.equal(0);
     await subscription.connect(homer).withdraw(0, [2]); // withdraws for 2 months, not taxed
-    console.log("homer: ", formatEther(await stackToken.balanceOf(homer.address)));
-    console.log("tax: ", formatEther(await stackToken.balanceOf(tax.address)));
+    print("homer: ", (await stackToken.balanceOf(homer.address)));
+    print("tax: ", (await stackToken.balanceOf(tax.address)));
     expect(await stackToken.balanceOf(homer.address)).to.be.gt(parseEther("23.0")); // 24
   });
 
@@ -311,18 +312,18 @@ describe("DarkMatter integration with Subscription", function () {
     expect(await stackToken.balanceOf(owner.address)).to.equal(0);
     await subscription.subscribe(0, 5, 2); // 5 is sub for 4 months, tax max
 
-    console.log("owner: ", formatEther(await stackToken.balanceOf(owner.address)));
-    console.log("tax: ", formatEther(await stackToken.balanceOf(tax.address)));
+    print("owner: ", (await stackToken.balanceOf(owner.address)));
+    print("tax: ", (await stackToken.balanceOf(tax.address)));
     await subscription.withdraw(0, [5]); // withdraw for 3 months, 36 * 0.25 = 9
-    console.log("owner: ", formatEther(await stackToken.balanceOf(owner.address)));
-    console.log("tax: ", formatEther(await stackToken.balanceOf(tax.address)));
+    print("owner: ", (await stackToken.balanceOf(owner.address)));
+    print("tax: ", (await stackToken.balanceOf(tax.address)));
     expect(await stackToken.balanceOf(owner.address)).to.be.gt(parseEther("50"));
     expect(await stackToken.balanceOf(owner.address)).to.be.lt(parseEther("55"));
 
     await provider.send("evm_increaseTime", [MONTH]); // wait month, tax is 50%
     await subscription.withdraw(0, [5]); // withdraw for 1 month, 12 * 0.5 = 6, total balance = 9+6=15
-    console.log("owner: ", formatEther(await stackToken.balanceOf(owner.address)));
-    console.log("tax: ", formatEther(await stackToken.balanceOf(tax.address)));
+    print("owner: ", (await stackToken.balanceOf(owner.address)));
+    print("tax: ", (await stackToken.balanceOf(tax.address)));
     expect(await stackToken.balanceOf(owner.address)).to.be.gt(parseEther("88"));
     expect(await stackToken.balanceOf(owner.address)).to.be.lt(parseEther("90"));
   });
@@ -375,12 +376,12 @@ describe("DarkMatter integration with Subscription", function () {
     await stackToken.connect(tax).transfer(owner.address, await stackToken.balanceOf(tax.address));
     await stackToken.transfer(subscription.address, await stackToken.balanceOf(owner.address)); 
 
-    console.log("owner: ", formatEther(await stackToken.balanceOf(owner.address)));
-    console.log("tax: ", formatEther(await stackToken.balanceOf(tax.address)));
+    print("owner: ", (await stackToken.balanceOf(owner.address)));
+    print("tax: ", (await stackToken.balanceOf(tax.address)));
     await subscription.withdraw(0, [6]); // +3 (tax is 75%, 12 * 0.25 = 3)
     await subscription.withdraw(1, [0]); // +3
-    console.log("owner: ", formatEther(await stackToken.balanceOf(owner.address)));
-    console.log("tax: ", formatEther(await stackToken.balanceOf(tax.address)));
+    print("owner: ", (await stackToken.balanceOf(owner.address)));
+    print("tax: ", (await stackToken.balanceOf(tax.address)));
     expect(await stackToken.balanceOf(owner.address)).to.be.gt(parseEther("5.0"));
   });
   it("Withdraw on multiple generations, 9 months no tax", async function () {
@@ -388,8 +389,8 @@ describe("DarkMatter integration with Subscription", function () {
 
     await subscription.withdraw(0, [6]); // + 108 (90 * 1.2)
     await subscription.withdraw(1, [0]); // + 108
-    console.log("owner: ", formatEther(await stackToken.balanceOf(owner.address)));
-    console.log("tax: ", formatEther(await stackToken.balanceOf(tax.address)));
+    print("owner: ", (await stackToken.balanceOf(owner.address)));
+    print("tax: ", (await stackToken.balanceOf(tax.address)));
     expect(await stackToken.balanceOf(owner.address)).to.be.gt(parseEther("220.0"));
     expect(await stackToken.balanceOf(tax.address)).to.be.lt(parseEther("105.0")); // tax was 0, should stay the same
   });
@@ -407,7 +408,7 @@ describe("DarkMatter integration with Subscription", function () {
     await provider.send("evm_increaseTime", [MONTH]);
     await subscription.withdraw(0, [6]);
 
-    console.log("owner: ", formatEther(await stackToken.balanceOf(owner.address)));
+    print("owner: ", (await stackToken.balanceOf(owner.address)));
     expect(await stackToken.balanceOf(owner.address)).to.be.gt(parseEther("230.0"));
   });
 

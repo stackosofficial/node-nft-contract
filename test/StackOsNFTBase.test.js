@@ -3,7 +3,7 @@ const { use, expect } = require("chai");
 const { solidity } = require("ethereum-waffle");
 const { BigNumber } = require("@ethersproject/bignumber");
 const { parseEther, formatEther } = require("@ethersproject/units");
-const { deployStackOS, setup, deploySimp } = require("./utils");
+const { deployStackOS, setup, deploySimp, print } = require("./utils");
 // const timeMachine = require("@atixlabs/hardhat-time-n-mine");
 
 describe("StackOS NFT", function () {
@@ -152,7 +152,7 @@ describe("StackOS NFT", function () {
 
   it("Admin tried to withdraw before time lock expires.", async function () {
     var adminWithdrawableAmount = await stackOsNFT.adminWithdrawableAmount();
-    console.log(adminWithdrawableAmount.toString());
+    print(adminWithdrawableAmount);
     await expect(stackOsNFT.adminWithdraw()).to.be.revertedWith("Locked!");
   });
 

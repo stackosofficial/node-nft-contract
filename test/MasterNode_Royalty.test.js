@@ -2,10 +2,10 @@ const { ethers } = require("hardhat");
 const { use, expect } = require("chai");
 const { solidity } = require("ethereum-waffle");
 const { Signer } = require("@ethersproject/abstract-signer");
+const { print } = require("./utils");
 
 describe("DarkMatter integration with Royalty", function () {
   const parseEther = ethers.utils.parseEther;
-  const format = ethers.utils.formatEther;
   const CYCLE_DURATION = 60*60*24*31;
   it("Snapshot EVM", async function () {
     snapshotId = await ethers.provider.send("evm_snapshot");
@@ -34,19 +34,19 @@ describe("DarkMatter integration with Royalty", function () {
     const ERC20_2 = await ethers.getContractFactory("LinkToken");
     link = await ERC20_2.deploy();
     await link.deployed();
-    console.log(link.address);
+    print(link.address);
   });
   it("Deploy VRF Coordinator", async function () {
     const Coordinator = await ethers.getContractFactory("VRFCoordinatorMock");
     coordinator = await Coordinator.deploy(link.address);
     await coordinator.deployed();
-    console.log(coordinator.address);
+    print(coordinator.address);
   });
   it("Deploy GenerationManager", async function () {
     const GenerationManager = await ethers.getContractFactory("GenerationManager");
     generationManager = await GenerationManager.deploy();
     await generationManager.deployed();
-    console.log(generationManager.address);
+    print(generationManager.address);
   });
   it("Deploy DarkMatter", async function () {
     GENERATION_MANAGER_ADDRESS = generationManager.address;
@@ -57,7 +57,7 @@ describe("DarkMatter integration with Royalty", function () {
       MASTER_NODE_PRICE
     );
     await darkMatter.deployed();
-    console.log(darkMatter.address);
+    print(darkMatter.address);
   });
   it("Deploy StackOS NFT", async function () {
     NAME = "STACK OS NFT";
@@ -184,7 +184,7 @@ describe("DarkMatter integration with Royalty", function () {
     await provider.send("evm_mine");
     await royalty.claim(0, [0]);
 
-    console.log(format(await owner.getBalance()), format(await provider.getBalance(royalty.address)));
+    print((await owner.getBalance()), (await provider.getBalance(royalty.address)));
     await expect(royalty.claim(0, [0])).to.be.revertedWith("No royalty");
   });
   it("Mint 3rd DarkMatter NFT on stack generation 2", async function () {
@@ -241,11 +241,11 @@ describe("DarkMatter integration with Royalty", function () {
     await provider.send("evm_increaseTime", [CYCLE_DURATION]); 
     await provider.send("evm_mine");
 
-    console.log(format(await owner.getBalance()), format(await provider.getBalance(royalty.address)));
+    print((await owner.getBalance()), (await provider.getBalance(royalty.address)));
     await royalty.claim(0, [0]);
     await royalty.claim(1, [0]);
 
-    console.log(format(await owner.getBalance()), format(await provider.getBalance(royalty.address)));
+    print((await owner.getBalance()), (await provider.getBalance(royalty.address)));
     await expect(royalty.claim(0, [0])).to.be.revertedWith("No royalty");
     await expect(royalty.claim(1, [0])).to.be.revertedWith("No royalty");
   });
