@@ -25,6 +25,7 @@ contract Subscription is Ownable, ReentrancyGuard {
     uint256 private constant MAX_PERCENT = 10000; // for convinience 100%
     uint256 public constant MONTH = 28 days; // define what's a month. if changing this, then also change in test
 
+    uint256 public dripPeriod = 700 days; // this is used to calculate dripping rate of rewards
     uint256 public taxResetDeadline = 7 days; // tax reduction resets if you subscribed and missed deadline
     uint256 public price = 1e18; // subscription price
     uint256 public bonusPercent = 2000; // bonus that is added for each subscription month
@@ -33,6 +34,9 @@ contract Subscription is Ownable, ReentrancyGuard {
     // per NFT deposit
     struct Deposit {
         uint256 balance; // total stack amount, NOT counting TAX and bonus.
+        uint256 reward; // total bonuses
+        uint256 withdrawableReward; // withdrawable bonuses
+        uint256 dripRate; // reward dripping rate
         uint256 tax; // withdraw TAX percent
         uint256 withdrawableNum; // number of months that you able to claim bonus for.
         uint256 nextPayDate; // this date + deadline = is the date for TAX reset to max.
@@ -108,38 +112,41 @@ contract Subscription is Ownable, ReentrancyGuard {
      *  @title Buy subscription.
      *  @param StackNFT generation id.
      *  @param Token id.
-     *  @param How many months to subscribe for.
-     *  @dev Caller must approve us `price` * `numberOfMonths` amount of `paymentToken`.
+     *  @param One of the supported coins such as USDT, USDC, DAI
+     *  @dev Caller must approve us `price` * `numberOfMonths` amount of `_stablecoin`.
      *  @dev Tax resets to maximum if you re-subscribed after `nextPayDate` + `taxResetDeadline`.
      */
 
     function subscribe(
         uint256 generationId,
         uint256 tokenId,
-        uint256 numberOfMonths,
+        // uint256 numberOfMonths,
         IERC20 _stablecoin
     ) public nonReentrant {
         require(supportsCoin(_stablecoin), "Unsupported payment coin");
-        _subscribe(generationId, tokenId, numberOfMonths, _stablecoin, true);
+        _subscribe(generationId, tokenId, _stablecoin, true);
     }
 
     function _subscribe(
         uint256 generationId,
         uint256 tokenId,
-        uint256 numberOfMonths,
+        // uint256 numberOfMonths,
         IERC20 _stablecoin,
         bool externalBuyer
     ) internal {
         require(generationId < generations.count(), "Generation doesn't exist");
-        require(numberOfMonths > 0, "Zero months not allowed");
 
         Deposit storage deposit = deposits[generationId][tokenId];
+        require(deposit.nextPayDate < block.timestamp, "Cant pay in advace");
 
         if (deposit.nextPayDate == 0) {
             deposit.lastSubscriptionDate = block.timestamp;
             deposit.nextPayDate = block.timestamp;
             deposit.tax = MAX_PERCENT;
         }
+
+        deposit.withdrawableReward += (block.timestamp - 
+            deposit.lastSubscriptionDate) / 1 hours * deposit.dripRate;
 
         // Paid after deadline?
         if (deposit.nextPayDate + taxResetDeadline < block.timestamp) {
@@ -152,21 +159,26 @@ contract Subscription is Ownable, ReentrancyGuard {
             deposit.tax = MAX_PERCENT;
         }
 
-        deposit.nextPayDate += (MONTH * numberOfMonths);
+        deposit.nextPayDate += MONTH;
 
-        // convert payment token into stack token
-        uint256 totalCost = price * numberOfMonths;
-        uint256 amount = buyStackToken(totalCost, _stablecoin, externalBuyer);
+        // convert stablecoin to stack token
+        uint256 amount = buyStackToken(price, _stablecoin, externalBuyer);
         deposit.balance += amount;
+        deposit.reward += (amount * (MAX_PERCENT + bonusPercent) / MAX_PERCENT) - amount;
+        deposit.dripRate = deposit.reward / (dripPeriod / 1 hours); // hourly rate
 
-        // if(_stablecoin == stablecoins[0]) {
-        //     console.log("usdt sub:", totalCost);
-        //     console.log("usdt sub:", amount);
-        // }
-        // if(_stablecoin == stablecoins[2]) {
-        //     console.log("dai sub:", totalCost);
-        //     console.log("dai sub:", amount);
-        // }
+        if(_stablecoin == stablecoins[0]) {
+            console.log("usdt sub:", price/1e18);
+            console.log("usdt sub:", amount/1e18);
+            console.log("reward:", deposit.reward / 1e18);
+            console.log("balance:", deposit.balance / 1e18);
+        }
+        if(_stablecoin == stablecoins[2]) {
+            console.log("dai sub:", price/1e18);
+            console.log("dai sub:", amount/1e18);
+            console.log("reward:", deposit.reward / 1e18);
+            console.log("balance:", deposit.balance / 1e18);
+        }
     }
 
     /*
@@ -242,8 +254,22 @@ contract Subscription is Ownable, ReentrancyGuard {
                 deposit.nextPayDate > deposit.lastSubscriptionDate,
             "Already withdrawn"
         );
+
+        deposit.withdrawableReward += (block.timestamp - 
+            deposit.lastSubscriptionDate) / 1 hours * deposit.dripRate;
+
+        uint256 bonusAmount = deposit.withdrawableReward;
+        deposit.withdrawableReward = 0;
+        // console.log((block.timestamp - 
+        //     deposit.lastSubscriptionDate) / 1 hours);
+        if(deposit.reward < bonusAmount) {
+            bonusAmount = deposit.reward;
+            deposit.dripRate = 0;
+        }
+        deposit.reward -= bonusAmount;
+
         require(
-            deposit.balance <= stackToken.balanceOf(address(this)),
+            deposit.balance + bonusAmount <= stackToken.balanceOf(address(this)),
             "Not enough balance on bonus wallet"
         );
 
@@ -280,31 +306,32 @@ contract Subscription is Ownable, ReentrancyGuard {
         uint256 amountWithdraw = deposit.balance /
             (deposit.withdrawableNum + unwithdrawableNum);
         amountWithdraw *= deposit.withdrawableNum;
-        uint256 amountWithdrawWithBonus = (amountWithdraw *
-            (MAX_PERCENT + bonusPercent)) / MAX_PERCENT;
 
         deposit.withdrawableNum = 0;
+        deposit.balance -= amountWithdraw;
 
         // early withdraw tax
         if (deposit.tax > 0) {
             // take tax from amount with bonus that will be withdrawn
-            uint256 tax = (amountWithdrawWithBonus * deposit.tax) / MAX_PERCENT;
-            amountWithdrawWithBonus -= tax;
+            uint256 tax = (amountWithdraw * deposit.tax) / MAX_PERCENT;
+            amountWithdraw -= tax;
             stackToken.transfer(taxAddress, tax);
         }
 
-        // subtract withdrawn amount from balance (not counting tax and bonus)
-        deposit.balance -= amountWithdraw;
+        
+        // amount withdraw with bonus
+        console.log("withdraw", amountWithdraw / 1e18, bonusAmount / 1e18, deposit.tax);
+        amountWithdraw += bonusAmount;
+
         if (subscription) {
             _reSubscribe(
-                amountWithdrawWithBonus,
+                amountWithdraw,
                 subscribeGenerationId,
                 subscribeTokenId,
                 _stablecoin
             );
         } else {
-            stackToken.transfer(msg.sender, amountWithdrawWithBonus);
-            console.log("tax", deposit.tax);
+            stackToken.transfer(msg.sender, amountWithdraw);
             deposit.tax = MAX_PERCENT;
         }
     }
@@ -316,16 +343,15 @@ contract Subscription is Ownable, ReentrancyGuard {
         IERC20 _stablecoin
     ) internal {
         uint256 amountUSD = sellStackToken(_amountStack, _stablecoin);
-        uint256 monthsToSubscribe = amountUSD / price;
-        require(monthsToSubscribe > 0, "Not enough on deposit for resub");
-        _subscribe(_generationId, _tokenId, monthsToSubscribe, _stablecoin, false);
-        uint256 leftOverAmount = amountUSD - (monthsToSubscribe * price);
+        require(amountUSD >= price, "Not enough on deposit for resub");
+        _subscribe(_generationId, _tokenId, _stablecoin, false);
+        uint256 leftOverAmount = amountUSD - price;
         _stablecoin.transfer(msg.sender, leftOverAmount);
     }
 
     /*
-     *  @title Buy `stackToken` for `paymentToken`.
-     *  @param Amount of `paymentToken` to sell.
+     *  @title Buy `stackToken` for `_stablecoin`.
+     *  @param Amount of `_stablecoin` to sell.
      *  @param Called by external wallet or by this contract?
      */
     function buyStackToken(uint256 amount, IERC20 _stablecoin, bool externalBuyer) private returns (uint256) {
@@ -352,7 +378,7 @@ contract Subscription is Ownable, ReentrancyGuard {
     }
 
     /*
-     *  @title Buy `paymentToken` for `stackToken`.
+     *  @title Buy `_stablecoin` for `stackToken`.
      *  @param Amount of `stackToken` to sell.
      */
     function sellStackToken(uint256 amount, IERC20 _stablecoin) private returns (uint256) {

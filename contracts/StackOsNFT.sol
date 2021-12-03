@@ -475,9 +475,9 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         uint256 subscriptionPart = stackAmount * mintFee / 10000;
         stackAmount -= subscriptionPart;
         stackOSToken.transfer(address(subscription), subscriptionPart);
-        console.log("pm");
-        console.log(stackAmount);
-        console.log(subscriptionPart);
+        // console.log("pm");
+        // console.log(stackAmount);
+        // console.log(subscriptionPart);
         
         adminWithdrawableAmount += stackAmount;
         for (uint256 i; i < _nftAmount; i++) {

@@ -58,6 +58,7 @@ contract Royalty is Ownable {
 
     /*
      * @title Deposit royalty so that NFT holders can claim it later.
+     * TODO: in matic they send wrapped eth
      */
     receive() external payable {
         checkDelegationsForFirstCycle();
@@ -319,7 +320,7 @@ contract Royalty is Ownable {
                     _stablecoin.approve(address(subscription), usdReceived);
                     uint256 nrOfMonth = usdReceived /
                         subscription.viewPrice();
-                    subscription.subscribe(gen, nftID, nrOfMonth, _stablecoin);
+                    subscription.subscribe(gen, nftID, _stablecoin);
                     _stablecoin.transfer(
                         msg.sender,
                         usdReceived - (nrOfMonth * subscription.viewPrice())
