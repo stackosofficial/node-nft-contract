@@ -218,10 +218,10 @@ describe("Subscription", function () {
     );
     print("tax: ", (await stackToken.balanceOf(tax.address)));
     expect(await stackToken.balanceOf(owner.address)).to.be.gt(
-      parseEther("428.0")
+      parseEther("451.0")
     );
     expect(await stackToken.balanceOf(owner.address)).to.be.lt(
-      parseEther("429.1")
+      parseEther("451.1")
     );
   });
 

@@ -150,15 +150,16 @@ contract Subscription is Ownable, ReentrancyGuard {
 
         // Paid after deadline?
         if (deposit.nextPayDate + taxResetDeadline < block.timestamp) {
-            uint256 prevWithdrawableMonths = (deposit.nextPayDate -
-                deposit.lastSubscriptionDate) / MONTH;
-
-            deposit.withdrawableNum += prevWithdrawableMonths;
             deposit.lastSubscriptionDate = block.timestamp;
             deposit.nextPayDate = block.timestamp;
             deposit.tax = MAX_PERCENT;
         }
 
+        deposit.tax = subOrZero(
+            deposit.tax,
+            taxReductionPercent
+        );
+        deposit.withdrawableNum += 1;
         deposit.nextPayDate += MONTH;
 
         // convert stablecoin to stack token
@@ -249,11 +250,7 @@ contract Subscription is Ownable, ReentrancyGuard {
         );
         Deposit storage deposit = deposits[generationId][tokenId];
         require(deposit.nextPayDate > 0, "No subscription");
-        require(
-            deposit.lastSubscriptionDate < block.timestamp &&
-                deposit.nextPayDate > deposit.lastSubscriptionDate,
-            "Already withdrawn"
-        );
+        require(deposit.balance > 0, "Already withdrawn");
 
         deposit.withdrawableReward += (block.timestamp - 
             deposit.lastSubscriptionDate) / 1 hours * deposit.dripRate;
@@ -275,40 +272,15 @@ contract Subscription is Ownable, ReentrancyGuard {
 
         // if not subscribed
         if (deposit.nextPayDate < block.timestamp) {
-            // no need for ceil, the difference should always be divisible by a month
-            // Are you getting money for the current month only or all months?
-            uint256 prevWithdrawableMonths = (deposit.nextPayDate -
-                deposit.lastSubscriptionDate) / MONTH;
-
-            deposit.withdrawableNum += prevWithdrawableMonths;
             deposit.lastSubscriptionDate = 0;
             deposit.nextPayDate = 0;
             deposit.tax = MAX_PERCENT - taxReductionPercent;
-        } else {
-            // current month number since last subscription date. ceil needed as we use arbitrary block time
-            uint256 currentMonth = ceilDiv(
-                block.timestamp - deposit.lastSubscriptionDate,
-                MONTH
-            );
-            deposit.withdrawableNum += currentMonth;
-            // move last subscription date to the next month, so that we will be unable to withdraw for the same months again
-            deposit.lastSubscriptionDate += currentMonth * MONTH;
-            assert(deposit.nextPayDate >= deposit.lastSubscriptionDate);
-            deposit.tax = subOrZero(
-                deposit.tax,
-                taxReductionPercent * currentMonth
-            );
         }
 
-        uint256 unwithdrawableNum = (deposit.nextPayDate -
-            deposit.lastSubscriptionDate) / MONTH;
-
-        uint256 amountWithdraw = deposit.balance /
-            (deposit.withdrawableNum + unwithdrawableNum);
-        amountWithdraw *= deposit.withdrawableNum;
+        uint256 amountWithdraw = deposit.balance;
 
         deposit.withdrawableNum = 0;
-        deposit.balance -= amountWithdraw;
+        deposit.balance = 0;
 
         // early withdraw tax
         if (deposit.tax > 0) {
