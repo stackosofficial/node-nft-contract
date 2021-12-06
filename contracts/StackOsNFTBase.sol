@@ -13,9 +13,10 @@ import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "./interfaces/IStackOSNFT.sol";
 // import "./GenerationManager.sol";
 import "./Subscription.sol";
+import "./StableCoinAcceptor.sol";
 import "hardhat/console.sol";
 
-contract StackOsNFTBase is ERC721, ERC721URIStorage, Ownable {
+contract StackOsNFTBase is StableCoinAcceptor, ERC721, ERC721URIStorage, Ownable {
     using Counters for Counters.Counter;
     using SafeMath for uint256;
 
@@ -37,8 +38,6 @@ contract StackOsNFTBase is ERC721, ERC721URIStorage, Ownable {
 
     mapping(uint256 => uint256) private delegationTimestamp;
     mapping(uint256 => address) private delegates;
-
-    IERC20[] public stablecoins;
 
     bool private salesStarted;
     string private URI = "https://google.com/";
@@ -66,10 +65,6 @@ contract StackOsNFTBase is ERC721, ERC721URIStorage, Ownable {
         transferDiscount = _transferDiscount;
         timeLock = block.timestamp + _timeLock;
         generations = GenerationManager(msg.sender);
-
-        stablecoins.push(IERC20(0xB678B953dD909a4386ED1cA7841550a89fb508cc)); // fake USDT  
-        stablecoins.push(IERC20(0x6Aea593F1E70beb836049929487F7AF3d5e4432F)); // fake USDC
-        stablecoins.push(IERC20(0x89842f40928f81FC4415b39bfBFC3205eB6161cB)); // fake DAI  
     }
 
     /*
@@ -191,19 +186,6 @@ contract StackOsNFTBase is ERC721, ERC721URIStorage, Ownable {
 
     function startSales() public onlyOwner {
         salesStarted = true;
-    }
-
-    /*
-     * @title Whether or not stackNFT can be bought for `_address` coin.
-     */
-
-    function supportsCoin(IERC20 _address) public view returns (bool) {
-        for(uint256 i; i < stablecoins.length; i++) {
-            if(_address == stablecoins[i]) {
-                return true;
-            }
-        }
-        return false;
     }
 
     /*

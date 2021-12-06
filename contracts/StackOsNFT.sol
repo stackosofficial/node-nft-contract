@@ -11,9 +11,10 @@ import "@chainlink/contracts/src/v0.8/VRFConsumerBase.sol";
 import "./DarkMatter.sol";
 import "./interfaces/IStackOSNFT.sol";
 import "./GenerationManager.sol";
+import "./StableCoinAcceptor.sol";
 import "hardhat/console.sol";
 
-contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
+contract StackOsNFT is StableCoinAcceptor, VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
     using Counters for Counters.Counter;
     using SafeMath for uint256;
 
@@ -58,8 +59,6 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
     mapping(uint256 => address) private delegates;
     mapping(address => uint256) private strategicPartner;
 
-    IERC20[] public stablecoins;
-
     bool private auctionFinalized;
     bool private ticketStatusAssigned;
     bool private salesStarted;
@@ -96,10 +95,6 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         auctionedNFTs = _auctionedNFTs;
         timeLock = block.timestamp + _timeLock;
         generations = GenerationManager(msg.sender);
-        
-        stablecoins.push(IERC20(0xB678B953dD909a4386ED1cA7841550a89fb508cc)); // fake USDT  
-        stablecoins.push(IERC20(0x6Aea593F1E70beb836049929487F7AF3d5e4432F)); // fake USDC
-        stablecoins.push(IERC20(0x89842f40928f81FC4415b39bfBFC3205eB6161cB)); // fake DAI  
     }
 
 
@@ -422,19 +417,6 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
 
     function startPartnerSales() public onlyOwner {
         salesStarted = true;
-    }
-
-    /*
-     * @title Whether or not stackNFT can be bought for `_address` coin.
-     */
-
-    function supportsCoin(IERC20 _address) public view returns (bool) {
-        for(uint256 i; i < stablecoins.length; i++) {
-            if(_address == stablecoins[i]) {
-                return true;
-            }
-        }
-        return false;
     }
 
     /*

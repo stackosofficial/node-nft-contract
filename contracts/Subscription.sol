@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import "./DarkMatter.sol";
 import "./GenerationManager.sol";
+import "./StableCoinAcceptor.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -13,14 +14,12 @@ import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 import "./interfaces/IStackOSNFT.sol";
 import "hardhat/console.sol";
 
-contract Subscription is Ownable, ReentrancyGuard {
+contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
     IERC20 private stackToken;
     IUniswapV2Router02 private router;
     DarkMatter private darkMatter;
     GenerationManager private generations;
     address private taxAddress;
-
-    IERC20[] public stablecoins;
 
     uint256 private constant MAX_PERCENT = 10000; // for convinience 100%
     uint256 public constant MONTH = 28 days; // define what's a month. if changing this, then also change in test
@@ -65,25 +64,9 @@ contract Subscription is Ownable, ReentrancyGuard {
         price = _price;
         bonusPercent = _bonusPercent;
         taxReductionPercent = _taxReductionPercent;
-
-        stablecoins.push(IERC20(0xB678B953dD909a4386ED1cA7841550a89fb508cc));
-        stablecoins.push(IERC20(0x6Aea593F1E70beb836049929487F7AF3d5e4432F));
-        stablecoins.push(IERC20(0x89842f40928f81FC4415b39bfBFC3205eB6161cB));
     }
 
-    /*
-     * @title Whether or not stackNFT can be bought via provided stablecoin.
-     * @param Address of the token to lookup.
-     */
 
-    function supportsCoin(IERC20 _address) public view returns (bool) {
-        for(uint256 i; i < stablecoins.length; i++) {
-            if(_address == stablecoins[i]) {
-                return true;
-            }
-        }
-        return false;
-    }
 
     function setDripPeriod(uint256 _seconds) external onlyOwner {
         require(_seconds > 0, "Cant be zero");
