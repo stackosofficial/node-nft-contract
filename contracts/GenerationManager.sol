@@ -1,14 +1,10 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "./interfaces/IStackOSNFT.sol";
-// import "./StackOsNFT.sol";
-import "./StackOsNFTBase.sol";
+import "./StackOsNFTBasic.sol";
 import "./Subscription.sol";
 
 contract GenerationManager is Ownable, ReentrancyGuard {
@@ -52,7 +48,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
     ) public onlyOwner returns (IStackOSNFT) {
         IStackOSNFT stack = IStackOSNFT(
             address(
-                new StackOsNFTBase(
+                new StackOsNFTBasic(
                     _name,
                     _symbol,
                     _stackOSTokenToken,

@@ -17,7 +17,7 @@ async function deploySimp() {
     // MAX_SUPPLY = 25;
     // TRANSFER_DISCOUNT = 2000;
     // TIMELOCK = 6442850;
-    const StackOS = await ethers.getContractFactory("StackOsNFTBase");
+    const StackOS = await ethers.getContractFactory("StackOsNFTBasic");
     stackOsNFT = await StackOS.deploy(
       NAME,
       SYMBOL,

@@ -5,13 +5,9 @@ import "./DarkMatter.sol";
 import "./GenerationManager.sol";
 import "./StableCoinAcceptor.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
-import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
-import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
-import "./interfaces/IStackOSNFT.sol";
 import "hardhat/console.sol";
 
 contract Market is StableCoinAcceptor, Ownable, ReentrancyGuard {
