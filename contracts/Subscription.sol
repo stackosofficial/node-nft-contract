@@ -5,6 +5,7 @@ import "./DarkMatter.sol";
 import "./GenerationManager.sol";
 import "./StableCoinAcceptor.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
@@ -120,6 +121,8 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
         bool externalBuyer
     ) internal {
         require(generationId < generations.count(), "Generation doesn't exist");
+        // check token exists
+        IERC721(address(generations.get(generationId))).ownerOf(tokenId);
 
         Deposit storage deposit = deposits[generationId][tokenId];
         require(deposit.nextPayDate < block.timestamp, "Cant pay in advace");
@@ -132,11 +135,7 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
         if(deposit.lastTxDate == 0) {
             deposit.lastTxDate = block.timestamp;
         }
-        // if(deposit.lastTxDate > 0) {
-        //     deposit.withdrawableReward += (block.timestamp - 
-        //         deposit.lastTxDate) * deposit.dripRate;
-        // }
-        // deposit.lastTxDate = block.timestamp;
+        deposit.lastTxDate = block.timestamp;
 
         // Paid after deadline?
         if (deposit.nextPayDate + taxResetDeadline < block.timestamp) {
@@ -155,12 +154,13 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
         uint256 amount = buyStackToken(price, _stablecoin, externalBuyer);
         deposit.balance += amount;
         deposit.reward += amount * bonusPercent / MAX_PERCENT;
+        deposit.reward -= deposit.withdrawableReward;
         deposit.dripRate = deposit.reward / dripPeriod; // hourly rate
 
         if(_stablecoin == stablecoins[0]) {
             console.log("usdt sub:", price/1e18);
             console.log("usdt sub:", amount/1e18);
-            console.log("reward:", deposit.reward / 1e18);
+            console.log("reward:", deposit.reward / 1e18, deposit.reward);
             console.log("balance:", deposit.balance / 1e18);
         }
         if(_stablecoin == stablecoins[2]) {
@@ -243,7 +243,7 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
 
         deposit.withdrawableReward += (block.timestamp - 
             deposit.lastTxDate) * deposit.dripRate;
-        console.log("withdraw(times)", block.timestamp - deposit.lastTxDate, dripPeriod, deposit.dripRate);
+        console.log("withdraw(times)", block.timestamp - deposit.lastTxDate, deposit.dripRate, deposit.withdrawableReward );
         deposit.lastTxDate = block.timestamp;
 
         uint256 bonusAmount = deposit.withdrawableReward;
@@ -282,6 +282,7 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
 
         // amount withdraw with bonus
         console.log("withdraw", amountWithdraw / 1e18, bonusAmount / 1e18, deposit.tax);
+        console.log("withdraw", amountWithdraw , bonusAmount );
         amountWithdraw += bonusAmount;
         require(amountWithdraw > 0, "Already withdrawn");
 

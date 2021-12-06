@@ -377,6 +377,50 @@ describe("Subscription", function () {
     expect(oldPendingReward).to.be.equal(await stackToken.balanceOf(owner.address));
   })
 
+  it("mint 1 token", async function () {
+    await stackOsNFTGen2.whitelistPartner(owner.address, 1);
+    await usdt.approve(stackOsNFTGen2.address, parseEther("10000.0"));
+    await stackOsNFTGen2.startPartnerSales();
+    await stackOsNFTGen2.partnerMint(1, usdt.address);
+  });
+  it("subscriptions", async function () {
+    await usdt.approve(subscription.address, parseEther("20000.0"));
+    for (let i = 0; i < 10; i++) {
+      await subscription.subscribe(1, 1, usdt.address); 
+      await provider.send("evm_increaseTime", [MONTH]); 
+      await provider.send("evm_mine"); 
+    }
+  });
+  it("Test bonus logic", async function () {
+
+
+    // clear owner balance for simplicity
+    await stackToken.transfer(
+      subscription.address,
+      await stackToken.balanceOf(owner.address)
+    );
+
+    print(
+      "owner: ",
+      (await stackToken.balanceOf(owner.address))
+    );
+    oldPendingReward = await subscription.pendingReward(0, 5);
+    print("gen 0 token 5 pending reward: ", await subscription.pendingReward(0, 5));
+    print("reward amount: ", (await subscription.deposits(0, 5)).reward);
+
+    await provider.send("evm_increaseTime", [MONTH*23]); 
+    await subscription.withdraw(1, [1]);
+
+    print(
+      "owner: ",
+      (await stackToken.balanceOf(owner.address))
+    );
+    print("gen 0 token 5 pending reward: ", await subscription.pendingReward(0, 5));
+    print("reward amount: ", (await subscription.deposits(0, 5)).reward);
+
+    // expect(oldPendingReward).to.be.equal(await stackToken.balanceOf(owner.address));
+  })
+
   it("Revert EVM state", async function () {
     await ethers.provider.send("evm_revert", [snapshotId]);
   });
