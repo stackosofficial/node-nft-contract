@@ -1,7 +1,5 @@
 const { ethers } = require("hardhat");
 const { use, expect } = require("chai");
-const { solidity } = require("ethereum-waffle");
-const { Signer } = require("@ethersproject/abstract-signer");
 const { print } = require("./utils");
 
 describe("DarkMatter integration with Royalty", function () {

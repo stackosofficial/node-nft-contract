@@ -1,10 +1,7 @@
 const { ethers } = require("hardhat");
 const { use, expect } = require("chai");
-const { solidity } = require("ethereum-waffle");
-const { BigNumber } = require("@ethersproject/bignumber");
 const { parseEther,  } = require("@ethersproject/units");
 const { deployStackOS, setup, print } = require("./utils");
-// const timeMachine = require("@atixlabs/hardhat-time-n-mine");
 
 describe("StackOS NFT", function () {
   it("Snapshot EVM", async function () {

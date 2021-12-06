@@ -1,11 +1,7 @@
 const { ethers } = require("hardhat");
 const { use, expect } = require("chai");
-const { solidity } = require("ethereum-waffle");
-const { Signer } = require("@ethersproject/abstract-signer");
 const { parseEther } = require("@ethersproject/units");
 const { deployStackOS, setup, print } = require("./utils");
-
-use(solidity);
 
 describe("DarkMatter", function () {
   it("Snapshot EVM", async function () {
