@@ -40,10 +40,10 @@ contract Subscription is Ownable, ReentrancyGuard {
         uint256 tax; // withdraw TAX percent
         uint256 withdrawableNum; // number of months that you able to claim bonus for.
         uint256 nextPayDate; // this date + deadline = is the date for TAX reset to max.
-        uint256 lastSubscriptionDate; // the subscribe date, and when withdraw it'll be start of the next month.
+        uint256 lastTxDate; // 
     }
 
-    mapping(uint256 => mapping(uint256 => Deposit)) private deposits; // generationId => tokenId => Deposit
+    mapping(uint256 => mapping(uint256 => Deposit)) public deposits; // generationId => tokenId => Deposit
 
     constructor(
         IERC20 _stackToken,
@@ -140,17 +140,21 @@ contract Subscription is Ownable, ReentrancyGuard {
         require(deposit.nextPayDate < block.timestamp, "Cant pay in advace");
 
         if (deposit.nextPayDate == 0) {
-            deposit.lastSubscriptionDate = block.timestamp;
             deposit.nextPayDate = block.timestamp;
             deposit.tax = MAX_PERCENT;
         }
 
-        deposit.withdrawableReward += (block.timestamp - 
-            deposit.lastSubscriptionDate) / 1 hours * deposit.dripRate;
+        if(deposit.lastTxDate == 0) {
+            deposit.lastTxDate = block.timestamp;
+        }
+        // if(deposit.lastTxDate > 0) {
+        //     deposit.withdrawableReward += (block.timestamp - 
+        //         deposit.lastTxDate) * deposit.dripRate;
+        // }
+        // deposit.lastTxDate = block.timestamp;
 
         // Paid after deadline?
         if (deposit.nextPayDate + taxResetDeadline < block.timestamp) {
-            deposit.lastSubscriptionDate = block.timestamp;
             deposit.nextPayDate = block.timestamp;
             deposit.tax = MAX_PERCENT;
         }
@@ -165,8 +169,8 @@ contract Subscription is Ownable, ReentrancyGuard {
         // convert stablecoin to stack token
         uint256 amount = buyStackToken(price, _stablecoin, externalBuyer);
         deposit.balance += amount;
-        deposit.reward += (amount * (MAX_PERCENT + bonusPercent) / MAX_PERCENT) - amount;
-        deposit.dripRate = deposit.reward / (dripPeriod / 1 hours); // hourly rate
+        deposit.reward += amount * bonusPercent / MAX_PERCENT;
+        deposit.dripRate = deposit.reward / dripPeriod; // hourly rate
 
         if(_stablecoin == stablecoins[0]) {
             console.log("usdt sub:", price/1e18);
@@ -249,16 +253,18 @@ contract Subscription is Ownable, ReentrancyGuard {
             "Not owner"
         );
         Deposit storage deposit = deposits[generationId][tokenId];
-        require(deposit.nextPayDate > 0, "No subscription");
-        require(deposit.balance > 0, "Already withdrawn");
+
+        // require(deposit.nextPayDate > 0, "No subscription");
 
         deposit.withdrawableReward += (block.timestamp - 
-            deposit.lastSubscriptionDate) / 1 hours * deposit.dripRate;
+            deposit.lastTxDate) * deposit.dripRate;
+        console.log("withdraw(times)", block.timestamp - deposit.lastTxDate, dripPeriod, deposit.dripRate);
+        deposit.lastTxDate = block.timestamp;
 
         uint256 bonusAmount = deposit.withdrawableReward;
         deposit.withdrawableReward = 0;
         // console.log((block.timestamp - 
-        //     deposit.lastSubscriptionDate) / 1 hours);
+        //     deposit.lastTxDate) / 1 hours);
         if(deposit.reward < bonusAmount) {
             bonusAmount = deposit.reward;
             deposit.dripRate = 0;
@@ -272,7 +278,6 @@ contract Subscription is Ownable, ReentrancyGuard {
 
         // if not subscribed
         if (deposit.nextPayDate < block.timestamp) {
-            deposit.lastSubscriptionDate = 0;
             deposit.nextPayDate = 0;
             deposit.tax = MAX_PERCENT - taxReductionPercent;
         }
@@ -290,10 +295,10 @@ contract Subscription is Ownable, ReentrancyGuard {
             stackToken.transfer(taxAddress, tax);
         }
 
-        
         // amount withdraw with bonus
         console.log("withdraw", amountWithdraw / 1e18, bonusAmount / 1e18, deposit.tax);
         amountWithdraw += bonusAmount;
+        require(amountWithdraw > 0, "Already withdrawn");
 
         if (subscription) {
             _reSubscribe(
@@ -319,6 +324,17 @@ contract Subscription is Ownable, ReentrancyGuard {
         _subscribe(_generationId, _tokenId, _stablecoin, false);
         uint256 leftOverAmount = amountUSD - price;
         _stablecoin.transfer(msg.sender, leftOverAmount);
+    }
+
+    function pendingReward(
+        uint256 _generationId,
+        uint256 _tokenId
+    ) public view returns (uint256) {
+        Deposit storage deposit = deposits[_generationId][_tokenId];
+        uint256 bonus = deposit.withdrawableReward + 
+            (block.timestamp - deposit.lastTxDate) * deposit.dripRate;
+        if(bonus > deposit.reward) return deposit.reward;
+        return bonus;
     }
 
     /*

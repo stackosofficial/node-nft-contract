@@ -89,9 +89,9 @@ describe("Subscription", function () {
   });
 
   it("Unable to withdraw without subs and foreign ids", async function () {
-    await expect(subscription.withdraw(0, [0])).to.be.revertedWith(
-      "No subscription"
-    );
+    // await expect(subscription.withdraw(0, [0])).to.be.revertedWith(
+    //   "No subscription"
+    // );
     await expect(subscription.withdraw(0, [4])).to.be.revertedWith("Not owner");
   });
 
@@ -150,8 +150,18 @@ describe("Subscription", function () {
     );
 
     await subscription.connect(bank).withdraw(0, [1]); // tax should be 25% as we at 3rd month
-    await expect(subscription.connect(bank).withdraw(0, [1])).to.be.revertedWith(
-      "Already withdrawn"
+
+    print(
+      "bank(before withdraw bonus): ",
+      (await stackToken.balanceOf(bank.address))
+    );
+    await subscription.connect(bank).withdraw(0, [1]);
+    // await expect(subscription.connect(bank).withdraw(0, [1])).to.be.revertedWith(
+    //   "Already withdrawn"
+    // );
+    print(
+      "bank(after withdraw bonus): ",
+      (await stackToken.balanceOf(bank.address))
     );
 
     print(
@@ -203,10 +213,10 @@ describe("Subscription", function () {
     );
     print("tax: ", (await stackToken.balanceOf(tax.address)));
     expect(await stackToken.balanceOf(owner.address)).to.be.gt(
-      parseEther("291.0") // 282 + 9
+      parseEther("300.0") // 282 + 9
     );
     expect(await stackToken.balanceOf(owner.address)).to.be.lt(
-      parseEther("292.0")
+      parseEther("301.0")
     );
 
     await provider.send("evm_increaseTime", [MONTH]); 
@@ -218,10 +228,10 @@ describe("Subscription", function () {
     );
     print("tax: ", (await stackToken.balanceOf(tax.address)));
     expect(await stackToken.balanceOf(owner.address)).to.be.gt(
-      parseEther("451.0")
+      parseEther("450.0")
     );
     expect(await stackToken.balanceOf(owner.address)).to.be.lt(
-      parseEther("451.1")
+      parseEther("451.0")
     );
   });
 
@@ -343,6 +353,34 @@ describe("Subscription", function () {
     await subscription.withdraw(0, [6]); 
     print("owner: ", (await stackToken.balanceOf(owner.address)));
   });
+
+  it("Withdraw remaining reward", async function () {
+    // clear owner balance for simplicity
+    await stackToken.transfer(
+      subscription.address,
+      await stackToken.balanceOf(owner.address)
+    );
+
+    print(
+      "owner: ",
+      (await stackToken.balanceOf(owner.address))
+    );
+    oldPendingReward = await subscription.pendingReward(0, 5);
+    print("gen 0 token 5 pending reward: ", await subscription.pendingReward(0, 5));
+    print("reward amount: ", (await subscription.deposits(0, 5)).reward);
+
+    await subscription.withdraw(0, [5]);
+
+    print(
+      "owner: ",
+      (await stackToken.balanceOf(owner.address))
+    );
+    print("gen 0 token 5 pending reward: ", await subscription.pendingReward(0, 5));
+    print("reward amount: ", (await subscription.deposits(0, 5)).reward);
+
+    expect(oldPendingReward).to.be.equal(await stackToken.balanceOf(owner.address));
+  })
+
   it("Revert EVM state", async function () {
     await ethers.provider.send("evm_revert", [snapshotId]);
   });
