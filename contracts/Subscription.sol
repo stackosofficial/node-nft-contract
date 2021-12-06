@@ -72,7 +72,8 @@ contract Subscription is Ownable, ReentrancyGuard {
     }
 
     /*
-     * @title Whether or not stackNFT can be bought for `_address` coin.
+     * @title Whether or not stackNFT can be bought via provided stablecoin.
+     * @param Address of the token to lookup.
      */
 
     function supportsCoin(IERC20 _address) public view returns (bool) {
@@ -82,6 +83,11 @@ contract Subscription is Ownable, ReentrancyGuard {
             }
         }
         return false;
+    }
+
+    function setDripPeriod(uint256 _seconds) external onlyOwner {
+        require(_seconds > 0, "Cant be zero");
+        dripPeriod = _seconds;
     }
 
     function setPrice(uint256 _price) external onlyOwner {
