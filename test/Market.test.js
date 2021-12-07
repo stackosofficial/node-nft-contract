@@ -11,7 +11,7 @@ describe("Market", function () {
   it("Defining Generals", async function () {
     // General
     provider = ethers.provider;
-    [owner, partner, joe, bank, bob, vera, tax, homer] =
+    [owner, partner, joe, bank, bob, vera, tax, homer, dao, royaltyDistribution] =
       await hre.ethers.getSigners();
     MONTH = 60 * 60 * 24 * 30;
     router = await ethers.getContractAt(
@@ -31,6 +31,20 @@ describe("Market", function () {
       darkMatter,
       subscription,
       stackOsNFT] = await setup();
+  });
+
+  it("Deploy Market", async function () {
+    GENERATION_MANAGER_ADDRESS = generationManager.address;
+    DARK_MATTER_ADDRESS = darkMatter.address;
+    DAO_ADDRESS = dao.address;
+    ROYALTY_DISTRIBUTION_ADDRESS = royaltyDistribution.address;
+    const Market = await ethers.getContractFactory("Market");
+    market = await Market.deploy(
+        GENERATION_MANAGER_ADDRESS,
+        DARK_MATTER_ADDRESS,
+        DAO_ADDRESS,
+        ROYALTY_DISTRIBUTION_ADDRESS
+    );
   });
 
   it("Deploy StackOS NFT generation 2", async function () {
@@ -108,6 +122,41 @@ describe("Market", function () {
     expect(await stackOsNFTgen2.balanceOf(darkMatter.address)).to.be.equal(2);
   });
 
+  it("List DarkMatter for sell", async function () {
+    await darkMatter.approve(market.address, 0);
+    await darkMatter.whitelist(market.address);
+    await market.sellDarkMatter(0, parseEther("100.0"));
+    expect(await darkMatter.balanceOf(market.address)).to.be.equal(1);
+  });
+
+  it("Buy DarkMatter", async function () {
+    print("owner balance: ", await owner.getBalance());
+
+    await expect(await market.connect(partner)
+      .buyDarkMatter(0, { value: parseEther("100.0") }))
+      .to.changeEtherBalances([owner, dao, royaltyDistribution], [parseEther("80"), parseEther("10"), parseEther("10")]);
+
+    expect(await darkMatter.balanceOf(market.address)).to.be.equal(0);
+    print("owner balance: ", await owner.getBalance());
+  });
+
+  it("List StackNFT for sell", async function () {
+    await stackOsNFT.connect(joe).approve(market.address, 5);
+    await stackOsNFT.whitelist(market.address);
+    await market.connect(joe).sellStack(0, 5, parseEther("100.0"));
+    expect(await stackOsNFT.balanceOf(market.address)).to.be.equal(1);
+  });
+
+  it("Buy StackNFT", async function () {
+    print("owner balance: ", await owner.getBalance());
+
+    await expect(await market.connect(partner)
+      .buyStack(0, 5, { value: parseEther("100.0") }))
+      .to.changeEtherBalances([joe, dao, royaltyDistribution], [parseEther("80"), parseEther("10"), parseEther("10")]);
+
+    expect(await stackOsNFT.balanceOf(market.address)).to.be.equal(0);
+    print("owner balance: ", await owner.getBalance());
+  });
 
   it("Revert EVM state", async function () {
     await ethers.provider.send("evm_revert", [snapshotId]);

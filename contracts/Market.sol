@@ -114,7 +114,6 @@ contract Market is Ownable, ReentrancyGuard {
         payable(lot.seller).call{value: sellerPart}("");
 
         delete stackToLot[generationId][tokenId];
-        console.log("Lot after deletion:", lot.seller, lot.price);
 
         generations.get(generationId).transferFrom(address(this), msg.sender, tokenId);
     }
@@ -134,7 +133,6 @@ contract Market is Ownable, ReentrancyGuard {
         payable(lot.seller).call{value: sellerPart}("");
 
         delete darkMatterToLot[tokenId];
-        console.log("Lot after deletion:", lot.seller, lot.price);
 
         darkMatter.transferFrom(address(this), msg.sender, tokenId);
     }
