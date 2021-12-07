@@ -69,6 +69,7 @@ describe("Market", function () {
     await stackOsNFT.whitelistPartner(owner.address, 10);
     await usdt.approve(stackOsNFT.address, parseEther("100.0"));
     await stackOsNFT.partnerMint(6, usdt.address);
+    await stackOsNFT.whitelist(owner.address);
     await stackOsNFT.transferFrom(owner.address, joe.address, 5);
 
     await stackOsNFTgen2.startPartnerSales();

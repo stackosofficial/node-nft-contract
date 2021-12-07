@@ -10,162 +10,132 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "hardhat/console.sol";
 
-contract Market is StableCoinAcceptor, Ownable, ReentrancyGuard {
-    IERC20 private stackToken;
-    IUniswapV2Router02 private router;
+contract Market is Ownable, ReentrancyGuard {
     DarkMatter private darkMatter;
     GenerationManager private generations;
-    address private dao;
+
+    address private daoAddress;
+    address private royaltyAddress;
 
     uint256 private constant MAX_PERCENT = 10000; // for convinience 100%
 
-    // 10% will distribute to its generations and above it
-    uint256 public generationsTax = 1000; 
-    // And 10% is used to purchase liquidity, and the LP tokens are held by the foundation (later dao)
-    uint256 public liquidityTax = 1000; 
-    // Also 10% of the tokens locked on the NFT should be moved to the foundation. 
-    uint256 public lockedTokensTax = 1000; 
+    uint256 public daoFee = 1000; 
+    uint256 public royaltyFee = 1000; 
 
-    struct Lot {
+    struct StackLot {
         uint256 price;
         uint256 generationId;
         uint256 tokenId;
-        address owner;
+        address seller;
     }
 
-    mapping(uint256 => mapping(uint256 => Lot)) public tokenToLot;
-    Lot[] public lots;
+    struct DarkMatterLot {
+        uint256 price;
+        uint256 tokenId;
+        address seller;
+    }
+
+    mapping(uint256 => mapping(uint256 => StackLot)) public stackToLot;
+    mapping(uint256 => DarkMatterLot) public darkMatterToLot;
 
     constructor(
-        IERC20 _stackToken,
         GenerationManager _generations,
         DarkMatter _darkMatter,
-        IUniswapV2Router02 _router,
-        address _taxAddress,
-        uint256 _taxResetDeadline,
-        uint256 _price,
-        uint256 _bonusPercent,
-        uint256 _taxReductionPercent
+        address _daoAddress,
+        address _royaltyDistributionAddress
     ) {
-        stackToken = _stackToken;
         generations = _generations;
         darkMatter = _darkMatter;
-        router = _router;
-        // taxAddress = _taxAddress;
-        // taxResetDeadline = _taxResetDeadline;
-        // price = _price;
-        // bonusPercent = _bonusPercent;
-        // taxReductionPercent = _taxReductionPercent;
+        daoAddress = _daoAddress;
+        royaltyAddress = _royaltyDistributionAddress;
     }
 
-    function viewLots() public view returns (Lot[] memory) {
-        return lots;
+    function setDaoFee(uint256 _percent) public onlyOwner {
+        require(_percent <= MAX_PERCENT, "Max is 10000");
+        daoFee = _percent;
     }
 
-    function sell(
-        uint256 generationId,
+    function setRoyaltyFee(uint256 _percent) public onlyOwner {
+        require(_percent <= MAX_PERCENT, "Max is 10000");
+        royaltyFee = _percent;
+    }
+
+    // function viewLots() public view returns (Lot[] memory) {
+    //     return lots;
+    // }
+
+    function sellDarkMatter(
         uint256 tokenId,
         uint256 price 
     ) public nonReentrant {
+
+        DarkMatterLot storage lot = darkMatterToLot[tokenId];
+        require(lot.seller == address(0), "Already listed");
+
+        lot.price = price;
+        lot.seller = msg.sender;
+        lot.tokenId = tokenId;
+
+        darkMatter.transferFrom(msg.sender, address(this), tokenId);
+    }
+
+    function sellStack(
+        uint256 generationId,
+        uint256 tokenId,
+        uint256 price
+    ) public nonReentrant {
         require(generationId < generations.count(), "Generation doesn't exist");
 
-        Lot storage lot = tokenToLot[generationId][tokenId];
-        require(lot.owner == address(0), "Already listed");
+        StackLot storage lot = stackToLot[generationId][tokenId];
+        require(lot.seller == address(0), "Already listed");
         generations.get(generationId).transferFrom(msg.sender, address(this), tokenId);
 
         lot.price = price;
-        lot.owner = msg.sender;
+        lot.seller = msg.sender;
         lot.generationId = generationId;
         lot.tokenId = tokenId;
-
-        lots.push(lot);
     }
 
-    function buy(
+    function buyStack(
         uint256 generationId,
-        uint256 tokenId,
-        IERC20 _stablecoin
-    ) public {
-        require(supportsCoin(_stablecoin), "Unsupported payment coin");
+        uint256 tokenId
+    ) public payable nonReentrant {
         require(generationId < generations.count(), "Generation doesn't exist");
-        Lot storage lot = tokenToLot[generationId][tokenId];
-        require(lot.owner != address(0), "Not listed");
 
+        StackLot storage lot = stackToLot[generationId][tokenId];
+        require(lot.seller != address(0), "Not listed");
 
-        _stablecoin.transferFrom(msg.sender, lot.owner, lot.price);
+        uint256 daoPart = lot.price * daoFee / MAX_PERCENT;
+        uint256 royaltyPart = lot.price * royaltyFee / MAX_PERCENT;
+        uint256 sellerPart = lot.price - daoPart - royaltyPart;
+
+        daoAddress.call{value: daoPart}("");
+        royaltyAddress.call{value: royaltyPart}("");
+        payable(lot.seller).call{value: sellerPart}("");
+
+        delete stackToLot[generationId][tokenId];
+        console.log("Lot after deletion:", lot.seller, lot.price);
+
+        generations.get(generationId).transferFrom(address(this), msg.sender, tokenId);
     }
 
-    function buy(
-        uint256 lotId,
-        IERC20 _stablecoin
-    ) public nonReentrant {
-        buy(lots[lotId].generationId, lots[lotId].tokenId, _stablecoin);
-    }
+    function buyDarkMatter(
+        uint256 tokenId
+    ) public payable nonReentrant {
+        DarkMatterLot storage lot = darkMatterToLot[tokenId];
+        require(lot.seller != address(0), "Not listed");
 
-    /*
-     *  @title Buy `stackToken` for `_stablecoin`.
-     *  @param Amount of `_stablecoin` to sell.
-     *  @param Called by external wallet or by this contract?
-     */
-    function buyStackToken(uint256 amount, IERC20 _stablecoin, bool externalBuyer) private returns (uint256) {
-        if(externalBuyer) {
-            _stablecoin.transferFrom(msg.sender, address(this), amount);
-        }
-        _stablecoin.approve(address(router), amount);
+        uint256 daoPart = lot.price * daoFee / MAX_PERCENT;
+        uint256 royaltyPart = lot.price * royaltyFee / MAX_PERCENT;
+        uint256 sellerPart = lot.price - daoPart - royaltyPart;
 
-        uint256 deadline = block.timestamp + 1200;
-        address[] memory path = new address[](3);
-        path[0] = address(_stablecoin);
-        path[1] = address(router.WETH());
-        path[2] = address(stackToken);
-        uint256[] memory amountOutMin = router.getAmountsOut(amount, path);
-        uint256[] memory amounts = router.swapExactTokensForTokens(
-            amount,
-            amountOutMin[2],
-            path,
-            address(this),
-            deadline
-        );
+        daoAddress.call{value: daoPart}("");
+        royaltyAddress.call{value: royaltyPart}("");
+        payable(lot.seller).call{value: sellerPart}("");
 
-        return amounts[2];
-    }
+        delete darkMatterToLot[tokenId];
+        console.log("Lot after deletion:", lot.seller, lot.price);
 
-    /*
-     *  @title Buy `_stablecoin` for `stackToken`.
-     *  @param Amount of `stackToken` to sell.
-     */
-    function sellStackToken(uint256 amount, IERC20 _stablecoin) private returns (uint256) {
-        stackToken.approve(address(router), amount);
-
-        uint256 deadline = block.timestamp + 1200;
-        address[] memory path = new address[](3);
-        path[0] = address(stackToken);
-        path[1] = address(router.WETH());
-        path[2] = address(_stablecoin);
-        uint256[] memory amountOutMin = router.getAmountsOut(amount, path);
-        uint256[] memory amounts = router.swapExactTokensForTokens(
-            amount,
-            amountOutMin[2],
-            path,
-            address(this),
-            deadline
-        );
-
-        return amounts[2];
-    }
-
-    /*
-     *  @title Subtract function, a - b.
-     *  @title But instead of reverting with subtraction underflow we return zero.
-     *  @title For tax reduction 25% this is excessive safety, but if its 33% then on last 1% we would get underflow error.
-     */
-    function subOrZero(uint256 a, uint256 b) internal pure returns (uint256) {
-        return a > b ? a - b : 0;
-    }
-
-    // Taken from @openzeppelin/contracts/utils/math/Math.sol
-    function ceilDiv(uint256 a, uint256 b) internal pure returns (uint256) {
-        // (a + b - 1) / b can overflow on addition, so we distribute.
-        return a / b + (a % b == 0 ? 0 : 1);
+        darkMatter.transferFrom(address(this), msg.sender, tokenId);
     }
 }
