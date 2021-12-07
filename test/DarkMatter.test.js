@@ -31,6 +31,7 @@ describe("DarkMatter", function () {
       darkMatter,
       subscription,
       stackOsNFT] = await setup();
+
   });
 
   it("Deploy StackOS NFT generation 2", async function () {
@@ -79,6 +80,7 @@ describe("DarkMatter", function () {
     await stackOsNFT.whitelistPartner(owner.address, 10);
     await usdt.approve(stackOsNFT.address, parseEther("100.0"));
     await stackOsNFT.partnerMint(6, usdt.address);
+    await stackOsNFT.whitelist(owner.address);
     await stackOsNFT.transferFrom(owner.address, joe.address, 5);
 
     await stackOsNFTgen2.startPartnerSales();
@@ -130,6 +132,19 @@ describe("DarkMatter", function () {
       "ERC721: transfer caller is not owner nor approved"
     );
     await expect(darkMatter.mint()).to.be.revertedWith("Not enough deposited");
+  });
+
+  it("Unable to transfer when not whitelisted", async function () {
+    await expect(
+      darkMatter.transferFrom(owner.address, joe.address, 0)
+    ).to.be.revertedWith(
+      "Not whitelisted for transfers"
+    )
+  });
+
+  it("Whitelist address and transfer from it", async function () {
+    await darkMatter.whitelist(owner.address);
+    await darkMatter.transferFrom(owner.address, joe.address, 0);
   });
 
   it("Revert EVM state", async function () {

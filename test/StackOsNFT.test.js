@@ -370,6 +370,18 @@ describe("StackOS NFT", function () {
   //       (await stackToken.balanceOf(owner.address))
   //   );
   // });
+  it("Unable to transfer when not whitelisted", async function () {
+    await expect(
+      stackOsNFT.transferFrom(owner.address, joe.address, 0)
+    ).to.be.revertedWith(
+      "Not whitelisted for transfers"
+    )
+  });
+
+  it("Whitelist address and transfer from it", async function () {
+    await stackOsNFT.whitelist(owner.address);
+    await stackOsNFT.transferFrom(owner.address, joe.address, 0);
+  });
   it("Admin tried to withdraw before time lock expires.", async function () {
     var adminWithdrawableAmount = await stackOsNFT.adminWithdrawableAmount();
     print(adminWithdrawableAmount);

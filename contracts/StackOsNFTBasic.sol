@@ -10,9 +10,10 @@ import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "./interfaces/IStackOSNFT.sol";
 import "./Subscription.sol";
 import "./StableCoinAcceptor.sol";
+import "./TransferWhitelist.sol";
 import "hardhat/console.sol";
 
-contract StackOsNFTBasic is StableCoinAcceptor, ERC721, ERC721URIStorage, Ownable {
+contract StackOsNFTBasic is TransferWhitelist, ERC721, StableCoinAcceptor, ERC721URIStorage, Ownable {
     using Counters for Counters.Counter;
     using SafeMath for uint256;
 
@@ -243,6 +244,18 @@ contract StackOsNFTBasic is StableCoinAcceptor, ERC721, ERC721URIStorage, Ownabl
         _setTokenURI(_tokenIdCounter.current(), URI);
         _tokenIdCounter.increment();
         totalSupply += 1;
+    }
+
+    function _transfer(
+        address from,
+        address to,
+        uint256 tokenId
+    ) 
+        internal
+        override(ERC721)
+    {
+        require(isWhitelisted(msg.sender), "Not whitelisted for transfers");
+        super._transfer(from, to, tokenId);
     }
 
     // The following functions are overrides required by Solidity.

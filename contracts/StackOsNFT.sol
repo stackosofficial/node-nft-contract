@@ -12,7 +12,7 @@ import "./GenerationManager.sol";
 import "./StableCoinAcceptor.sol";
 import "hardhat/console.sol";
 
-contract StackOsNFT is StableCoinAcceptor, VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
+contract StackOsNFT is TransferWhitelist, StableCoinAcceptor, VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
     using Counters for Counters.Counter;
     using SafeMath for uint256;
 
@@ -551,6 +551,18 @@ contract StackOsNFT is StableCoinAcceptor, VRFConsumerBase, ERC721, ERC721URISto
         _setTokenURI(_tokenIdCounter.current(), URI);
         _tokenIdCounter.increment();
         totalSupply += 1;
+    }
+
+    function _transfer(
+        address from,
+        address to,
+        uint256 tokenId
+    ) 
+        internal
+        override(ERC721)
+    {
+        require(isWhitelisted(msg.sender), "Not whitelisted for transfers");
+        super._transfer(from, to, tokenId);
     }
 
     // The following functions are overrides required by Solidity.

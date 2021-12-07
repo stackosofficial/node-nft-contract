@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "./interfaces/IStackOSNFT.sol";
 import "./GenerationManager.sol";
 
-contract DarkMatter is ERC721, Ownable, ReentrancyGuard {
+contract DarkMatter is TransferWhitelist, ERC721, Ownable, ReentrancyGuard {
     using Counters for Counters.Counter;
 
     Counters.Counter private _tokenIdCounter;
@@ -163,5 +163,17 @@ contract DarkMatter is ERC721, Ownable, ReentrancyGuard {
             );
             toBeMinted[msg.sender].pop();
         }
+    }
+
+    function _transfer(
+        address from,
+        address to,
+        uint256 tokenId
+    ) 
+        internal
+        override(ERC721)
+    {
+        require(isWhitelisted(msg.sender), "Not whitelisted for transfers");
+        super._transfer(from, to, tokenId);
     }
 }

@@ -4,8 +4,8 @@ const { solidity } = require("ethereum-waffle");
 const { BigNumber } = require("@ethersproject/bignumber");
 const { parseEther, formatEther } = require("@ethersproject/units");
 
-module.exports = { setup, deployStackOS, deploySimp, print }
-async function deploySimp() {
+module.exports = { setup, deployStackOS, deployStackOSBasic, print }
+async function deployStackOSBasic() {
     // NAME = "STACK OS NFT";
     // SYMBOL = "SON";
     // STACK_TOKEN_FOR_PAYMENT = stackToken.address;
@@ -18,7 +18,7 @@ async function deploySimp() {
     // TRANSFER_DISCOUNT = 2000;
     // TIMELOCK = 6442850;
     const StackOS = await ethers.getContractFactory("StackOsNFTBasic");
-    stackOsNFT = await StackOS.deploy(
+    let stackOsNFT = await StackOS.deploy(
       NAME,
       SYMBOL,
       STACK_TOKEN_FOR_PAYMENT,
@@ -35,10 +35,12 @@ async function deploySimp() {
     console.log(stackOsNFT.address);
     await generationManager.add(stackOsNFT.address);
     await stackOsNFT.adjustAddressSettings(generationManager.address, router.address);
+    await stackOsNFT.whitelist(darkMatter.address);
     return stackOsNFT
 }
 async function deployStackOS() {
-    stackOsNFTGen2 = await StackOS.deploy(
+    const StackOS = await ethers.getContractFactory("StackOsNFT");
+    let stackOsNFT = await StackOS.deploy(
       NAME,
       SYMBOL,
       STACK_TOKEN_FOR_PAYMENT,
@@ -51,11 +53,12 @@ async function deployStackOS() {
       TRANSFER_DISCOUNT,
       TIMELOCK
     );
-    await stackOsNFTGen2.deployed();
-    await generationManager.add(stackOsNFTGen2.address);
-    await stackOsNFTGen2.adjustAddressSettings(generationManager.address, router.address, subscription.address);
-    await stackOsNFTGen2.setMintFee(MINT_FEE); // usdt
-    return stackOsNFTGen2;
+    await stackOsNFT.deployed();
+    await generationManager.add(stackOsNFT.address);
+    await stackOsNFT.adjustAddressSettings(generationManager.address, router.address, subscription.address);
+    await stackOsNFT.setMintFee(MINT_FEE); // usdt
+    await stackOsNFT.whitelist(darkMatter.address);
+    return stackOsNFT;
 }
 
 async function setup() {
@@ -106,7 +109,6 @@ async function setup() {
     );
     await darkMatter.deployed();
     console.log(darkMatter.address);
-
 
     PAYMENT_TOKEN = usdt.address;
     STACK_TOKEN_FOR_PAYMENT = stackToken.address;
@@ -174,6 +176,7 @@ async function setup() {
     await generationManager.add(stackOsNFT.address);
     await stackOsNFT.adjustAddressSettings(generationManager.address, router.address, subscription.address);
     await stackOsNFT.setMintFee(MINT_FEE);
+    await stackOsNFT.whitelist(darkMatter.address);
 
     return [stackToken, usdt, usdc, dai, link, coordinator, generationManager, darkMatter, subscription, stackOsNFT]
 }

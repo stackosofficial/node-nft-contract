@@ -1,7 +1,7 @@
 const { ethers } = require("hardhat");
 const { expect } = require("chai");
 const { parseEther, formatEther } = require("@ethersproject/units");
-const { deployStackOS, setup, deploySimp, print } = require("./utils");
+const { deployStackOS, setup, deployStackOSBasic, print } = require("./utils");
 
 describe("StackOS NFT Basic", function () {
   it("Snapshot EVM", async function () {
@@ -30,7 +30,8 @@ describe("StackOS NFT Basic", function () {
       darkMatter,
       subscription,
       stackOsNFT] = await setup();
-      stackOsNFT = await deploySimp();
+
+      stackOsNFT = await deployStackOSBasic();
   });
 
   it("Add liquidity", async function () {
@@ -145,6 +146,19 @@ describe("StackOS NFT Basic", function () {
     await expect(
       stackOsNFTgen3.transferFromLastGen(owner.address, parseEther("10.0"))
     ).to.be.revertedWith("Not Correct Address");
+  });
+
+  it("Unable to transfer when not whitelisted", async function () {
+    await expect(
+      stackOsNFT.transferFrom(owner.address, joe.address, 0)
+    ).to.be.revertedWith(
+      "Not whitelisted for transfers"
+    )
+  });
+
+  it("Whitelist address and transfer from it", async function () {
+    await stackOsNFT.whitelist(owner.address);
+    await stackOsNFT.transferFrom(owner.address, joe.address, 0);
   });
 
   it("Admin tried to withdraw before time lock expires.", async function () {

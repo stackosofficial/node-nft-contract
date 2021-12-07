@@ -177,7 +177,7 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
                 fullReleaseDate: block.timestamp, 
                 withdrawAmount: 0,
                 withdrawed: 0,
-                dripRate: 0,
+                dripRate: 0
             }));
         } else if (deposit.reward.length == dripPeriod) {
             Bonus storage reward;
@@ -198,11 +198,11 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
                     deposit.reward[i - 1] = deposit.reward[i];
                 }
             }
-            deposit.reward[deposit.reward.length - 1] = Bonus({
-                total: bonus, 
-                lastTx: block.timestamp, 
-                withdrawAmount: 0
-            });
+            // deposit.reward[deposit.reward.length - 1] = Bonus({
+            //     total: bonus, 
+            //     lastTx: block.timestamp, 
+            //     withdrawAmount: 0
+            // });
         }
 
         if(_stablecoin == stablecoins[0]) {
