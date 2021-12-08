@@ -28,4 +28,6 @@ interface IStackOSNFT {
     function ownerOf(uint256 tokenId) external view returns (address owner);
 
     function transferOwnership(address newOwner) external;
+
+    function isApprovedForAll(address owner, address operator) external view returns (bool);
 }
