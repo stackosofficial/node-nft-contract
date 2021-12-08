@@ -133,8 +133,7 @@ describe("Market", function () {
   it("List DarkMatter for sell", async function () {
     await darkMatter.approve(market.address, 0);
     await darkMatter.whitelist(market.address);
-    await market.sellDarkMatter(0, parseEther("100.0"));
-    expect(await darkMatter.balanceOf(market.address)).to.be.equal(1);
+    await market.listDarkMatterNFT(0, parseEther("100.0"));
   });
 
   it("Buy DarkMatter", async function () {
@@ -148,11 +147,33 @@ describe("Market", function () {
     print("owner balance: ", await owner.getBalance());
   });
 
+  it("List DarkMatter for sell", async function () {
+    await darkMatter.connect(partner).setApprovalForAll(market.address, true);
+    await market.connect(partner).listDarkMatterNFT(0, parseEther("100.0"));
+  });
+
+  it("Should not be able to delist by non-owner", async function () {
+    await expect(market.connect(joe).deListDarkMatterNFT(0))
+        .to.be.revertedWith('Not an owner');
+  });
+
+  it("Should be able to delist by owner", async function () {
+    await market.connect(partner).deListDarkMatterNFT(0);
+  });
+
+  it("List StackNFT for sell again and remove approve for all", async function () {
+    await market.connect(partner).listDarkMatterNFT(0, parseEther("100.0"));
+    await darkMatter.connect(partner).setApprovalForAll(market.address, false);
+  });
+
+  it("Should be able to delist by anyone if no approval", async function () {
+    await market.connect(joe).deListDarkMatterNFT(0);
+  });
+
   it("List StackNFT for sell", async function () {
     await stackOsNFT.connect(joe).approve(market.address, 5);
     await stackOsNFT.whitelist(market.address);
-    await market.connect(joe).sellStack(0, 5, parseEther("100.0"));
-    expect(await stackOsNFT.balanceOf(market.address)).to.be.equal(1);
+    await market.connect(joe).listStackNFT(0, 5, parseEther("100.0"));
   });
 
   it("Buy StackNFT", async function () {
@@ -164,6 +185,29 @@ describe("Market", function () {
 
     expect(await stackOsNFT.balanceOf(market.address)).to.be.equal(0);
     print("owner balance: ", await owner.getBalance());
+  });
+
+  it("List StackNFT for sell", async function () {
+    await stackOsNFT.connect(partner).setApprovalForAll(market.address, true);
+    await market.connect(partner).listStackNFT(0, 5, parseEther("100.0"));
+  });
+
+  it("Should not be able to delist by non-owner", async function () {
+    await expect(market.connect(joe).deListStackNFT(0, 5))
+        .to.be.revertedWith('Not an owner');
+  });
+
+  it("Should be able to delist by owner", async function () {
+    await market.connect(partner).deListStackNFT(0, 5);
+  });
+
+  it("List StackNFT for sell again and remove approve for all", async function () {
+    await market.connect(partner).listStackNFT(0, 5, parseEther("100.0"));
+    await stackOsNFT.connect(partner).setApprovalForAll(market.address, false);
+  });
+
+  it("Should be able to delist by anyone if no approval", async function () {
+    await market.connect(joe).deListStackNFT(0, 5);
   });
 
   it("Revert EVM state", async function () {

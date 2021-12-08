@@ -5,9 +5,38 @@ import "./DarkMatter.sol";
 import "./GenerationManager.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "hardhat/console.sol";
 
-contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable {
+contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeable {
+
+    event StackSale(
+        address seller,
+        address buyer,
+        uint256 generationId,
+        uint256 tokenId,
+        uint256 price
+    );
+
+    event StackListing(
+        address seller,
+        uint256 generationId,
+        uint256 tokenId,
+        uint256 price
+    );
+
+    event DarkMatterSale(
+        address seller,
+        address buyer,
+        uint256 tokenId,
+        uint256 price
+    );
+
+    event DarkMatterListing(
+        address seller,
+        uint256 tokenId,
+        uint256 price
+    );
 
     DarkMatter private darkMatter;
     GenerationManager private generations;
@@ -52,6 +81,7 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable {
         royaltyFee = _royaltyFee;
         __Ownable_init();
         __ReentrancyGuard_init();
+        __UUPSUpgradeable_init();
     }
 
     function setDaoFee(uint256 _percent) public onlyOwner {
@@ -68,7 +98,8 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable {
     //     return lots;
     // }
 
-    function sellDarkMatter(
+
+    function listDarkMatterNFT(
         uint256 tokenId,
         uint256 price 
     ) public nonReentrant {
@@ -80,10 +111,11 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable {
         lot.seller = msg.sender;
         lot.tokenId = tokenId;
 
-        darkMatter.transferFrom(msg.sender, address(this), tokenId);
+        emit DarkMatterListing(msg.sender, tokenId, price);
     }
 
-    function sellStack(
+
+    function listStackNFT(
         uint256 generationId,
         uint256 tokenId,
         uint256 price
@@ -92,13 +124,38 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable {
 
         StackLot storage lot = stackToLot[generationId][tokenId];
         require(lot.seller == address(0), "Already listed");
-        generations.get(generationId).transferFrom(msg.sender, address(this), tokenId);
 
         lot.price = price;
         lot.seller = msg.sender;
         lot.generationId = generationId;
         lot.tokenId = tokenId;
+
+        emit StackListing(msg.sender, generationId, tokenId, price);
     }
+
+
+    function deListDarkMatterNFT(
+        uint256 tokenId
+    ) public nonReentrant {
+        bool isApproved = darkMatter
+            .isApprovedForAll(darkMatterToLot[tokenId].seller, address(this));
+        require(darkMatterToLot[tokenId].seller == msg.sender || !isApproved, 'Not an owner');
+        require(darkMatterToLot[tokenId].seller != address(0), 'Not a listing');
+        delete darkMatterToLot[tokenId];
+    }
+
+
+    function deListStackNFT(
+        uint256 generationId,
+        uint256 tokenId
+    ) public nonReentrant {
+        bool isApproved = generations.get(generationId)
+            .isApprovedForAll(stackToLot[generationId][tokenId].seller, address(this));
+        require(stackToLot[generationId][tokenId].seller == msg.sender || !isApproved, 'Not an owner');
+        require(stackToLot[generationId][tokenId].seller != address(0), 'Not a listing');
+        delete stackToLot[generationId][tokenId];
+    }
+
 
     function buyStack(
         uint256 generationId,
@@ -108,6 +165,7 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable {
 
         StackLot storage lot = stackToLot[generationId][tokenId];
         require(lot.seller != address(0), "Not listed");
+        require(lot.price >= msg.value, "Not enough MATIC");
 
         uint256 daoPart = lot.price * daoFee / HUNDRED_PERCENT;
         uint256 royaltyPart = lot.price * royaltyFee / HUNDRED_PERCENT;
@@ -117,16 +175,20 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable {
         royaltyAddress.call{value: royaltyPart}("");
         payable(lot.seller).call{value: sellerPart}("");
 
-        delete stackToLot[generationId][tokenId];
+        generations.get(generationId).transferFrom(lot.seller, msg.sender, tokenId);
 
-        generations.get(generationId).transferFrom(address(this), msg.sender, tokenId);
+        emit StackSale(lot.seller, msg.sender, generationId, tokenId, lot.price);
+
+        delete stackToLot[generationId][tokenId];
     }
+
 
     function buyDarkMatter(
         uint256 tokenId
     ) public payable nonReentrant {
         DarkMatterLot storage lot = darkMatterToLot[tokenId];
         require(lot.seller != address(0), "Not listed");
+        require(lot.price >= msg.value, "Not enough MATIC");
 
         uint256 daoPart = lot.price * daoFee / HUNDRED_PERCENT;
         uint256 royaltyPart = lot.price * royaltyFee / HUNDRED_PERCENT;
@@ -136,8 +198,12 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable {
         royaltyAddress.call{value: royaltyPart}("");
         payable(lot.seller).call{value: sellerPart}("");
 
-        delete darkMatterToLot[tokenId];
+        darkMatter.transferFrom(lot.seller, msg.sender, tokenId);
 
-        darkMatter.transferFrom(address(this), msg.sender, tokenId);
+        emit DarkMatterSale(lot.seller, msg.sender, tokenId, lot.price);
+
+        delete darkMatterToLot[tokenId];
     }
+
+    function _authorizeUpgrade(address newImplementation) internal virtual override onlyOwner{}
 }
