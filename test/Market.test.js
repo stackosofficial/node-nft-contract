@@ -52,6 +52,7 @@ describe("Market", function () {
         ROYALTY_FEE
       ]
     );
+    await market.deployed();
   });
 
   it("Deploy StackOS NFT generation 2", async function () {

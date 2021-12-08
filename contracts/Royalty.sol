@@ -15,12 +15,12 @@ contract Royalty is Ownable {
 
     uint256 private constant HUNDRED_PERCENT = 10000;
     IUniswapV2Router02 private router;
-    GenerationManager private generations; // StackOS NFT generations manager
+    GenerationManager private generations;
     DarkMatter private darkMatter;
     Subscription private subscription;
     // IERC20 private stableCoin;
-    address payable private feeAddress; // fee from deposits goes here
-    uint256 private feePercent; // fee percent taken from deposits
+    address payable private feeAddress; // fee from deposits will be transferred here
+    uint256 private feePercent;
 
     uint256 private minEthToStartCycle; // minimal cycle's balance required to end it
     uint256 private constant CYCLE_DURATION = 30 days; // minimal cycle's duration required to end it
@@ -30,11 +30,11 @@ contract Royalty is Ownable {
         uint256 perTokenReward; // price of 1 NFT, calculated on cycle end
         uint256 balance; // how much deposited during cycle
         uint256 delegatedCount; // how much tokens delegated when cycle starts
-        // [generation][tokenId] = true/false
         mapping(uint256 => mapping(uint256 => bool)) isClaimed; // whether reward for this token in this cycle is claimed
     }
 
-    mapping(uint256 => Cycle) private cycles; // a new cycle can start when two conditions met, `CYCLE_DURATION` time passed and `minEthToStartCycle` ether deposited
+    // a new cycle can start when `CYCLE_DURATION` time passed and `minEthToStartCycle` ether deposited
+    mapping(uint256 => Cycle) private cycles; 
 
     constructor(
         // IERC20 _stableCoin,

@@ -18,7 +18,7 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
     GenerationManager private generations;
     address private taxAddress;
 
-    uint256 private constant HUNDRED_PERCENT = 10000; // must be 10 000
+    uint256 private constant HUNDRED_PERCENT = 10000;
     uint256 public constant MONTH = 28 days;
 
     uint256 public dripPeriod = 700 days;

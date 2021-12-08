@@ -15,7 +15,7 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable {
     address private daoAddress;
     address private royaltyAddress;
 
-    uint256 private constant HUNDRED_PERCENT = 10000; // must be 10 000
+    uint256 private constant HUNDRED_PERCENT = 10000;
 
     uint256 public daoFee; 
     uint256 public royaltyFee; 
