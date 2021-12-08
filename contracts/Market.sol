@@ -3,24 +3,22 @@ pragma solidity ^0.8.0;
 
 import "./DarkMatter.sol";
 import "./GenerationManager.sol";
-import "./StableCoinAcceptor.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "hardhat/console.sol";
 
-contract Market is Ownable, ReentrancyGuard {
+contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable {
+
     DarkMatter private darkMatter;
     GenerationManager private generations;
 
     address private daoAddress;
     address private royaltyAddress;
 
-    uint256 private constant MAX_PERCENT = 10000; // for convinience 100%
+    uint256 private constant MAX_PERCENT = 10000; // must be 10 000
 
-    uint256 public daoFee = 1000; 
-    uint256 public royaltyFee = 1000; 
+    uint256 public daoFee; 
+    uint256 public royaltyFee; 
 
     struct StackLot {
         uint256 price;
@@ -38,16 +36,22 @@ contract Market is Ownable, ReentrancyGuard {
     mapping(uint256 => mapping(uint256 => StackLot)) public stackToLot;
     mapping(uint256 => DarkMatterLot) public darkMatterToLot;
 
-    constructor(
+    function initialize(
         GenerationManager _generations,
         DarkMatter _darkMatter,
         address _daoAddress,
-        address _royaltyDistributionAddress
-    ) {
+        address _royaltyAddress,
+        uint256 _daoFee,
+        uint256 _royaltyFee
+    ) initializer public {
         generations = _generations;
         darkMatter = _darkMatter;
         daoAddress = _daoAddress;
-        royaltyAddress = _royaltyDistributionAddress;
+        royaltyAddress = _royaltyAddress;
+        daoFee = _daoFee;
+        royaltyFee = _royaltyFee;
+        __Ownable_init();
+        __ReentrancyGuard_init();
     }
 
     function setDaoFee(uint256 _percent) public onlyOwner {

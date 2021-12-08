@@ -1,4 +1,4 @@
-const { ethers } = require("hardhat");
+const { ethers, upgrades } = require("hardhat");
 const { use, expect } = require("chai");
 const { parseEther } = require("@ethersproject/units");
 const { deployStackOS, setup, print } = require("./utils");
@@ -38,12 +38,19 @@ describe("Market", function () {
     DARK_MATTER_ADDRESS = darkMatter.address;
     DAO_ADDRESS = dao.address;
     ROYALTY_DISTRIBUTION_ADDRESS = royaltyDistribution.address;
+    DAO_FEE = 1000;
+    ROYALTY_FEE = 1000;
     const Market = await ethers.getContractFactory("Market");
-    market = await Market.deploy(
+    market = await upgrades.deployProxy(
+      Market,
+      [
         GENERATION_MANAGER_ADDRESS,
         DARK_MATTER_ADDRESS,
         DAO_ADDRESS,
-        ROYALTY_DISTRIBUTION_ADDRESS
+        ROYALTY_DISTRIBUTION_ADDRESS,
+        DAO_FEE,
+        ROYALTY_FEE
+      ]
     );
   });
 
