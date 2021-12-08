@@ -23,7 +23,7 @@ describe("Royalty", function () {
     print(Factory);
     factory = await ethers.getContractAt("IUniswapV2Factory", Factory);
   });
-
+  
   it("Deploy full SETUP", async function () {
     [stackToken,
       usdt,
@@ -35,6 +35,12 @@ describe("Royalty", function () {
       darkMatter,
       subscription,
       stackOsNFT] = await setup();
+  });
+
+  it("Deploy fake WETH", async function () {
+    weth = await ERC20.deploy(parseEther("100000000.0"));
+    await weth.deployed();
+    console.log("weth", weth.address);
   });
 
   it("Add liquidity STACK", async function () {
@@ -83,6 +89,27 @@ describe("Royalty", function () {
     print(LPaddressUSDT);
   });
 
+  it("Add liquidity WETH / fake WETH", async function () {
+    await weth.transfer(pepe.address, parseEther("100000.0"));
+    await weth.connect(pepe).approve(router.address, parseEther("100000.0"));
+    var deadline = Math.floor(Date.now() / 1000) + 1200;
+    await router
+      .connect(pepe)
+      .addLiquidityETH(
+        weth.address,
+        parseEther("100000.0"),
+        parseEther("100000.0"),
+        parseEther("100.0"),
+        pepe.address,
+        deadline,
+        { value: parseEther("100.0") }
+      );
+
+    print(weth.address);
+    LPaddressUSDT = await factory.getPair(WETH, weth.address);
+    print(LPaddressUSDT);
+  });
+
   it("Deploy royalty", async function () {
     GENERATION_MANAGER_ADDRESS = generationManager.address;
     DARK_MATTER_ADDRESS = darkMatter.address;
@@ -101,6 +128,8 @@ describe("Royalty", function () {
     );
     await royalty.deployed();
     await royalty.setFeePercent(DEPOSIT_FEE_PERCENT);
+    await royalty.setWETH(weth.address);
+
   });
 
   it("Mint some NFTs", async function () {
@@ -524,6 +553,62 @@ describe("Royalty", function () {
       "after subscripton withdraw (stackToken bob balance): ",
       (await stackToken.balanceOf(bob.address))
     );
+  });
+
+  it("Claim in WETH (for Matic network)", async function () {
+
+    await expect(
+      dude.sendTransaction({
+        from: dude.address,
+        to: royalty.address,
+        value: parseEther("1000.0"),
+      })
+    ).to.be.not.reverted;
+
+    await provider.send("evm_increaseTime", [CYCLE_DURATION]);
+    await provider.send("evm_mine");
+
+    await royalty.claimWETH(2, [2]);
+
+    print("bob weth (before claim): ", (await weth.balanceOf(bob.address)));
+    await royalty.connect(bob).claimWETH(0, [6]);
+
+    await expect(
+      dude.sendTransaction({
+        from: dude.address,
+        to: royalty.address,
+        value: parseEther("1000.0"),
+      })
+    ).to.be.not.reverted;
+
+    await provider.send("evm_increaseTime", [CYCLE_DURATION]); // 11 can end
+    await provider.send("evm_mine");
+
+    await royalty.connect(bob).claimWETH(2, [0]); // 12 cycle start (zero-based index 11)
+    await royalty.connect(vera).claimWETH(2, [1]);
+    await royalty.claimWETH(2, [2]);
+
+    await royalty.connect(bob).claimWETH(0, [6]);
+    await royalty.connect(vera).claimWETH(0, [7]);
+    await royalty.claimWETH(0, [8]);
+
+    await royalty.connect(bob).claimWETH(1, [0]);
+    await royalty.connect(vera).claimWETH(1, [1]);
+    await royalty.claimWETH(1, [2]);
+
+    await royalty.claimWETH(0, [5]);
+    await royalty.connect(bob).claimWETH(0, [3]);
+    await royalty.connect(vera).claimWETH(0, [4]);
+    await royalty.connect(partner).claimWETH(0, [0, 1, 2]);
+
+    print((await provider.getBalance(royalty.address)));
+    expect(await provider.getBalance(royalty.address)).to.be.equal(
+      parseEther("0.0")
+    );
+    print("owner weth:", await weth.balanceOf(owner.address));
+    print("vera:", await weth.balanceOf(vera.address));
+    print("bob:", await weth.balanceOf(bob.address));
+    print("partner:", await weth.balanceOf(partner.address));
   });
 
   it("Revert EVM state", async function () {

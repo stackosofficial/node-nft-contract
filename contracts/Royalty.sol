@@ -18,7 +18,7 @@ contract Royalty is Ownable {
     GenerationManager private generations;
     DarkMatter private darkMatter;
     Subscription private subscription;
-    // IERC20 private stableCoin;
+    IERC20 private WETH; // for Matic network
     address payable private feeAddress; // fee from deposits will be transferred here
     uint256 private feePercent;
 
@@ -37,7 +37,6 @@ contract Royalty is Ownable {
     mapping(uint256 => Cycle) private cycles; 
 
     constructor(
-        // IERC20 _stableCoin,
         IUniswapV2Router02 _router,
         GenerationManager _generations,
         DarkMatter _darkMatter,
@@ -45,7 +44,6 @@ contract Royalty is Ownable {
         address payable _feeAddress,
         uint256 _minEthToStartCycle
     ) {
-        // stableCoin = _stableCoin;
         router = _router;
         generations = _generations;
         darkMatter = _darkMatter;
@@ -123,6 +121,16 @@ contract Royalty is Ownable {
     function setFeeAddress(address payable _feeAddress) external onlyOwner {
         require(_feeAddress != address(0), "Must be not zero-address");
         feeAddress = _feeAddress;
+    }    
+
+    /*
+     * @title Set WETH address, probably should be only used on Matic network
+     * @param WETH address
+     * @dev Could only be invoked by the contract owner.
+     */
+    function setWETH(IERC20 _WETH) external onlyOwner {
+        require(address(_WETH) != address(0), "Must be not zero-address");
+        WETH = _WETH;
     }
 
     /*
@@ -202,6 +210,19 @@ contract Royalty is Ownable {
         external
     {
         _claim(_generationId, _tokenIds, false, 0, 0, IERC20(address(0)));
+    }
+
+    /*
+     * @title User can take royalty for holding delegated NFTs that he owns
+     * @param generationId StackOS generation id to get royalty for
+     * @param tokenIds Token ids to get royalty for
+     * @dev tokens must be delegated and owned by the caller
+     */
+    function claimWETH(uint256 _generationId, uint256[] calldata _tokenIds)
+        external
+    {
+        require(address(WETH) != address(0), "Wrong WETH address");
+        _claim(_generationId, _tokenIds, false, 0, 0, WETH);
     }
 
     /*
@@ -307,10 +328,15 @@ contract Royalty is Ownable {
 
             if (reward > 0) {
                 if (_subscription == false) {
-                    (bool success, ) = payable(msg.sender).call{value: reward}(
-                        ""
-                    );
-                    require(success, "Transfer failed");
+                    if(_stablecoin == WETH && address(WETH) != address(0)) {
+                        uint256 wethReceived = buyWETH(reward);
+                        WETH.transfer(msg.sender, wethReceived);
+                    } else {
+                        (bool success, ) = payable(msg.sender).call{value: reward}(
+                            ""
+                        );
+                        require(success, "Transfer failed");
+                    }
                 } else {
                     uint256 usdReceived = buyStable(reward, _stablecoin);
                     _stablecoin.approve(address(subscription), usdReceived);
@@ -327,14 +353,33 @@ contract Royalty is Ownable {
     }
 
     /*
-     *  @title Swap `paymentToken` for `stackToken`.
-     *  @param Amount of `paymentToken`.
+     *  @title Buy `_stablecoin` for WETH.
+     *  @param Amount of WETH to swap.
      */
     function buyStable(uint256 amount, IERC20 _stablecoin) private returns (uint256) {
         uint256 deadline = block.timestamp + 1200;
         address[] memory path = new address[](2);
         path[0] = address(router.WETH());
         path[1] = address(_stablecoin);
+        uint256[] memory amountOutMin = router.getAmountsOut(amount, path);
+        uint256[] memory amounts = router.swapExactETHForTokens{value: amount}(
+            amountOutMin[1],
+            path,
+            address(this),
+            deadline
+        );
+        return amounts[1];
+    }
+
+    /*
+     *  @title Buy WETH.
+     *  @param Amount of MATIC.
+     */
+    function buyWETH(uint256 amount) private returns (uint256) {
+        uint256 deadline = block.timestamp + 1200;
+        address[] memory path = new address[](2);
+        path[0] = address(router.WETH()); // on matic network this is wrapped matic
+        path[1] = address(WETH);
         uint256[] memory amountOutMin = router.getAmountsOut(amount, path);
         uint256[] memory amounts = router.swapExactETHForTokens{value: amount}(
             amountOutMin[1],

@@ -63,7 +63,7 @@ async function deployStackOS() {
 
 async function setup() {
 
-    const ERC20 = await ethers.getContractFactory("TestCurrency");
+    ERC20 = await ethers.getContractFactory("TestCurrency");
     let stackToken = await ERC20.deploy(parseEther("100000000.0"));
     await stackToken.deployed();
     console.log("stackToken", stackToken.address);
@@ -80,8 +80,8 @@ async function setup() {
     await dai.deployed();
     console.log("dai", dai.address);
 
-    const ERC20_2 = await ethers.getContractFactory("LinkToken");
-    let link = await ERC20_2.deploy();
+    const LinkToken = await ethers.getContractFactory("LinkToken");
+    let link = await LinkToken.deploy();
     await link.deployed();
     console.log("link", link.address);
 
