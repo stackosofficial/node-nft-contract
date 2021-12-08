@@ -382,7 +382,7 @@ describe("Subscription", function () {
       (await stackToken.balanceOf(owner.address))
     );
 
-    await provider.send("evm_increaseTime", [MONTH*23]); 
+    await provider.send("evm_increaseTime", [MONTH*16]); 
     oldPendingReward = await subscription.pendingReward(1, 1);
     print("gen 0 token 5 pending reward: ", oldPendingReward);
     await subscription.withdraw(1, [1]);

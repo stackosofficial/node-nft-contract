@@ -177,22 +177,21 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
             // we should arrive here once such bonus found
             // example: [--++] where + is non-empty bonus, so index = 3 (not zero-based)
             else if(index > 0) {
+                uint256 currentIndex = i - index;
 
-                uint256 length = deposit.reward.length - index;
-                uint256 removedLength = deposit.reward.length - length;
-                uint256 currentIndex = i - removedLength;
-
-                console.log(index);
                 deposit.reward[currentIndex] = deposit.reward[index + currentIndex];
+                delete deposit.reward[index + currentIndex];
             }
         }
 
+        console.log("bonuses before pops:", deposit.reward.length);
         // pop from end until we find non-withdrawn bonus
         for (uint256 i = subOrZero(deposit.reward.length, 1); i > 0; i--) {
             Bonus storage bonus = deposit.reward[i];
             if(bonus.lockedAmount > 0) break;
             deposit.reward.pop();
         }
+        console.log("bonuses after pops:", deposit.reward.length);
 
         // for (uint256 a = index; a < clusterUsers[clusterDns].length - 1; a++) {
         //     clusterUsers[clusterDns][a] = clusterUsers[clusterDns][a + 1];
@@ -291,6 +290,7 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
         Deposit storage deposit = deposits[generationId][tokenId];
 
         uint256 totalBonusAmount;
+        uint256 index;
 
         for (uint256 i; i < deposit.reward.length; i++) {
             Bonus storage bonus = deposit.reward[i];
@@ -304,7 +304,31 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
 
             bonus.lastTxDate = block.timestamp;
             bonus.lockedAmount -= amount;
+            
+            // same as in _subscribe
+            console.log("lockedAmount 0 at index: ", i+1);
+            if(bonus.lockedAmount == 0) index = i+1;
+            else if(index > 0) {
+                uint256 currentIndex = i - index;
+
+                console.log(index, currentIndex);
+                
+                deposit.reward[currentIndex] = deposit.reward[index + currentIndex];
+                delete deposit.reward[index + currentIndex];
+            }
         }
+
+        console.log("bonuses before pops:", deposit.reward.length);
+
+        // same as in _subscribe
+        for (uint256 i = subOrZero(deposit.reward.length, 1); i > 0; i--) {
+            Bonus storage bonus = deposit.reward[i];
+            console.log("pop cycle, lockedAmount: ", bonus.lockedAmount );
+            if(bonus.lockedAmount > 0) break;
+            deposit.reward.pop();
+        }
+
+        console.log("bonuses after pops:", deposit.reward.length);
 
         totalBonusAmount += overflow[generationId][tokenId];
         overflow[generationId][tokenId] = 0;
