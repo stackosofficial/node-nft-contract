@@ -15,7 +15,7 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable {
     address private daoAddress;
     address private royaltyAddress;
 
-    uint256 private constant MAX_PERCENT = 10000; // must be 10 000
+    uint256 private constant HUNDRED_PERCENT = 10000; // must be 10 000
 
     uint256 public daoFee; 
     uint256 public royaltyFee; 
@@ -55,12 +55,12 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable {
     }
 
     function setDaoFee(uint256 _percent) public onlyOwner {
-        require(_percent <= MAX_PERCENT, "Max is 10000");
+        require(_percent <= HUNDRED_PERCENT, "invalid fee basis points");
         daoFee = _percent;
     }
 
     function setRoyaltyFee(uint256 _percent) public onlyOwner {
-        require(_percent <= MAX_PERCENT, "Max is 10000");
+        require(_percent <= HUNDRED_PERCENT, "invalid fee basis points");
         royaltyFee = _percent;
     }
 
@@ -109,8 +109,8 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable {
         StackLot storage lot = stackToLot[generationId][tokenId];
         require(lot.seller != address(0), "Not listed");
 
-        uint256 daoPart = lot.price * daoFee / MAX_PERCENT;
-        uint256 royaltyPart = lot.price * royaltyFee / MAX_PERCENT;
+        uint256 daoPart = lot.price * daoFee / HUNDRED_PERCENT;
+        uint256 royaltyPart = lot.price * royaltyFee / HUNDRED_PERCENT;
         uint256 sellerPart = lot.price - daoPart - royaltyPart;
 
         daoAddress.call{value: daoPart}("");
@@ -128,8 +128,8 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable {
         DarkMatterLot storage lot = darkMatterToLot[tokenId];
         require(lot.seller != address(0), "Not listed");
 
-        uint256 daoPart = lot.price * daoFee / MAX_PERCENT;
-        uint256 royaltyPart = lot.price * royaltyFee / MAX_PERCENT;
+        uint256 daoPart = lot.price * daoFee / HUNDRED_PERCENT;
+        uint256 royaltyPart = lot.price * royaltyFee / HUNDRED_PERCENT;
         uint256 sellerPart = lot.price - daoPart - royaltyPart;
 
         daoAddress.call{value: daoPart}("");

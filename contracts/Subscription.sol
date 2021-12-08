@@ -18,7 +18,7 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
     GenerationManager private generations;
     address private taxAddress;
 
-    uint256 private constant MAX_PERCENT = 10000; // must be 10 000
+    uint256 private constant HUNDRED_PERCENT = 10000; // must be 10 000
     uint256 public constant MONTH = 28 days;
 
     uint256 public dripPeriod = 700 days;
@@ -86,12 +86,12 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
     }
 
     function setBonusPercent(uint256 _percent) external onlyOwner {
-        require(_percent <= MAX_PERCENT, "Maximum is 100%");
+        require(_percent <= HUNDRED_PERCENT, "Maximum is 100%");
         bonusPercent = _percent;
     }
 
     function setTaxReductionPercent(uint256 _percent) external onlyOwner {
-        require(_percent <= MAX_PERCENT, "Maximum is 100%");
+        require(_percent <= HUNDRED_PERCENT, "Maximum is 100%");
         taxReductionPercent = _percent;
     }
 
@@ -134,13 +134,13 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
 
         if (deposit.nextPayDate == 0) {
             deposit.nextPayDate = block.timestamp;
-            deposit.tax = MAX_PERCENT;
+            deposit.tax = HUNDRED_PERCENT;
         }
 
         // Paid after deadline?
         if (deposit.nextPayDate + taxResetDeadline < block.timestamp) {
             deposit.nextPayDate = block.timestamp;
-            deposit.tax = MAX_PERCENT;
+            deposit.tax = HUNDRED_PERCENT;
         }
 
         deposit.tax = subOrZero(
@@ -155,7 +155,7 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
         deposit.balance += amount;
 
         // bonuses logic
-        uint256 newBonusAmount = amount * bonusPercent / MAX_PERCENT;
+        uint256 newBonusAmount = amount * bonusPercent / HUNDRED_PERCENT;
         deposit.reward.push(Bonus({
             total: newBonusAmount, 
             depositDate: block.timestamp, 
@@ -295,7 +295,7 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
         // if not subscribed
         if (deposit.nextPayDate < block.timestamp) {
             deposit.nextPayDate = 0;
-            deposit.tax = MAX_PERCENT - taxReductionPercent;
+            deposit.tax = HUNDRED_PERCENT - taxReductionPercent;
         }
 
         uint256 amountWithdraw = deposit.balance;
@@ -306,7 +306,7 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
         // early withdraw tax
         if (deposit.tax > 0) {
             // take tax from amount with bonus that will be withdrawn
-            uint256 tax = (amountWithdraw * deposit.tax) / MAX_PERCENT;
+            uint256 tax = (amountWithdraw * deposit.tax) / HUNDRED_PERCENT;
             amountWithdraw -= tax;
             stackToken.transfer(taxAddress, tax);
         }
@@ -326,7 +326,7 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
             );
         } else {
             stackToken.transfer(msg.sender, amountWithdraw);
-            deposit.tax = MAX_PERCENT;
+            deposit.tax = HUNDRED_PERCENT;
         }
     }
 

@@ -74,7 +74,7 @@ contract StackOsNFTBasic is TransferWhitelist, ERC721, StableCoinAcceptor, ERC72
         public
         onlyOwner
     {
-        require(_fee <= 10000, "Max is 100%");
+        require(_fee <= 10000, "invalid fee basis points");
         mintFee = _fee;
     }
 
