@@ -33,6 +33,7 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
         uint256 lastTxDate;
         uint256 releasePeriod;
         uint256 lockedAmount;
+        // TODO: this can be removed, because = total / releasePeriod
         uint256 dripRate;
     }
 
@@ -45,7 +46,7 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
     }
 
     mapping(uint256 => mapping(uint256 => Deposit)) public deposits; // generationId => tokenId => Deposit
-    // mapping(uint256 => mapping(uint256 => uint256)) public overflow; // generationId => tokenId => withdraw amount
+    mapping(uint256 => mapping(uint256 => uint256)) public overflow; // generationId => tokenId => withdraw amount
 
     constructor(
         IERC20 _stackToken,
@@ -157,21 +158,37 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
         // bonuses logic
         uint256 newBonusAmount = amount * bonusPercent / HUNDRED_PERCENT;
 
-
+        uint256 index;
         for (uint256 i; i < deposit.reward.length; i++) {
             Bonus storage bonus = deposit.reward[i];
 
-            if(bonus.lockedAmount > 0 && i == 0) break;
+            uint256 amountBonus = bonus.dripRate * (block.timestamp - bonus.lastTxDate);
+            // if(bonus.lockedAmount > amountBonus && i == 0) break;
 
-            uint256 amount = bonus.dripRate * (block.timestamp - bonus.lastTxDate);
-            if(bonus.lockedAmount <= amount) 
+            if(bonus.lockedAmount < amountBonus) {
+                amountBonus = bonus.lockedAmount;
+            }
+            overflow[generationId][tokenId] += amountBonus;
+            bonus.lockedAmount -= amountBonus;
+            bonus.lastTxDate = block.timestamp;
 
+            // move elements down if necessery
+            if(bonus.lockedAmount == 0) index = i+1;
+            else if(index > 0) {
+
+                uint256 length = deposit.reward.length - index;
+                uint256 removedLength = deposit.reward.length - length;
+                uint256 currentIndex = i - removedLength;
+
+                deposit.reward[currentIndex] = deposit.reward[index + currentIndex];
+            }
         }
-        for (uint256 i; i < deposit.reward.length; i++) {
+
+        // pop from end until we find non-withdrawn bonus
+        for (uint256 i = deposit.reward.length; i > 0; i--) {
             Bonus storage bonus = deposit.reward[i];
-
-
-
+            if(bonus.lockedAmount > 0) break;
+            deposit.reward.pop();
         }
 
         // for (uint256 a = index; a < clusterUsers[clusterDns].length - 1; a++) {
