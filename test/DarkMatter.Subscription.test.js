@@ -53,11 +53,11 @@ describe("DarkMatter integration with Subscription", function () {
 
   it("Deploy DarkMatter", async function () {
     GENERATION_MANAGER_ADDRESS = generationManager.address;
-    MASTER_NODE_PRICE = 5;
+    DARK_MATTER_PRICE = 5;
     const DarkMatter = await ethers.getContractFactory("DarkMatter");
     darkMatter = await DarkMatter.deploy(
       GENERATION_MANAGER_ADDRESS,
-      MASTER_NODE_PRICE
+      DARK_MATTER_PRICE
     );
     await darkMatter.deployed();
     print(darkMatter.address);
@@ -67,7 +67,7 @@ describe("DarkMatter integration with Subscription", function () {
     NAME = "STACK OS NFT";
     SYMBOL = "SON";
     STACK_TOKEN_FOR_PAYMENT = stackToken.address;
-    MASTER_NODE_ADDRESS = darkMatter.address;
+    DARK_MATTER_ADDRESS = darkMatter.address;
     PRICE = parseEther("0.1");
     MAX_SUPPLY = 25;
     PRIZES = 10;
@@ -84,7 +84,7 @@ describe("DarkMatter integration with Subscription", function () {
       NAME,
       SYMBOL,
       STACK_TOKEN_FOR_PAYMENT,
-      MASTER_NODE_ADDRESS,
+      DARK_MATTER_ADDRESS,
       PRICE,
       MAX_SUPPLY,
       PRIZES,
@@ -104,7 +104,7 @@ describe("DarkMatter integration with Subscription", function () {
     PAYMENT_TOKEN = usdt.address;
     STACK_TOKEN_FOR_PAYMENT = stackToken.address;
     GENERATION_MANAGER_ADDRESS = generationManager.address;
-    MASTER_NODE_ADDRESS = darkMatter.address;
+    DARK_MATTER_ADDRESS = darkMatter.address;
     ROUTER_ADDRESS = router.address;
     TAX_ADDRESS = tax.address;
 
@@ -118,7 +118,7 @@ describe("DarkMatter integration with Subscription", function () {
       PAYMENT_TOKEN,
       STACK_TOKEN_FOR_PAYMENT,
       GENERATION_MANAGER_ADDRESS,
-      MASTER_NODE_ADDRESS,
+      DARK_MATTER_ADDRESS,
       ROUTER_ADDRESS,
       TAX_ADDRESS,
       TAX_RESET_DEADLINE,
@@ -148,7 +148,6 @@ describe("DarkMatter integration with Subscription", function () {
     await darkMatter.deposit(0, [3, 4]);
     await darkMatter.mint()
 
-    // got 1 master node
     expect(await stackOsNFT.balanceOf(darkMatter.address)).to.be.equal(5);
     expect(await stackOsNFT.balanceOf(owner.address)).to.be.equal(0);
     expect(await darkMatter.balanceOf(owner.address)).to.be.equal(1);
@@ -289,7 +288,6 @@ describe("DarkMatter integration with Subscription", function () {
     await darkMatter.deposit(0, [5, 6, 7, 8, 9]);
     await darkMatter.mint()
 
-    // got 1 master node
     expect(await stackOsNFT.balanceOf(darkMatter.address)).to.be.equal(10);
     expect(await stackOsNFT.balanceOf(owner.address)).to.be.equal(0);
     expect(await darkMatter.balanceOf(owner.address)).to.be.equal(1);
@@ -329,7 +327,7 @@ describe("DarkMatter integration with Subscription", function () {
       NAME,
       SYMBOL,
       STACK_TOKEN_FOR_PAYMENT,
-      MASTER_NODE_ADDRESS,
+      DARK_MATTER_ADDRESS,
       PRICE,
       MAX_SUPPLY,
       PRIZES,
@@ -353,7 +351,6 @@ describe("DarkMatter integration with Subscription", function () {
     await darkMatter.deposit(1, [0, 1, 2, 3, 4]);
     await darkMatter.mint()
 
-    // got 1 master node
     expect(await stackOsNFTGen2.balanceOf(darkMatter.address)).to.be.equal(5);
     expect(await stackOsNFTGen2.balanceOf(owner.address)).to.be.equal(0);
     expect(await darkMatter.balanceOf(owner.address)).to.be.equal(2);

@@ -9,7 +9,7 @@ async function deployStackOSBasic() {
     // NAME = "STACK OS NFT";
     // SYMBOL = "SON";
     // STACK_TOKEN_FOR_PAYMENT = stackToken.address;
-    // MASTER_NODE_ADDRESS = darkMatter.address;
+    // DARK_MATTER_ADDRESS = darkMatter.address;
     // ROUTER = router.address;
     SUBSCRIPTION = subscription.address;
     // PRICE = parseEther("5");
@@ -22,7 +22,7 @@ async function deployStackOSBasic() {
       NAME,
       SYMBOL,
       STACK_TOKEN_FOR_PAYMENT,
-      MASTER_NODE_ADDRESS,
+      DARK_MATTER_ADDRESS,
       // ROUTER,
       SUBSCRIPTION,
       PRICE,
@@ -44,7 +44,7 @@ async function deployStackOS() {
       NAME,
       SYMBOL,
       STACK_TOKEN_FOR_PAYMENT,
-      MASTER_NODE_ADDRESS,
+      DARK_MATTER_ADDRESS,
       PRICE,
       MAX_SUPPLY,
       PRIZES,
@@ -101,11 +101,11 @@ async function setup() {
 
 
     GENERATION_MANAGER_ADDRESS = generationManager.address;
-    MASTER_NODE_PRICE = 5;
+    DARK_MATTER_PRICE = 5;
     const DarkMatter = await ethers.getContractFactory("DarkMatter");
     let darkMatter = await DarkMatter.deploy(
         GENERATION_MANAGER_ADDRESS,
-        MASTER_NODE_PRICE
+        DARK_MATTER_PRICE
     );
     await darkMatter.deployed();
     console.log(darkMatter.address);
@@ -113,7 +113,7 @@ async function setup() {
     PAYMENT_TOKEN = usdt.address;
     STACK_TOKEN_FOR_PAYMENT = stackToken.address;
     GENERATION_MANAGER_ADDRESS = generationManager.address;
-    MASTER_NODE_ADDRESS = darkMatter.address;
+    DARK_MATTER_ADDRESS = darkMatter.address;
     ROUTER_ADDRESS = router.address;
     TAX_ADDRESS = tax.address;
 
@@ -127,7 +127,7 @@ async function setup() {
         // PAYMENT_TOKEN,
         STACK_TOKEN_FOR_PAYMENT,
         GENERATION_MANAGER_ADDRESS,
-        MASTER_NODE_ADDRESS,
+        DARK_MATTER_ADDRESS,
         ROUTER_ADDRESS,
         TAX_ADDRESS,
         TAX_RESET_DEADLINE,
@@ -145,7 +145,7 @@ async function setup() {
     NAME = "STACK OS NFT";
     SYMBOL = "SON";
     STACK_TOKEN_FOR_PAYMENT = stackToken.address;
-    MASTER_NODE_ADDRESS = darkMatter.address;
+    DARK_MATTER_ADDRESS = darkMatter.address;
     PRICE = parseEther("0.1");
     MAX_SUPPLY = 25;
     PRIZES = 10;
@@ -163,7 +163,7 @@ async function setup() {
         NAME,
         SYMBOL,
         STACK_TOKEN_FOR_PAYMENT,
-        MASTER_NODE_ADDRESS,
+        DARK_MATTER_ADDRESS,
         PRICE,
         MAX_SUPPLY,
         PRIZES,

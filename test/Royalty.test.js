@@ -85,7 +85,7 @@ describe("Royalty", function () {
 
   it("Deploy royalty", async function () {
     GENERATION_MANAGER_ADDRESS = generationManager.address;
-    MASTER_NODE_ADDRESS = darkMatter.address;
+    DARK_MATTER_ADDRESS = darkMatter.address;
     DEPOSIT_FEE_ADDRESS = bank.address;
     MIN_CYCLE_ETHER = parseEther("1");
     DEPOSIT_FEE_PERCENT = 1000;
@@ -94,7 +94,7 @@ describe("Royalty", function () {
     royalty = await Royalty.deploy(
       ROUTER_ADDRESS,
       GENERATION_MANAGER_ADDRESS,
-      MASTER_NODE_ADDRESS,
+      DARK_MATTER_ADDRESS,
       subscription.address,
       DEPOSIT_FEE_ADDRESS,
       MIN_CYCLE_ETHER

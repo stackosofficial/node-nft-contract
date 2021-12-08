@@ -16,9 +16,9 @@ contract DarkMatter is TransferWhitelist, ERC721, Ownable, ReentrancyGuard {
     mapping(address => uint256) private deposits; // total tokens deposited, from any generation
     mapping(address => uint256) private lastUserDarkMatter; // owner => current incomplete darkmatter id
     mapping(address => uint256[]) private toBeMinted; // owner => DarkMatterNFT ids to be minted
-    mapping(uint256 => mapping(uint256 => uint256)) private stackToMaster; // generation => stackNFT id => darkmatter id
+    mapping(uint256 => mapping(uint256 => uint256)) private stackToDarkMatter; // generation => stackNFT id => darkmatter id
 
-    mapping(uint256 => mapping(uint256 => uint256[])) private masterToStack; // darkmatter id => generation => stackNFT ids 
+    mapping(uint256 => mapping(uint256 => uint256[])) private darkMatterToStack; // darkmatter id => generation => stackNFT ids 
 
     GenerationManager private generations;
 
@@ -42,7 +42,7 @@ contract DarkMatter is TransferWhitelist, ERC721, Ownable, ReentrancyGuard {
     {
         uint256[][] memory stackTokenIds = new uint256[][](generations.count());
         for(uint256 i; i < stackTokenIds.length; i ++) {
-            stackTokenIds[i] = masterToStack[_darkMatterId][i];
+            stackTokenIds[i] = darkMatterToStack[_darkMatterId][i];
         }
         return stackTokenIds;
     }
@@ -57,7 +57,7 @@ contract DarkMatter is TransferWhitelist, ERC721, Ownable, ReentrancyGuard {
         view
         returns (bool)
     {
-        return _exists(stackToMaster[generationId][tokenId]);
+        return _exists(stackToDarkMatter[generationId][tokenId]);
     }
 
     /*
@@ -72,7 +72,7 @@ contract DarkMatter is TransferWhitelist, ERC721, Ownable, ReentrancyGuard {
         uint256 tokenId
     ) public view returns (bool) {
         if (
-            _exists(stackToMaster[generationId][tokenId]) &&
+            _exists(stackToDarkMatter[generationId][tokenId]) &&
             ownerOf(generationId, tokenId) == _wallet
         ) {
             return true;
@@ -92,7 +92,7 @@ contract DarkMatter is TransferWhitelist, ERC721, Ownable, ReentrancyGuard {
         returns (address)
     {
         uint256 generationId = generations.getIDByAddress(address(_stackOsNFT));
-        if (_exists(stackToMaster[generationId][tokenId])) {
+        if (_exists(stackToDarkMatter[generationId][tokenId])) {
             return ownerOf(generationId, tokenId);
         }
         return _stackOsNFT.ownerOf(tokenId);
@@ -108,7 +108,7 @@ contract DarkMatter is TransferWhitelist, ERC721, Ownable, ReentrancyGuard {
         view
         returns (address)
     {
-        return ownerOf(stackToMaster[generationId][tokenId]);
+        return ownerOf(stackToDarkMatter[generationId][tokenId]);
     }
 
     /*
@@ -136,16 +136,16 @@ contract DarkMatter is TransferWhitelist, ERC721, Ownable, ReentrancyGuard {
             deposits[msg.sender] += 1;
             if (deposits[msg.sender] == mintPrice) {
                 deposits[msg.sender] -= mintPrice;
-                stackToMaster[generationId][tokenId] = lastUserDarkMatter[
+                stackToDarkMatter[generationId][tokenId] = lastUserDarkMatter[
                     msg.sender
                 ];
-                masterToStack[lastUserDarkMatter[msg.sender]][generationId].push(tokenId);
+                darkMatterToStack[lastUserDarkMatter[msg.sender]][generationId].push(tokenId);
                 toBeMinted[msg.sender].push(lastUserDarkMatter[msg.sender]);
             } else {
-                stackToMaster[generationId][tokenId] = lastUserDarkMatter[
+                stackToDarkMatter[generationId][tokenId] = lastUserDarkMatter[
                     msg.sender
                 ];
-                masterToStack[lastUserDarkMatter[msg.sender]][generationId].push(tokenId);
+                darkMatterToStack[lastUserDarkMatter[msg.sender]][generationId].push(tokenId);
             }
         }
     }
