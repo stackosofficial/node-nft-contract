@@ -172,20 +172,23 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
             bonus.lockedAmount -= amountBonus;
             bonus.lastTxDate = block.timestamp;
 
-            // move elements down if necessery
+            // search for last non-withdrawn bonus
             if(bonus.lockedAmount == 0) index = i+1;
+            // we should arrive here once such bonus found
+            // example: [--++] where + is non-empty bonus, so index = 3 (not zero-based)
             else if(index > 0) {
 
                 uint256 length = deposit.reward.length - index;
                 uint256 removedLength = deposit.reward.length - length;
                 uint256 currentIndex = i - removedLength;
 
+                console.log(index);
                 deposit.reward[currentIndex] = deposit.reward[index + currentIndex];
             }
         }
 
         // pop from end until we find non-withdrawn bonus
-        for (uint256 i = deposit.reward.length; i > 0; i--) {
+        for (uint256 i = subOrZero(deposit.reward.length, 1); i > 0; i--) {
             Bonus storage bonus = deposit.reward[i];
             if(bonus.lockedAmount > 0) break;
             deposit.reward.pop();
@@ -302,6 +305,9 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
             bonus.lastTxDate = block.timestamp;
             bonus.lockedAmount -= amount;
         }
+
+        totalBonusAmount += overflow[generationId][tokenId];
+        overflow[generationId][tokenId] = 0;
  
         // console.log("withdraw(times)", block.timestamp - deposit.lastTxDate, deposit.dripRate, deposit.withdrawableReward );
 
