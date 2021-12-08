@@ -88,9 +88,7 @@ contract Royalty is Ownable {
             cycles[counter.current()].balance += msg.value - feePart;
         }
 
-        if (feePart > 0) {
-            feeAddress.call{value: feePart}("");
-        }
+        feeAddress.call{value: feePart}("");
     }
 
     /**
