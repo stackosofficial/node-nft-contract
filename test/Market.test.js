@@ -136,6 +136,12 @@ describe("Market", function () {
     await market.listDarkMatterNFT(0, parseEther("100.0"));
   });
 
+  it("Should not be able to buy without enough MATIC paid", async function () {
+    await expect(market.connect(partner)
+        .buyDarkMatter(0, { value: parseEther("10.0") }))
+        .to.be.revertedWith("Not enough MATIC");
+  });
+
   it("Buy DarkMatter", async function () {
     print("owner balance: ", await owner.getBalance());
 
@@ -174,6 +180,12 @@ describe("Market", function () {
     await stackOsNFT.connect(joe).approve(market.address, 5);
     await stackOsNFT.whitelist(market.address);
     await market.connect(joe).listStackNFT(0, 5, parseEther("100.0"));
+  });
+
+  it("Should not be able to buy without enough MATIC paid", async function () {
+    await expect(market.connect(partner)
+        .buyStack(0, 5, { value: parseEther("10.0") }))
+        .to.be.revertedWith("Not enough MATIC");
   });
 
   it("Buy StackNFT", async function () {

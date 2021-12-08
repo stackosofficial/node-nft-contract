@@ -165,7 +165,7 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeab
 
         StackLot storage lot = stackToLot[generationId][tokenId];
         require(lot.seller != address(0), "Not listed");
-        require(lot.price >= msg.value, "Not enough MATIC");
+        require(lot.price <= msg.value, "Not enough MATIC");
 
         uint256 daoPart = lot.price * daoFee / HUNDRED_PERCENT;
         uint256 royaltyPart = lot.price * royaltyFee / HUNDRED_PERCENT;
@@ -188,7 +188,7 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeab
     ) public payable nonReentrant {
         DarkMatterLot storage lot = darkMatterToLot[tokenId];
         require(lot.seller != address(0), "Not listed");
-        require(lot.price >= msg.value, "Not enough MATIC");
+        require(lot.price <= msg.value, "Not enough MATIC");
 
         uint256 daoPart = lot.price * daoFee / HUNDRED_PERCENT;
         uint256 royaltyPart = lot.price * royaltyFee / HUNDRED_PERCENT;
