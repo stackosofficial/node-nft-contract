@@ -141,6 +141,7 @@ async function setup() {
     await subscription.setTaxReductionPercent(TAX_REDUCTION_PERCENT);
     await subscription.setTaxResetDeadline(TAX_RESET_DEADLINE);
     MONTH = (await subscription.MONTH()).toNumber();
+    console.log("MONTH: ", MONTH);
 
     NAME = "STACK OS NFT";
     SYMBOL = "SON";

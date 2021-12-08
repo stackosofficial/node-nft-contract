@@ -33,7 +33,7 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
         uint256 lastTxDate;
         uint256 releasePeriod;
         uint256 lockedAmount;
-        uint256 withdrawn;
+        uint256 dripRate;
     }
 
     struct Deposit {
@@ -156,28 +156,37 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
 
         // bonuses logic
         uint256 newBonusAmount = amount * bonusPercent / HUNDRED_PERCENT;
+
+
+        for (uint256 i; i < deposit.reward.length; i++) {
+            Bonus storage bonus = deposit.reward[i];
+
+            if(bonus.lockedAmount > 0 && i == 0) break;
+
+            uint256 amount = bonus.dripRate * (block.timestamp - bonus.lastTxDate);
+            if(bonus.lockedAmount <= amount) 
+
+        }
+        for (uint256 i; i < deposit.reward.length; i++) {
+            Bonus storage bonus = deposit.reward[i];
+
+
+
+        }
+
+        // for (uint256 a = index; a < clusterUsers[clusterDns].length - 1; a++) {
+        //     clusterUsers[clusterDns][a] = clusterUsers[clusterDns][a + 1];
+        // }
+        // clusterUsers[clusterDns].pop();
+
         deposit.reward.push(Bonus({
             total: newBonusAmount, 
             depositDate: block.timestamp, 
             lastTxDate: block.timestamp, 
             releasePeriod: dripPeriod, 
             lockedAmount: newBonusAmount,
-            withdrawn: 0
+            dripRate: newBonusAmount / dripPeriod 
         }));
-
-        for (uint256 i; i < deposit.reward.length; i++) {
-            Bonus storage bonus = deposit.reward[i];
-            uint256 releasePeriod;
-
-            if (bonus.releasePeriod > dripPeriod) {
-                releasePeriod = dripPeriod;
-            } else {
-                releasePeriod = bonus.releasePeriod;
-            }
-
-            bonus.lastTxDate = block.timestamp;
-            bonus.releasePeriod = releasePeriod;
-        }
 
         if(_stablecoin == stablecoins[0]) {
             console.log("usdt sub:", price/1e18);
@@ -265,24 +274,16 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
 
         for (uint256 i; i < deposit.reward.length; i++) {
             Bonus storage bonus = deposit.reward[i];
-            uint256 releasePeriod;
 
-            if (bonus.releasePeriod > dripPeriod) {
-                releasePeriod = dripPeriod;
-            } else {
-                releasePeriod = bonus.releasePeriod;
-            }
-
-            uint256 dripRate = bonus.total / releasePeriod;
-            uint256 amount = (block.timestamp - bonus.lastTxDate) * dripRate;
+            uint256 amount = (block.timestamp - bonus.lastTxDate) * bonus.dripRate;
             if (amount > bonus.lockedAmount)
                 amount = bonus.lockedAmount;
 
             totalBonusAmount += amount;
+            console.log("bonus: ", amount);
 
             bonus.lastTxDate = block.timestamp;
             bonus.lockedAmount -= amount;
-            bonus.withdrawn += amount;
         }
  
         // console.log("withdraw(times)", block.timestamp - deposit.lastTxDate, deposit.dripRate, deposit.withdrawableReward );
@@ -350,20 +351,12 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
     {
         Deposit storage deposit = deposits[_generationId][_tokenId];
 
-        uint256 depositCount = deposit.reward.length;
         uint256 totalPending;
 
-        for (uint256 i; i < depositCount; i++) {
+        for (uint256 i; i < deposit.reward.length; i++) {
             Bonus storage bonus = deposit.reward[i];
-            uint256 releasePeriod;
 
-            if (bonus.releasePeriod > dripPeriod) {
-                releasePeriod = dripPeriod;
-            } else {
-                releasePeriod = bonus.releasePeriod;
-            }
-
-            uint256 dripRate = bonus.total / releasePeriod;
+            uint256 dripRate = bonus.total / bonus.releasePeriod;
             uint256 amount = (block.timestamp - bonus.lastTxDate) * dripRate;
             if (amount > bonus.lockedAmount)
                 amount = bonus.lockedAmount;

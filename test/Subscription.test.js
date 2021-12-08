@@ -146,34 +146,21 @@ describe("Subscription", function () {
       (await stackToken.balanceOf(bank.address))
     );
 
-    await subscription.connect(bank).withdraw(0, [1]); // tax should be 25% as we at 3rd month
+    await expect(() => subscription.connect(bank).withdraw(0, [1]))
+      .to.changeTokenBalance(stackToken, bank, "1324710361554364460707"); // tax should be 25% as we at 3rd month
 
     print(
       "bank(before withdraw bonus): ",
       (await stackToken.balanceOf(bank.address))
     );
-    await subscription.connect(bank).withdraw(0, [1]);
-    // await expect(subscription.connect(bank).withdraw(0, [1])).to.be.revertedWith(
-    //   "Already withdrawn"
-    // );
+    await expect(() => subscription.connect(bank).withdraw(0, [1]))
+      .to.changeTokenBalance(stackToken, bank, "5778562400532");
     print(
       "bank(after withdraw bonus): ",
       (await stackToken.balanceOf(bank.address))
     );
 
-    print(
-      "bank: ",
-      (await stackToken.balanceOf(bank.address))
-    );
-
-    print(
-      "bank: ",
-      (await stackToken.balanceOf(bank.address))
-    );
     print("tax: ", (await stackToken.balanceOf(tax.address)));
-    expect(await stackToken.balanceOf(bank.address)).to.be.gt(
-      parseEther("1338.0")
-    );
   });
   it("Buy, then wait 2 month, buy again, and withdraw after that", async function () {
     // clear tax balance for simplicity
@@ -203,33 +190,23 @@ describe("Subscription", function () {
     );
     print("tax: ", (await stackToken.balanceOf(tax.address)));
     // Restart tax because skipped subs.
-    await subscription.withdraw(0, [5]); // withdraw for 2 months, tax 75%
+    await expect(() => subscription.withdraw(0, [5]))
+      .to.changeTokenBalance(stackToken, owner, "291254197177320282157"); // withdraw for 2 months, tax 75% (282 + 9)
     print(
       "owner: ",
       (await stackToken.balanceOf(owner.address))
     );
     print("tax: ", (await stackToken.balanceOf(tax.address)));
-    expect(await stackToken.balanceOf(owner.address)).to.be.gt(
-      parseEther("300.0") // 282 + 9
-    );
-    expect(await stackToken.balanceOf(owner.address)).to.be.lt(
-      parseEther("301.0")
-    );
 
     await provider.send("evm_increaseTime", [MONTH]); 
     await subscription.subscribe(0, 5, dai.address); // tax max, 600, bonus 
-    await subscription.withdraw(0, [5]); // withdraw for 1 month
+    await expect(() => subscription.withdraw(0, [5]))
+      .to.changeTokenBalance(stackToken, owner, "146732021795210098224"); // withdraw for 1 month
     print(
       "owner: ",
       (await stackToken.balanceOf(owner.address))
     );
     print("tax: ", (await stackToken.balanceOf(tax.address)));
-    expect(await stackToken.balanceOf(owner.address)).to.be.gt(
-      parseEther("450.0")
-    );
-    expect(await stackToken.balanceOf(owner.address)).to.be.lt(
-      parseEther("451.0")
-    );
   });
 
   it("Withdraw on multiple generations", async function () {
@@ -364,7 +341,6 @@ describe("Subscription", function () {
     );
     oldPendingReward = await subscription.pendingReward(0, 5);
     print("gen 0 token 5 pending reward: ", await subscription.pendingReward(0, 5));
-    print("reward amount: ", (await subscription.deposits(0, 5)).reward);
 
     await subscription.withdraw(0, [5]);
 
@@ -405,21 +381,18 @@ describe("Subscription", function () {
       "owner: ",
       (await stackToken.balanceOf(owner.address))
     );
-    oldPendingReward = await subscription.pendingReward(0, 5);
-    print("gen 0 token 5 pending reward: ", await subscription.pendingReward(0, 5));
-    print("reward amount: ", (await subscription.deposits(0, 5)).reward);
 
     await provider.send("evm_increaseTime", [MONTH*23]); 
+    oldPendingReward = await subscription.pendingReward(1, 1);
+    print("gen 0 token 5 pending reward: ", oldPendingReward);
     await subscription.withdraw(1, [1]);
 
     print(
       "owner: ",
       (await stackToken.balanceOf(owner.address))
     );
-    print("gen 0 token 5 pending reward: ", await subscription.pendingReward(0, 5));
-    print("reward amount: ", (await subscription.deposits(0, 5)).reward);
+    print("gen 0 token 5 pending reward: ", await subscription.pendingReward(1, 1));
 
-    // expect(oldPendingReward).to.be.equal(await stackToken.balanceOf(owner.address));
   })
 
   it("Revert EVM state", async function () {
