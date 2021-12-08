@@ -112,6 +112,7 @@ describe("Subscription", function () {
     await subscription.subscribe(0, 1, dai.address);
   });
   it("Take TAX for early withdrawal", async function () {
+    await stackOsNFT.whitelist(owner.address);
     await stackOsNFT.transferFrom(owner.address, bob.address, 0);
     expect(await stackToken.balanceOf(bob.address)).to.equal(0);
     await subscription.connect(bob).withdraw(0, [0]); // 1st month 75% tax (so its 0-1 month, like 1st day of the 1st month)
