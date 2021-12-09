@@ -10,28 +10,31 @@ describe("StackOS NFT Basic", function () {
   it("Defining Generals", async function () {
     // General
     provider = ethers.provider;
-    [owner, joe, tax] = await hre.ethers.getSigners();
+    [owner, joe, tax, bank] = await hre.ethers.getSigners();
 
     router = await ethers.getContractAt(
       "IUniswapV2Router02",
       "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D"
     );
-    
   });
- 
+
   it("Deploy full SETUP", async function () {
-    [stackToken,
+    [
+      stackToken,
       usdt,
       usdc,
       dai,
       link,
+      weth,
       coordinator,
       generationManager,
       darkMatter,
       subscription,
-      stackOsNFT] = await setup();
+      royalty,
+      stackOsNFT,
+    ] = await setup();
 
-      stackOsNFT = await deployStackOSBasic();
+    stackOsNFT = await deployStackOSBasic();
   });
 
   it("Add liquidity", async function () {
@@ -84,9 +87,7 @@ describe("StackOS NFT Basic", function () {
   });
 
   it("Unable to mint for unsupported coin", async function () {
-    await expect(
-      stackOsNFT.mint(1, stackToken.address)
-    ).to.be.revertedWith(
+    await expect(stackOsNFT.mint(1, stackToken.address)).to.be.revertedWith(
       "Unsupported payment coin"
     );
   });
@@ -100,6 +101,7 @@ describe("StackOS NFT Basic", function () {
   });
 
   it("Deploy stackOsNFT generation 2 from manager", async function () {
+    ROYALTY = royalty.address;
     await generationManager.deployNextGen(
       NAME,
       SYMBOL,
@@ -111,7 +113,8 @@ describe("StackOS NFT Basic", function () {
       MINT_FEE,
       MAX_SUPPLY,
       TRANSFER_DISCOUNT,
-      TIMELOCK
+      TIMELOCK,
+      ROYALTY
     );
     stackOsNFTgen2 = await ethers.getContractAt(
       "StackOsNFTBasic",
@@ -133,7 +136,8 @@ describe("StackOS NFT Basic", function () {
       MINT_FEE,
       MAX_SUPPLY,
       TRANSFER_DISCOUNT,
-      TIMELOCK
+      TIMELOCK,
+      ROYALTY
     );
     stackOsNFTgen3 = await ethers.getContractAt(
       "StackOsNFTBasic",
@@ -151,9 +155,7 @@ describe("StackOS NFT Basic", function () {
   it("Unable to transfer when not whitelisted", async function () {
     await expect(
       stackOsNFT.transferFrom(owner.address, joe.address, 0)
-    ).to.be.revertedWith(
-      "Not whitelisted for transfers"
-    )
+    ).to.be.revertedWith("Not whitelisted for transfers");
   });
 
   it("Whitelist address and transfer from it", async function () {
@@ -174,6 +176,12 @@ describe("StackOS NFT Basic", function () {
     ]);
     await stackOsNFT.adminWithdraw();
   });
+
+  it("Verify function getFromRewardsPrice()", async function () {
+    var price = await stackOsNFT.getFromRewardsPrice(2, usdt.address);
+    console.log(price.toString());
+  });
+
   it("Revert EVM state", async function () {
     await ethers.provider.send("evm_revert", [snapshotId]);
   });
