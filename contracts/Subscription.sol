@@ -162,20 +162,20 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
         for (uint256 i; i < deposit.reward.length; i++) {
             Bonus storage bonus = deposit.reward[i];
 
-            uint256 amountBonus = bonus.dripRate * (block.timestamp - bonus.lastTxDate);
-            // if(bonus.lockedAmount > amountBonus && i == 0) break;
+            uint256 withdrawAmount = bonus.dripRate * (block.timestamp - bonus.lastTxDate);
 
-            if(bonus.lockedAmount < amountBonus) {
-                amountBonus = bonus.lockedAmount;
-            }
-            overflow[generationId][tokenId] += amountBonus;
-            bonus.lockedAmount -= amountBonus;
+            if (withdrawAmount > bonus.lockedAmount)
+                withdrawAmount = bonus.lockedAmount;
+            
+            overflow[generationId][tokenId] += withdrawAmount;
+            bonus.lockedAmount -= withdrawAmount;
             bonus.lastTxDate = block.timestamp;
 
-            // search for last non-withdrawn bonus
+            // We assume that bonuses drained one by one starting from the first one.
+            // Then if our array looks like this [--++] where - is drained bonuses,
+            // we shift all + down to replace all -, then our array is [++--]
+            // Now we can pop all - as we only able to remove elements from the end of array.
             if(bonus.lockedAmount == 0) index = i+1;
-            // we should arrive here once such bonus found
-            // example: [--++] where + is non-empty bonus, so index = 3 (not zero-based)
             else if(index > 0) {
                 uint256 currentIndex = i - index;
 
@@ -184,19 +184,11 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
             }
         }
 
-        console.log("bonuses before pops:", deposit.reward.length);
-        // pop from end until we find non-withdrawn bonus
-        for (uint256 i = subOrZero(deposit.reward.length, 1); i > 0; i--) {
-            Bonus storage bonus = deposit.reward[i];
+        for (uint256 i = deposit.reward.length; i > 0; i--) {
+            Bonus storage bonus = deposit.reward[i - 1];
             if(bonus.lockedAmount > 0) break;
             deposit.reward.pop();
         }
-        console.log("bonuses after pops:", deposit.reward.length);
-
-        // for (uint256 a = index; a < clusterUsers[clusterDns].length - 1; a++) {
-        //     clusterUsers[clusterDns][a] = clusterUsers[clusterDns][a + 1];
-        // }
-        // clusterUsers[clusterDns].pop();
 
         deposit.reward.push(Bonus({
             total: newBonusAmount, 
@@ -207,18 +199,18 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
             dripRate: newBonusAmount / dripPeriod 
         }));
 
-        if(_stablecoin == stablecoins[0]) {
-            console.log("usdt sub:", price/1e18);
-            console.log("usdt sub:", amount/1e18);
-            console.log("reward:", newBonusAmount / 1e18, newBonusAmount);
-            console.log("balance:", deposit.balance / 1e18);
-        }
-        if(_stablecoin == stablecoins[2]) {
-            console.log("dai sub:", price/1e18);
-            console.log("dai sub:", amount/1e18);
-            console.log("reward:", newBonusAmount / 1e18);
-            console.log("balance:", deposit.balance / 1e18);
-        }
+        // if(_stablecoin == stablecoins[0]) {
+        //     console.log("usdt sub:", price/1e18);
+        //     console.log("usdt sub:", amount/1e18);
+        //     console.log("reward:", newBonusAmount / 1e18, newBonusAmount);
+        //     console.log("balance:", deposit.balance / 1e18);
+        // }
+        // if(_stablecoin == stablecoins[2]) {
+        //     console.log("dai sub:", price/1e18);
+        //     console.log("dai sub:", amount/1e18);
+        //     console.log("reward:", newBonusAmount / 1e18);
+        //     console.log("balance:", deposit.balance / 1e18);
+        // }
     }
 
     /*
@@ -300,40 +292,27 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
                 amount = bonus.lockedAmount;
 
             totalBonusAmount += amount;
-            console.log("bonus: ", amount);
 
             bonus.lastTxDate = block.timestamp;
             bonus.lockedAmount -= amount;
             
-            // same as in _subscribe
-            console.log("lockedAmount 0 at index: ", i+1);
             if(bonus.lockedAmount == 0) index = i+1;
             else if(index > 0) {
                 uint256 currentIndex = i - index;
-
-                console.log(index, currentIndex);
                 
                 deposit.reward[currentIndex] = deposit.reward[index + currentIndex];
                 delete deposit.reward[index + currentIndex];
             }
         }
 
-        console.log("bonuses before pops:", deposit.reward.length);
-
-        // same as in _subscribe
-        for (uint256 i = subOrZero(deposit.reward.length, 1); i > 0; i--) {
-            Bonus storage bonus = deposit.reward[i];
-            console.log("pop cycle, lockedAmount: ", bonus.lockedAmount );
+        for (uint256 i = deposit.reward.length; i > 0; i--) {
+            Bonus storage bonus = deposit.reward[i - 1];
             if(bonus.lockedAmount > 0) break;
             deposit.reward.pop();
         }
 
-        console.log("bonuses after pops:", deposit.reward.length);
-
         totalBonusAmount += overflow[generationId][tokenId];
         overflow[generationId][tokenId] = 0;
- 
-        // console.log("withdraw(times)", block.timestamp - deposit.lastTxDate, deposit.dripRate, deposit.withdrawableReward );
 
         require(
             deposit.balance + totalBonusAmount <= stackToken.balanceOf(address(this)),
@@ -353,15 +332,11 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
 
         // early withdraw tax
         if (deposit.tax > 0) {
-            // take tax from amount with bonus that will be withdrawn
             uint256 tax = (amountWithdraw * deposit.tax) / HUNDRED_PERCENT;
             amountWithdraw -= tax;
             stackToken.transfer(taxAddress, tax);
         }
 
-        // amount withdraw with bonus
-        console.log("withdraw", amountWithdraw / 1e18, totalBonusAmount / 1e18, deposit.tax);
-        console.log("withdraw", amountWithdraw , totalBonusAmount );
         amountWithdraw += totalBonusAmount;
         require(amountWithdraw > 0, "Already withdrawn");
 
@@ -410,7 +385,7 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
             totalPending += amount;
         }
 
-        return totalPending;
+        return totalPending + overflow[_generationId][_tokenId];
     }
 
     /*

@@ -369,30 +369,31 @@ describe("Subscription", function () {
     }
   });
   it("Test bonus logic", async function () {
-
-
     // clear owner balance for simplicity
     await stackToken.transfer(
       subscription.address,
       await stackToken.balanceOf(owner.address)
     );
 
-    print(
-      "owner: ",
-      (await stackToken.balanceOf(owner.address))
-    );
+    print("owner: ", await stackToken.balanceOf(owner.address));
 
-    await provider.send("evm_increaseTime", [MONTH*16]); 
+    dripPeriod = (await subscription.dripPeriod()).toNumber();
+
+    await provider.send("evm_increaseTime", [dripPeriod / 2]); 
+    await provider.send("evm_mine"); 
+
     oldPendingReward = await subscription.pendingReward(1, 1);
     print("gen 0 token 5 pending reward: ", oldPendingReward);
     await subscription.withdraw(1, [1]);
 
-    print(
-      "owner: ",
-      (await stackToken.balanceOf(owner.address))
-    );
-    print("gen 0 token 5 pending reward: ", await subscription.pendingReward(1, 1));
+    await provider.send("evm_increaseTime", [dripPeriod / 2]); 
+    await provider.send("evm_mine"); 
 
+    await subscription.withdraw(1, [1]);
+
+    print("owner: ", await stackToken.balanceOf(owner.address));
+    print("gen 0 token 5 pending reward: ", await subscription.pendingReward(1, 1));
+    expect(await subscription.pendingReward(1, 1)).to.be.equal(0);
   })
 
   it("Revert EVM state", async function () {
