@@ -323,8 +323,7 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
         require(amountWithdraw > 0, "Already withdrawn");
 
         if (allocationStatus == withdrawStatus.purchase) {
-            // TODO: LOOK FOR A BETTER METHOD TO CALCULATE HOW MANY TOKENS NEED TO BE CONVERTED
-        
+
             uint256 stackAmount = IStackOSNFTBasic(
                 address(generations.get(purchaseGenerationId))
             ).getFromRewardsPrice(amountToMint, address(_stablecoin));

@@ -170,8 +170,8 @@ contract StackOsNFTBasic is
             "Cant transfer to the same address"
         );
         // check that caller is stackNFT contract
-        // TODO: maybe good idea to replace with `generations.get(0) == msg.sender`?
-        generations.getIDByAddress(msg.sender);
+        require(address(generations.get(0)) == msg.sender, "Not Correct Address");
+        // generations.getIDByAddress(msg.sender);
 
         //TODO: seems to be wrong? the participationFee is in USD, but stackToken used here ....
         uint256 participationFeeDiscount = participationFee
@@ -194,6 +194,7 @@ contract StackOsNFTBasic is
         );
 
         // TODO: do we need take fee here for subscription? like in mint function
+        // YES
         for (uint256 i; i < ticketAmount; i++) {
             _mint(msg.sender);
         }
