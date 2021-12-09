@@ -208,7 +208,7 @@ contract Royalty is Ownable {
     function claim(uint256 _generationId, uint256[] calldata _tokenIds)
         external
     {
-        _claim(_generationId, _tokenIds, false, 0, 0, IERC20(address(0)));
+        _claim(_generationId, _tokenIds, 0, false, IERC20(address(0)));
     }
 
     /*
@@ -221,33 +221,32 @@ contract Royalty is Ownable {
         external
     {
         require(address(WETH) != address(0), "Wrong WETH address");
-        _claim(_generationId, _tokenIds, false, 0, 0, WETH);
+        _claim(_generationId, _tokenIds, 0, false, WETH);
     }
 
     /*
-     * @title User can pay subscription with royalty 
+     * @title 
      * @param StackNFT generation id to get royalty for
      * @param tokenIds Token ids to get royalty for
      * @param StackNFT generation id to subscribe
      * @param tokenIds Token ids to subscribe
      * @dev tokens must be delegated and owned by the caller
      */
-    function paySubscription(
+    function purchaseNewNft(
         uint256 _generationId,
         uint256[] calldata _tokenIds,
-        uint256 _gen,
-        uint256 _id,
+        uint256 _mintNum,
         IERC20 _stablecoin
     ) external {
-        _claim(_generationId, _tokenIds, true, _gen, _id, _stablecoin);
+        require(_generationId > 0, "Must be not first generation");
+        _claim(_generationId, _tokenIds, _mintNum, true, _stablecoin);
     }
 
     function _claim(
         uint256 generationId,
         uint256[] calldata tokenIds,
-        bool _subscription,
-        uint256 gen,
-        uint256 nftID,
+        uint256 _mintNum,
+        bool _mint,
         IERC20 _stablecoin
     ) internal {
         require(address(this).balance > 0, "No royalty");
@@ -326,7 +325,7 @@ contract Royalty is Ownable {
             }
 
             if (reward > 0) {
-                if (_subscription == false) {
+                if (_mint == false) {
                     if(_stablecoin == WETH && address(WETH) != address(0)) {
                         uint256 wethReceived = buyWETH(reward);
                         WETH.transfer(msg.sender, wethReceived);
@@ -337,15 +336,16 @@ contract Royalty is Ownable {
                         require(success, "Transfer failed");
                     }
                 } else {
+                    IStackOSNFTBasic stackNFT = IStackOSNFTBasic(address(generations.get(generationId)));
                     uint256 usdReceived = buyStable(reward, _stablecoin);
-                    _stablecoin.approve(address(subscription), usdReceived);
-                    uint256 nrOfMonth = usdReceived /
-                        subscription.viewPrice();
-                    subscription.subscribe(gen, nftID, _stablecoin);
-                    _stablecoin.transfer(
-                        msg.sender,
-                        usdReceived - (nrOfMonth * subscription.viewPrice())
+                    _stablecoin.approve(address(stackNFT), usdReceived);
+
+                    uint256 spendAmount = stackNFT.mintFromRoyaltyRewards(
+                        _mintNum,
+                        address(_stablecoin), 
+                        msg.sender
                     );
+                    _stablecoin.transfer(msg.sender, spendAmount);
                 }
             }
         }

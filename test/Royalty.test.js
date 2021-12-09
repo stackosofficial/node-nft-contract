@@ -1,7 +1,7 @@
 const { ethers } = require("hardhat");
 const { use, expect } = require("chai");
 const { parseEther } = require("@ethersproject/units");
-const { deployStackOS, setup, print } = require("./utils");
+const { deployStackOS, setup, print, deployStackOSBasic } = require("./utils");
 
 describe("Royalty", function () {
   const CYCLE_DURATION = 60 * 60 * 24 * 31;
@@ -105,27 +105,6 @@ describe("Royalty", function () {
     print(weth.address);
     LPaddressUSDT = await factory.getPair(WETH, weth.address);
     print(LPaddressUSDT);
-  });
-
-  it("Deploy royalty", async function () {
-    GENERATION_MANAGER_ADDRESS = generationManager.address;
-    DARK_MATTER_ADDRESS = darkMatter.address;
-    DEPOSIT_FEE_ADDRESS = bank.address;
-    MIN_CYCLE_ETHER = parseEther("1");
-    DEPOSIT_FEE_PERCENT = 1000;
-
-    const Royalty = await ethers.getContractFactory("Royalty");
-    royalty = await Royalty.deploy(
-      ROUTER_ADDRESS,
-      GENERATION_MANAGER_ADDRESS,
-      DARK_MATTER_ADDRESS,
-      subscription.address,
-      DEPOSIT_FEE_ADDRESS,
-      MIN_CYCLE_ETHER
-    );
-    await royalty.deployed();
-    await royalty.setFeePercent(DEPOSIT_FEE_PERCENT);
-    await royalty.setWETH(weth.address);
   });
 
   it("Mint some NFTs", async function () {
@@ -282,7 +261,7 @@ describe("Royalty", function () {
     // generation 2
     // delegates of gen2 will be only counted in future cycles
 
-    stackOsNFTgen2 = await deployStackOS();
+    stackOsNFTgen2 = await deployStackOSBasic();
 
     await expect(
       dude.sendTransaction({
@@ -300,17 +279,14 @@ describe("Royalty", function () {
     await stackOsNFT.connect(vera).partnerMint(1, usdt.address);
     await stackOsNFT.partnerMint(1, usdt.address);
 
-    await stackOsNFTgen2.whitelistPartner(vera.address, 2);
-    await stackOsNFTgen2.whitelistPartner(bob.address, 2);
-    await stackOsNFTgen2.whitelistPartner(owner.address, 2);
-    await stackOsNFTgen2.startPartnerSales();
+    await stackOsNFTgen2.startSales();
 
     await usdt.connect(bob).approve(stackOsNFTgen2.address, parseEther("5.0"));
-    await stackOsNFTgen2.connect(bob).partnerMint(1, usdt.address);
+    await stackOsNFTgen2.connect(bob).mint(1, usdt.address);
     await usdt.connect(vera).approve(stackOsNFTgen2.address, parseEther("5.0"));
-    await stackOsNFTgen2.connect(vera).partnerMint(1, usdt.address);
+    await stackOsNFTgen2.connect(vera).mint(1, usdt.address);
     await usdt.approve(stackOsNFTgen2.address, parseEther("5.0"));
-    await stackOsNFTgen2.partnerMint(1, usdt.address);
+    await stackOsNFTgen2.mint(1, usdt.address);
 
     //+6 delegates for 7 cycle
     await stackOsNFT.connect(bob).delegate(stackOsNFT.address, [6]);
@@ -500,7 +476,7 @@ describe("Royalty", function () {
     );
   });
 
-  it("Paying for subscription", async function () {
+  it("Purchase NFTs from rewards", async function () {
     await expect(
       dude.sendTransaction({
         from: dude.address,
@@ -516,25 +492,21 @@ describe("Royalty", function () {
     print("LPAddress " + LPaddress);
 
     print(
-      "before paySubscription",
+      "before purchaseNewNft",
       await owner.getBalance(),
       await bob.getBalance()
     );
-    await royalty.connect(bob).paySubscription(0, [6], 0, 6, usdt.address);
+
+    await expect(() => royalty.purchaseNewNft(1, [2], 5, usdt.address))
+      .to.changeTokenBalance(stackOsNFTgen2, owner, 5);
 
     print(
       "royalty eth balance: " + (await provider.getBalance(royalty.address))
     );
     print(
-      "after paySubscription",
+      "after purchaseNewNft",
       await owner.getBalance(),
       await bob.getBalance(),
-      await stackToken.balanceOf(bob.address)
-    );
-
-    await subscription.connect(bob).withdraw(0, [6]);
-    print(
-      "after subscripton withdraw (stackToken bob balance): ",
       await stackToken.balanceOf(bob.address)
     );
   });

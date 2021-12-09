@@ -10,6 +10,13 @@ interface IStackOSNFTBasic is IStackOSNFT {
         address _to
     ) external;
 
+    function mintFromRoyaltyRewards(
+        uint256 _mintNum,
+        address _stablecoin,
+        address _to
+    ) external returns (uint256);
+    
+
     function getFromRewardsPrice(uint256 _nftAmount, address _stablecoin)
         external
         view

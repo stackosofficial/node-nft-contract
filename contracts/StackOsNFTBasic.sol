@@ -277,27 +277,33 @@ contract StackOsNFTBasic is
     }
 
     /*
-     * @title Called when user want to mint and pay with bonuses from subscriptions.
+     * @title Called when user want to mint and pay with bonuses from Royalty.
      * @dev Can only be called by Subscription contract.
      */
 
-    function mintFromRoyaltyRewards(uint256 _nftAmount) public {
+    function mintFromRoyaltyRewards(uint256 _mintNum, address _stablecoin, address _to) 
+        public
+        returns (uint256)
+    {
         require(salesStarted, "Sales not started");
         require(msg.sender == address(royaltyAddress), "Not Royalty Address");
         uint256 discountAmount = participationFee -
             (participationFee * rewardDiscount) /
             10000;
-        uint256 amountIn = discountAmount.mul(_nftAmount);
-        uint256 stackAmount = buyStackToken(amountIn, stablecoins[0]);
+        // console.log("mint from royalty: ", _usdAmount/1e18, discountAmount /1e18);
+        // uint256 _nftAmount = _usdAmount / discountAmount;
+        uint256 amountIn = discountAmount.mul(_mintNum);
+        uint256 stackAmount = buyStackToken(amountIn, IERC20(_stablecoin));
 
         uint256 subscriptionPart = (stackAmount * mintFee) / 10000;
         stackAmount -= subscriptionPart;
         stackOSToken.transfer(address(subscription), subscriptionPart);
 
         adminWithdrawableAmount += stackAmount;
-        for (uint256 i; i < _nftAmount; i++) {
-            _mint(msg.sender);
+        for (uint256 i; i < _mintNum; i++) {
+            _mint(_to);
         }
+        return amountIn;
     }
 
     /*
