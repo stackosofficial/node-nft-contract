@@ -44,7 +44,8 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         uint256 _mintFee,
         uint256 _maxSupply,
         uint256 _transferDiscount,
-        uint256 _timeLock
+        uint256 _timeLock,
+        address _royaltyAddress
     ) public onlyOwner returns (IStackOSNFT) {
         IStackOSNFT stack = IStackOSNFT(
             address(
@@ -58,7 +59,8 @@ contract GenerationManager is Ownable, ReentrancyGuard {
                     _mintFee,
                     _maxSupply,
                     _transferDiscount,
-                    _timeLock
+                    _timeLock,
+                    _royaltyAddress
                 )
             )
         );

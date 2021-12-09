@@ -29,5 +29,8 @@ interface IStackOSNFT {
 
     function transferOwnership(address newOwner) external;
 
-    function isApprovedForAll(address owner, address operator) external view returns (bool);
+    function isApprovedForAll(address owner, address operator)
+        external
+        view
+        returns (bool);
 }

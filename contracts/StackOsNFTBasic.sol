@@ -13,7 +13,13 @@ import "./StableCoinAcceptor.sol";
 import "./TransferWhitelist.sol";
 import "hardhat/console.sol";
 
-contract StackOsNFTBasic is TransferWhitelist, ERC721, StableCoinAcceptor, ERC721URIStorage, Ownable {
+contract StackOsNFTBasic is
+    TransferWhitelist,
+    ERC721,
+    StableCoinAcceptor,
+    ERC721URIStorage,
+    Ownable
+{
     using Counters for Counters.Counter;
     using SafeMath for uint256;
 
@@ -24,8 +30,11 @@ contract StackOsNFTBasic is TransferWhitelist, ERC721, StableCoinAcceptor, ERC72
     IUniswapV2Router02 private router;
     Subscription private subscription;
 
+    address private royaltyAddress;
+
     uint256 public timeLock;
     uint256 public adminWithdrawableAmount;
+    uint256 public rewardDiscount;
     uint256 private maxSupply;
     uint256 private totalSupply;
     uint256 private participationFee;
@@ -49,10 +58,9 @@ contract StackOsNFTBasic is TransferWhitelist, ERC721, StableCoinAcceptor, ERC72
         uint256 _mintFee,
         uint256 _maxSupply,
         uint256 _transferDiscount,
-        uint256 _timeLock
-    )
-        ERC721(_name, _symbol)
-    {
+        uint256 _timeLock,
+        address _royaltyAddress
+    ) ERC721(_name, _symbol) {
         stackOSToken = _stackOSTokenToken;
         darkMatter = _darkMatter;
         subscription = _subscription;
@@ -61,6 +69,7 @@ contract StackOsNFTBasic is TransferWhitelist, ERC721, StableCoinAcceptor, ERC72
         maxSupply = _maxSupply;
         transferDiscount = _transferDiscount;
         timeLock = block.timestamp + _timeLock;
+        royaltyAddress = _royaltyAddress;
         generations = GenerationManager(msg.sender);
     }
 
@@ -70,10 +79,18 @@ contract StackOsNFTBasic is TransferWhitelist, ERC721, StableCoinAcceptor, ERC72
      * @dev Could only be invoked by the contract owner.
      */
 
-    function setMintFee(uint256 _fee)
-        public
-        onlyOwner
-    {
+    function setRewardDiscount(uint256 _rewardDiscount) public onlyOwner {
+        require(_rewardDiscount <= 10000, "invalid fee basis points");
+        rewardDiscount = _rewardDiscount;
+    }
+
+    /*
+     * @title Set % that is sended to Subscription contract on mint
+     * @param percent
+     * @dev Could only be invoked by the contract owner.
+     */
+
+    function setMintFee(uint256 _fee) public onlyOwner {
         require(_fee <= 10000, "invalid fee basis points");
         mintFee = _fee;
     }
@@ -175,7 +192,6 @@ contract StackOsNFTBasic is TransferWhitelist, ERC721, StableCoinAcceptor, ERC72
         }
     }
 
-
     /*
      * @title Allow to buy NFT's.
      * @dev Could only be invoked by the contract owner.
@@ -194,15 +210,97 @@ contract StackOsNFTBasic is TransferWhitelist, ERC721, StableCoinAcceptor, ERC72
         require(salesStarted, "Sales not started");
         require(supportsCoin(_stablecoin), "Unsupported payment coin");
 
-        uint256 stackAmount = participationFee.mul(_nftAmount);
-        // calculate amount of `_stablecoin` needed to buy `stackAmount`
-        uint256 amountIn = getAmountIn(stackAmount, _stablecoin);
-        stackAmount = buyStackToken(amountIn, _stablecoin);
+        uint256 amountIn = participationFee.mul(_nftAmount);
+        uint256 stackAmount = buyStackToken(amountIn, _stablecoin);
 
-        uint256 subscriptionPart = stackAmount * mintFee / 10000;
+        uint256 subscriptionPart = (stackAmount * mintFee) / 10000;
         stackAmount -= subscriptionPart;
         stackOSToken.transfer(address(subscription), subscriptionPart);
-        
+
+        adminWithdrawableAmount += stackAmount;
+        for (uint256 i; i < _nftAmount; i++) {
+            _mint(msg.sender);
+        }
+    }
+
+    /*
+     * @title User mint a token amount that he has been allowed to mint. Partner sales have to be activated.
+     * @param Number of tokens to mint.
+     */
+
+    function mintFromSubscriptionRewards(
+        uint256 _nftAmount,
+        address _stablecoin
+    ) external returns (uint256) {
+        require(salesStarted, "Sales not started");
+        require(
+            msg.sender == address(subscription),
+            "Not Subscription Address"
+        );
+
+        uint256 discountAmount = participationFee -
+            (participationFee * rewardDiscount) /
+            10000;
+
+        uint256 amountIn = discountAmount.mul(_nftAmount);
+        console.log(amountIn);
+        IERC20(_stablecoin).transferFrom(msg.sender, address(this), amountIn);
+
+        uint256 stackAmount = buyStackToken(amountIn, stablecoins[0]);
+
+        uint256 subscriptionPart = (stackAmount * mintFee) / 10000;
+        stackAmount -= subscriptionPart;
+        stackOSToken.transfer(address(subscription), subscriptionPart);
+
+        adminWithdrawableAmount += stackAmount;
+        for (uint256 i; i < _nftAmount; i++) {
+            _mint(msg.sender);
+        }
+        return stackAmount;
+    }
+
+    /*
+     * @title User mint a token amount that he has been allowed to mint. Partner sales have to be activated.
+     * @param Number of tokens to mint.
+     */
+
+    function getFromRewardsPrice(uint256 _nftAmount, address _stablecoin)
+        external
+        view
+        returns (uint256)
+    {
+        // calculate amount of `_stablecoin` needed to buy `stackAmount`
+        uint256 discountAmount = participationFee -
+            (participationFee * rewardDiscount) /
+            10000;
+        uint256 amountIn = discountAmount.mul(_nftAmount);
+        console.log("This number: ", amountIn);
+        address[] memory path = new address[](3);
+        path[0] = address(_stablecoin);
+        path[1] = address(router.WETH());
+        path[2] = address(stackOSToken);
+        uint256[] memory amountOutMin = router.getAmountsOut(amountIn, path);
+        return amountOutMin[2];
+    }
+
+    /*
+     * @title User mint a token amount that he has been allowed to mint. Partner sales have to be activated.
+     * @param Number of tokens to mint.
+     */
+
+    function mintFromRoyaltyRewards(uint256 _nftAmount) public {
+        require(salesStarted, "Sales not started");
+        require(msg.sender == address(royaltyAddress), "Not Royalty Address");
+        uint256 discountAmount = participationFee -
+            (participationFee * rewardDiscount) /
+            10000;
+        uint256 amountIn = discountAmount.mul(_nftAmount);
+        uint256 stackAmount = buyStackToken(amountIn, stablecoins[0]);
+
+        uint256 subscriptionPart = (stackAmount * mintFee) / 10000;
+        stackAmount -= subscriptionPart;
+        stackOSToken.transfer(address(subscription), subscriptionPart);
+
         adminWithdrawableAmount += stackAmount;
         for (uint256 i; i < _nftAmount; i++) {
             _mint(msg.sender);
@@ -233,7 +331,7 @@ contract StackOsNFTBasic is TransferWhitelist, ERC721, StableCoinAcceptor, ERC72
     }
 
     function delegate(address _delegatee, uint256[] calldata tokenIds) public {
-        for(uint256 i; i < tokenIds.length; i++) {
+        for (uint256 i; i < tokenIds.length; i++) {
             _delegate(_delegatee, tokenIds[i]);
         }
     }
@@ -250,10 +348,7 @@ contract StackOsNFTBasic is TransferWhitelist, ERC721, StableCoinAcceptor, ERC72
         address from,
         address to,
         uint256 tokenId
-    ) 
-        internal
-        override(ERC721)
-    {
+    ) internal override(ERC721) {
         require(isWhitelisted(msg.sender), "Not whitelisted for transfers");
         super._transfer(from, to, tokenId);
     }
@@ -286,7 +381,11 @@ contract StackOsNFTBasic is TransferWhitelist, ERC721, StableCoinAcceptor, ERC72
         adminWithdrawableAmount.sub(adminWithdrawableAmount);
     }
 
-    function getAmountIn(uint256 amount, IERC20 _stablecoin) private view returns (uint256) {
+    function getAmountIn(uint256 amount, IERC20 _stablecoin)
+        private
+        view
+        returns (uint256)
+    {
         address[] memory path = new address[](3);
         path[0] = address(_stablecoin);
         path[1] = address(router.WETH());
@@ -295,7 +394,10 @@ contract StackOsNFTBasic is TransferWhitelist, ERC721, StableCoinAcceptor, ERC72
         return amountsIn[0];
     }
 
-    function buyStackToken(uint256 amount, IERC20 _stablecoin) private returns (uint256) {
+    function buyStackToken(uint256 amount, IERC20 _stablecoin)
+        private
+        returns (uint256)
+    {
         _stablecoin.transferFrom(msg.sender, address(this), amount);
         _stablecoin.approve(address(router), amount);
 

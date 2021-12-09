@@ -1,6 +1,6 @@
 const { ethers } = require("hardhat");
 const { use, expect } = require("chai");
-const { parseEther,  } = require("@ethersproject/units");
+const { parseEther } = require("@ethersproject/units");
 const { deployStackOS, setup, print } = require("./utils");
 
 describe("StackOS NFT", function () {
@@ -10,29 +10,34 @@ describe("StackOS NFT", function () {
   it("Defining Generals", async function () {
     // General
     provider = ethers.provider;
-    [owner, joe, tax] = await hre.ethers.getSigners();
+    [owner, joe, tax, bank] = await hre.ethers.getSigners();
     router = await ethers.getContractAt(
       "IUniswapV2Router02",
       "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D"
     );
   });
- 
+
   it("Deploy full SETUP", async function () {
-    [stackToken,
+    [
+      stackToken,
       usdt,
       usdc,
       dai,
       link,
+      weth,
       coordinator,
       generationManager,
       darkMatter,
       subscription,
-      stackOsNFT] = await setup();
+      stackOsNFT,
+      royalty,
+    ] = await setup();
   });
 
   it("Deploy StackOS NFT generation 2", async function () {
     stackOsNFTgen2 = await deployStackOS();
   });
+
   it("Stake for tickets", async function () {
     await stackToken.approve(stackOsNFT.address, parseEther("10.0"));
 
@@ -168,14 +173,14 @@ describe("StackOS NFT", function () {
   });
 
   it("Partners mint", async function () {
-    print((await stackToken.balanceOf(stackOsNFT.address)));
+    print(await stackToken.balanceOf(stackOsNFT.address));
 
     await stackOsNFT.whitelistPartner(joe.address, 2);
     await usdc.transfer(joe.address, parseEther("2.0"));
     await usdc.connect(joe).approve(stackOsNFT.address, parseEther("2.0"));
-    await expect(stackOsNFT.connect(joe).partnerMint(4, usdc.address)).to.be.revertedWith(
-      "Amount Too Big"
-    );
+    await expect(
+      stackOsNFT.connect(joe).partnerMint(4, usdc.address)
+    ).to.be.revertedWith("Amount Too Big");
     await stackOsNFT.connect(joe).partnerMint(2, usdc.address);
     expect(await stackOsNFT.balanceOf(joe.address)).to.be.equal(2);
     expect(await stackToken.balanceOf(stackOsNFT.address)).to.be.equal(
@@ -184,16 +189,16 @@ describe("StackOS NFT", function () {
   });
 
   it("Partners mint for usdt", async function () {
-    print((await stackToken.balanceOf(stackOsNFT.address)));
+    print(await stackToken.balanceOf(stackOsNFT.address));
     await stackOsNFT.whitelistPartner(owner.address, 1);
     await usdt.approve(stackOsNFT.address, parseEther("2.0"));
     await stackOsNFT.partnerMint(1, usdt.address);
-    print((await stackToken.balanceOf(stackOsNFT.address)));
+    print(await stackToken.balanceOf(stackOsNFT.address));
     // expect(await stackToken.balanceOf(stackOsNFT.address)).to.be.equal(
     //   parseEther("1.24")
     // );
   });
-  
+
   it("Owners can delegate their NFTs", async function () {
     expect(await stackOsNFT.getDelegatee(0)).to.equal(
       ethers.constants.AddressZero
@@ -373,9 +378,7 @@ describe("StackOS NFT", function () {
   it("Unable to transfer when not whitelisted", async function () {
     await expect(
       stackOsNFT.transferFrom(owner.address, joe.address, 0)
-    ).to.be.revertedWith(
-      "Not whitelisted for transfers"
-    )
+    ).to.be.revertedWith("Not whitelisted for transfers");
   });
 
   it("Whitelist address and transfer from it", async function () {
