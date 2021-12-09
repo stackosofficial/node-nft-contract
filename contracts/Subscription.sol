@@ -29,7 +29,6 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
 
     struct Bonus {
         uint256 total;
-        uint256 depositDate;
         uint256 lastTxDate;
         uint256 releasePeriod;
         uint256 lockedAmount;
@@ -155,7 +154,6 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
         uint256 bonusAmount = amount * bonusPercent / HUNDRED_PERCENT;
         deposit.reward.push(Bonus({
             total: bonusAmount, 
-            depositDate: block.timestamp, 
             lastTxDate: block.timestamp, 
             releasePeriod: dripPeriod, 
             lockedAmount: bonusAmount
