@@ -5,10 +5,10 @@ import "./IStackOSNFT.sol";
 
 interface IStackOSNFTBasic is IStackOSNFT {
     function mintFromSubscriptionRewards(
-        uint256 _stackAmount,
         uint256 _nftAmount,
+        address _stablecoin,
         address _to
-    ) external;
+    ) external returns (uint256);
 
     function mintFromRoyaltyRewards(
         uint256 _mintNum,

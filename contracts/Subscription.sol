@@ -324,24 +324,29 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
 
         if (allocationStatus == withdrawStatus.purchase) {
 
-            uint256 stackAmount = IStackOSNFTBasic(
+            uint256 amountToConvert = IStackOSNFTBasic(
                 address(generations.get(purchaseGenerationId))
             ).getFromRewardsPrice(amountToMint, address(_stablecoin));
 
-            require(amountWithdraw > stackAmount, "Not enough earnings");
+            require(amountWithdraw > amountToConvert, "Not enough earnings");
 
-            stackToken.approve(
+            uint256 usdForMint = sellStackToken(amountToConvert, _stablecoin);
+            // usdForMint = usdForMint + (usdForMint * 500) / 10000;
+            console.log("usdForMint: ", usdForMint);
+
+            _stablecoin.approve(
                 address(generations.get(purchaseGenerationId)),
-                stackAmount
+                usdForMint
             );
 
-            IStackOSNFTBasic(
+            // TODO: should send to user the left over amount? (usdForMint - usdUsed)
+            uint256 usdUsed = IStackOSNFTBasic(
                 address(generations.get(purchaseGenerationId))
-            ).mintFromSubscriptionRewards(stackAmount, amountToMint, msg.sender);
+            ).mintFromSubscriptionRewards(amountToMint, address(_stablecoin), msg.sender);
 
             // Add rest back to pending rewards
-            amountWithdraw -= stackAmount;
-            overflow[generationId][tokenId] = amountWithdraw;
+            amountWithdraw -= amountToConvert;
+            overflow[generationId][tokenId] = amountToConvert;
         } else {
             stackToken.transfer(msg.sender, amountWithdraw);
             deposit.tax = HUNDRED_PERCENT;
@@ -408,7 +413,7 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
      *  @title Buy `_stablecoin` for `stackToken`.
      *  @param Amount of `stackToken` to sell.
      */
-    function sellStackToken(uint256 amount, uint256 amountOutMin, IERC20 _stablecoin)
+    function sellStackToken(uint256 amount, IERC20 _stablecoin)
         private
         returns (uint256)
     {
@@ -419,10 +424,10 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
         path[0] = address(stackToken);
         path[1] = address(router.WETH());
         path[2] = address(_stablecoin);
-        // uint256[] memory amountOutMin = router.getAmountsOut(amount, path);
+        uint256[] memory amountOutMin = router.getAmountsOut(amount, path);
         uint256[] memory amounts = router.swapExactTokensForTokens(
             amount,
-            amountOutMin,
+            amountOutMin[2],
             path,
             address(this),
             deadline

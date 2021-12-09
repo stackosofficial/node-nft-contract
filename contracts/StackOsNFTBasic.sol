@@ -237,25 +237,36 @@ contract StackOsNFTBasic is
      */
 
     function mintFromSubscriptionRewards(
-        uint256 _stackAmount,
         uint256 _nftAmount,
+        address _stablecoin,
         address _to
-    ) external {
+    ) external returns (uint256) {
         require(salesStarted, "Sales not started");
         require(
             msg.sender == address(subscription),
             "Not Subscription Address"
         );
 
-        uint256 subscriptionPart = (_stackAmount * mintFee) / 10000;
-        _stackAmount -= subscriptionPart;
+        uint256 discountAmount = participationFee -
+            (participationFee * rewardDiscount) /
+            10000;
 
-        stackOSToken.transferFrom(msg.sender, address(this), _stackAmount);
+        uint256 amountIn = discountAmount.mul(_nftAmount);
+        console.log("mintFromSub amountIn:", amountIn);
+        IERC20(_stablecoin).transferFrom(msg.sender, address(this), amountIn);
 
-        adminWithdrawableAmount += _stackAmount;
+        uint256 stackAmount = buyStackToken(amountIn, IERC20(_stablecoin));
+
+        uint256 subscriptionPart = (stackAmount * mintFee) / 10000;
+        stackAmount -= subscriptionPart;
+
+        stackOSToken.transfer(address(subscription), subscriptionPart);
+
+        adminWithdrawableAmount += stackAmount;
         for (uint256 i; i < _nftAmount; i++) {
             _mint(_to);
         }
+        return amountIn;
     }
 
     function getFromRewardsPrice(uint256 _nftAmount, address _stablecoin)
@@ -271,7 +282,7 @@ contract StackOsNFTBasic is
         path[0] = address(stackOSToken);
         path[1] = address(router.WETH());
         path[2] = address(_stablecoin);
-        // TODO: this was getAmountsOut, but since no convertations anymore, we return price of required USD amount in STACK
+        // TODO: this was getAmountsOut, should revert to it?
         uint256[] memory amountInMin = router.getAmountsIn(amountOut, path);
         console.log("getAmountsIn: want usd & got stack: ", amountOut, amountInMin[0]);
         return amountInMin[0];
