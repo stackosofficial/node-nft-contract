@@ -200,8 +200,9 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
             // We assume that bonuses drained one by one starting from the first one.
             // Then if our array looks like this [--++] where - is drained bonuses,
             // we shift all + down to replace all -, then our array is [++--]
-            // Now we can pop all - as we only able to remove elements from the end of array.
-            if(bonus.lockedAmount == 0) index = i+1;
+            // Then we can pop all - as we only able to remove elements from the end of array.
+            if(bonus.lockedAmount == 0) 
+                index = i+1;
             else if(index > 0) {
                 uint256 currentIndex = i - index;
 

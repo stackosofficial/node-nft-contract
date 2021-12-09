@@ -330,10 +330,8 @@ describe("Subscription", function () {
   })
 
   it("mint 1 token", async function () {
-    await stackOsNFTGen2.whitelistPartner(owner.address, 1);
     await usdt.approve(stackOsNFTGen2.address, parseEther("10000.0"));
-    await stackOsNFTGen2.startPartnerSales();
-    await stackOsNFTGen2.partnerMint(1, usdt.address);
+    await stackOsNFTGen2.mint(1, usdt.address);
   });
   it("subscriptions", async function () {
     await usdt.approve(subscription.address, parseEther("20000.0"));
