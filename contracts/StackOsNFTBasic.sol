@@ -169,18 +169,20 @@ contract StackOsNFTBasic is
             address(this) != address(msg.sender),
             "Cant transfer to the same address"
         );
-        // check that caller is stackNFT contract
+        // check that caller is generation 1 contract 
         require(address(generations.get(0)) == msg.sender, "Not Correct Address");
-        // generations.getIDByAddress(msg.sender);
 
-        //TODO: seems to be wrong? the participationFee is in USD, but stackToken used here ....
+        stackOSToken.transferFrom(msg.sender, address(this), _amount);
+        uint256 usdAmount = sellStackToken(_amount, stablecoins[0]);
+
         uint256 participationFeeDiscount = participationFee
             .mul(10000 - transferDiscount)
             .div(10000);
 
-        uint256 ticketAmount = _amount.div(participationFeeDiscount);
-
+        uint256 ticketAmount = usdAmount.div(participationFeeDiscount);
         uint256 depositAmount = participationFeeDiscount.mul(ticketAmount);
+
+        uint256 stackAmount = buyStackToken(usdAmount, stablecoins[0]);
 
         stackOSToken.transferFrom(
             address(msg.sender),
@@ -219,6 +221,7 @@ contract StackOsNFTBasic is
         require(supportsCoin(_stablecoin), "Unsupported payment coin");
 
         uint256 amountIn = participationFee.mul(_nftAmount);
+        _stablecoin.transferFrom(msg.sender, address(this), amountIn);
         uint256 stackAmount = buyStackToken(amountIn, _stablecoin);
 
         uint256 subscriptionPart = (stackAmount * mintFee) / 10000;
@@ -253,8 +256,8 @@ contract StackOsNFTBasic is
 
         uint256 amountIn = discountAmount.mul(_nftAmount);
         console.log("mintFromSub amountIn:", amountIn);
-        // IERC20(_stablecoin).transferFrom(msg.sender, address(this), amountIn);
 
+        IERC20(_stablecoin).transferFrom(msg.sender, address(this), amountIn);
         uint256 stackAmount = buyStackToken(amountIn, IERC20(_stablecoin));
 
         uint256 subscriptionPart = (stackAmount * mintFee) / 10000;
@@ -270,7 +273,7 @@ contract StackOsNFTBasic is
     }
 
     function getFromRewardsPrice(uint256 _nftAmount, address _stablecoin)
-        external
+        external 
         view
         returns (uint256)
     {
@@ -304,6 +307,7 @@ contract StackOsNFTBasic is
         // console.log("mint from royalty: ", _usdAmount/1e18, discountAmount /1e18);
         // uint256 _nftAmount = _usdAmount / discountAmount;
         uint256 amountIn = discountAmount.mul(_mintNum);
+        IERC20(_stablecoin).transferFrom(msg.sender, address(this), amountIn);
         uint256 stackAmount = buyStackToken(amountIn, IERC20(_stablecoin));
 
         uint256 subscriptionPart = (stackAmount * mintFee) / 10000;
@@ -408,7 +412,6 @@ contract StackOsNFTBasic is
         private
         returns (uint256)
     {
-        _stablecoin.transferFrom(msg.sender, address(this), amount);
         _stablecoin.approve(address(router), amount);
 
         uint256 deadline = block.timestamp + 1200;
@@ -427,4 +430,27 @@ contract StackOsNFTBasic is
 
         return amounts[2];
     }
+
+    function sellStackToken(uint256 amount, IERC20 _stablecoin)
+        private
+        returns (uint256)
+    {
+        stackToken.approve(address(router), amount);
+
+        uint256 deadline = block.timestamp + 1200;
+        address[] memory path = new address[](3);
+        path[0] = address(stackToken);
+        path[1] = address(router.WETH());
+        path[2] = address(_stablecoin);
+        uint256[] memory amountOutMin = router.getAmountsOut(amount, path);
+        uint256[] memory amounts = router.swapExactTokensForTokens(
+            amount,
+            amountOutMin[2],
+            path,
+            address(this),
+            deadline
+        );
+
+        return amounts[2];
+    }   
 }
