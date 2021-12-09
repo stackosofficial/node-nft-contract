@@ -331,18 +331,18 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
             require(amountWithdraw > amountToConvert, "Not enough earnings");
 
             uint256 usdForMint = sellStackToken(amountToConvert, _stablecoin);
-            // usdForMint = usdForMint + (usdForMint * 500) / 10000;
-            console.log("usdForMint: ", usdForMint);
 
             _stablecoin.approve(
                 address(generations.get(purchaseGenerationId)),
                 usdForMint
             );
 
-            // TODO: should send to user the left over amount? (usdForMint - usdUsed)
             uint256 usdUsed = IStackOSNFTBasic(
                 address(generations.get(purchaseGenerationId))
             ).mintFromSubscriptionRewards(amountToMint, address(_stablecoin), msg.sender);
+
+            // send left over amount back to user
+            _stablecoin.transfer(msg.sender, usdForMint - usdUsed);
 
             // Add rest back to pending rewards
             amountWithdraw -= amountToConvert;

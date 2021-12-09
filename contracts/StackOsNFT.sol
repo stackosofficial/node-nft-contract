@@ -44,7 +44,7 @@ contract StackOsNFT is TransferWhitelist, StableCoinAcceptor, VRFConsumerBase, E
     uint256 private prizes;
     uint256 private totalDelegated;
     uint256 private iterationCount;
-    uint256 internal fee = 1e15;
+    uint256 internal fee = 1e14; // 0.0001 or 1e14 on MATIC, 1e17 on eth
     uint256 internal mintFee;
 
     mapping(uint256 => bool) public randomUniqueNumbers;
@@ -517,8 +517,8 @@ contract StackOsNFT is TransferWhitelist, StableCoinAcceptor, VRFConsumerBase, E
         uint256 _current = _tokenIdCounter.current();
         _tokenIdCounter.increment();
         totalSupply += 1;
-        _setTokenURI(_current, URI);
         _safeMint(_address, _current);
+        _setTokenURI(_current, URI);
     }
 
     function _transfer(

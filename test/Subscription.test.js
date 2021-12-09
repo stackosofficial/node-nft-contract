@@ -282,7 +282,7 @@ describe("Subscription", function () {
     await subscription.subscribe(1, 4, usdt.address);
     await provider.send("evm_increaseTime", [MONTH * 3]);
 
-    await subscription.purchaseNewNft(1, [4], 1, 1, usdt.address);
+    await subscription.purchaseNewNft(1, [4], 1, 5, usdt.address);
   });
 
   it("Pay for subscription on NFT owned by other peoples", async function () {

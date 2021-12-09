@@ -253,7 +253,7 @@ contract StackOsNFTBasic is
 
         uint256 amountIn = discountAmount.mul(_nftAmount);
         console.log("mintFromSub amountIn:", amountIn);
-        IERC20(_stablecoin).transferFrom(msg.sender, address(this), amountIn);
+        // IERC20(_stablecoin).transferFrom(msg.sender, address(this), amountIn);
 
         uint256 stackAmount = buyStackToken(amountIn, IERC20(_stablecoin));
 
@@ -282,7 +282,6 @@ contract StackOsNFTBasic is
         path[0] = address(stackOSToken);
         path[1] = address(router.WETH());
         path[2] = address(_stablecoin);
-        // TODO: this was getAmountsOut, should revert to it?
         uint256[] memory amountInMin = router.getAmountsIn(amountOut, path);
         console.log("getAmountsIn: want usd & got stack: ", amountOut, amountInMin[0]);
         return amountInMin[0];
