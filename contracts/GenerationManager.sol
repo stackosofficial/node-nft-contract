@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./interfaces/IStackOSNFT.sol";
+// import "./interfaces/IStackOSNFTBasic.sol";
 import "./StackOsNFTBasic.sol";
 import "./Subscription.sol";
 
@@ -46,8 +47,8 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         uint256 _transferDiscount,
         uint256 _timeLock,
         address _royaltyAddress
-    ) public onlyOwner returns (IStackOSNFT) {
-        IStackOSNFT stack = IStackOSNFT(
+    ) public onlyOwner returns (IStackOSNFTBasic) {
+        IStackOSNFTBasic stack = IStackOSNFTBasic(
             address(
                 new StackOsNFTBasic(
                     _name,

@@ -7,7 +7,7 @@ import "./StableCoinAcceptor.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "./interfaces/IStackOSNFT.sol";
-import "./interfaces/IStackOsNftBasic.sol";
+import "./interfaces/IStackOSNftBasic.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
@@ -328,21 +328,33 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
                 address(generations.get(purchaseGenerationId))
             ).getFromRewardsPrice(amountToMint, address(_stablecoin));
 
+            IStackOSNFTBasic stack = IStackOSNFTBasic(
+                address(generations.get(purchaseGenerationId))
+            );
+            uint256 totalPriceInUSD = stack.price() -
+                (stack.price() * stack.rewardDiscount()) /
+                HUNDRED_PERCENT;
+
             require(amountWithdraw > amountToConvert, "Not enough earnings");
 
-            uint256 usdForMint = sellStackToken(amountToConvert, _stablecoin);
-            usdForMint = usdForMint + (usdForMint * 500) / 10000;
-            console.log(usdForMint);
+            uint256 usdForMint = sellStackToken(amountToConvert, totalPriceInUSD, _stablecoin);
+
+            // TODO: Alex, why 105% here? I assume it was for debugging
+            // usdForMint = usdForMint + (usdForMint * 500) / 10000;
+
+            console.log("usdForMint", usdForMint);
             IERC20(_stablecoin).approve(
                 address(generations.get(purchaseGenerationId)),
                 usdForMint
             );
 
-            uint256 stackConsumed = IStackOSNFTBasic(
+            IStackOSNFTBasic(
                 address(generations.get(purchaseGenerationId))
-            ).mintFromSubscriptionRewards(amountToMint, address(_stablecoin));
+            ).mintFromSubscriptionRewards(usdForMint, amountToMint, address(_stablecoin), msg.sender);
 
             // Add rest back to pending rewards
+            amountWithdraw -= amountToConvert;
+            overflow[generationId][tokenId] = amountWithdraw;
         } else {
             stackToken.transfer(msg.sender, amountWithdraw);
             deposit.tax = HUNDRED_PERCENT;
@@ -409,7 +421,7 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
      *  @title Buy `_stablecoin` for `stackToken`.
      *  @param Amount of `stackToken` to sell.
      */
-    function sellStackToken(uint256 amount, IERC20 _stablecoin)
+    function sellStackToken(uint256 amount, uint256 amountOutMin, IERC20 _stablecoin)
         private
         returns (uint256)
     {
@@ -420,18 +432,18 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
         path[0] = address(stackToken);
         path[1] = address(router.WETH());
         path[2] = address(_stablecoin);
-        uint256[] memory amountOutMin = router.getAmountsOut(amount, path);
+        // uint256[] memory amountOutMin = router.getAmountsOut(amount, path);
         uint256[] memory amounts = router.swapExactTokensForTokens(
             amount,
-            amountOutMin[2],
+            amountOutMin,
             path,
             address(this),
             deadline
         );
 
         return amounts[2];
-    }
-
+    }   
+    
     /*
      *  @title Subtract function, a - b.
      *  @title But instead of reverting with subtraction underflow we return zero.

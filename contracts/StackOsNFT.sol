@@ -358,40 +358,8 @@ contract StackOsNFT is TransferWhitelist, StableCoinAcceptor, VRFConsumerBase, E
         }
         uint256 amount = _ticketID.length.mul(participationFee);
         stackOSToken.approve(_address, amount);
-        IStackOSNFT(_address).transferFromLastGen(msg.sender, amount);
+        IStackOSNFTBasic(_address).transferFromLastGen(msg.sender, amount);
     }
-
-    // function transferFromLastGen(address _ticketOwner, uint256 _amount) public {
-    //     require(
-    //         address(this) != address(msg.sender),
-    //         "Cant transfer to the same address"
-    //     );
-    //     // check that caller is stackNFT contract
-    //     generations.getIDByAddress(msg.sender);
-    //     uint256 participationFeeDiscount = participationFee
-    //         .mul(10000 - transferDiscount)
-    //         .div(10000);
-    //     uint256 ticketAmount = _amount.div(participationFeeDiscount);
-    //     // from stakeForTickets function
-    //     uint256 depositAmount = participationFeeDiscount.mul(ticketAmount);
-    //     stackOSToken.transferFrom(
-    //         address(msg.sender),
-    //         address(this),
-    //         depositAmount
-    //     );
-    //     stackOSToken.transferFrom(
-    //         address(msg.sender),
-    //         _ticketOwner,
-    //         _amount - depositAmount
-    //     );
-
-    //     uint256 nextTicketID = participationTickets;
-    //     for (uint256 i; i < ticketAmount; i++) {
-    //         ticketOwner[nextTicketID] = _ticketOwner;
-    //         nextTicketID++;
-    //     }
-    //     participationTickets += ticketAmount;
-    // }
 
     /*
      * @title Whitelist and address that will be able to do strategy purchaise.

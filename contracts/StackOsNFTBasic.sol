@@ -160,6 +160,10 @@ contract StackOsNFTBasic is
         return _exists(tokenId);
     }
 
+    function price() public view returns (uint256) {
+        return participationFee;
+    }
+
     function transferFromLastGen(address _ticketOwner, uint256 _amount) public {
         require(
             address(this) != address(msg.sender),
@@ -168,6 +172,7 @@ contract StackOsNFTBasic is
         // check that caller is stackNFT contract
         generations.getIDByAddress(msg.sender);
 
+        //TODO: seems to be wrong? the price is in USD, but stackToken used here
         uint256 participationFeeDiscount = participationFee
             .mul(10000 - transferDiscount)
             .div(10000);
@@ -187,6 +192,7 @@ contract StackOsNFTBasic is
             _amount - depositAmount
         );
 
+        // TODO: do we need take fee here for subscription? like in mint function
         for (uint256 i; i < ticketAmount; i++) {
             _mint(msg.sender);
         }
@@ -229,24 +235,19 @@ contract StackOsNFTBasic is
      */
 
     function mintFromSubscriptionRewards(
+        uint256 _usdAmount,
         uint256 _nftAmount,
-        address _stablecoin
-    ) external returns (uint256) {
+        address _stablecoin,
+        address _to
+    ) external {
         require(salesStarted, "Sales not started");
         require(
             msg.sender == address(subscription),
             "Not Subscription Address"
         );
 
-        uint256 discountAmount = participationFee -
-            (participationFee * rewardDiscount) /
-            10000;
-
-        uint256 amountIn = discountAmount.mul(_nftAmount);
-        console.log(amountIn);
-        IERC20(_stablecoin).transferFrom(msg.sender, address(this), amountIn);
-
-        uint256 stackAmount = buyStackToken(amountIn, stablecoins[0]);
+        uint256 stackAmount = buyStackToken(_usdAmount, IERC20(_stablecoin));
+        console.log("mintFromSub:", IERC20(_stablecoin).balanceOf(msg.sender), _usdAmount, stackAmount);
 
         uint256 subscriptionPart = (stackAmount * mintFee) / 10000;
         stackAmount -= subscriptionPart;
@@ -254,9 +255,8 @@ contract StackOsNFTBasic is
 
         adminWithdrawableAmount += stackAmount;
         for (uint256 i; i < _nftAmount; i++) {
-            _mint(msg.sender);
+            _mint(_to);
         }
-        return stackAmount;
     }
 
     /*
@@ -269,18 +269,17 @@ contract StackOsNFTBasic is
         view
         returns (uint256)
     {
-        // calculate amount of `_stablecoin` needed to buy `stackAmount`
         uint256 discountAmount = participationFee -
             (participationFee * rewardDiscount) /
             10000;
-        uint256 amountIn = discountAmount.mul(_nftAmount);
-        console.log("This number: ", amountIn);
+        uint256 amountOut = discountAmount.mul(_nftAmount);
         address[] memory path = new address[](3);
-        path[0] = address(_stablecoin);
+        path[0] = address(stackOSToken);
         path[1] = address(router.WETH());
-        path[2] = address(stackOSToken);
-        uint256[] memory amountOutMin = router.getAmountsOut(amountIn, path);
-        return amountOutMin[2];
+        path[2] = address(_stablecoin);
+        uint256[] memory amountInMin = router.getAmountsIn(amountOut, path);
+        console.log("getAmountsIn: want usd & got stack: ", amountOut, amountInMin[0]);
+        return amountInMin[0];
     }
 
     /*
