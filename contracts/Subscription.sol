@@ -33,8 +33,6 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
         uint256 lastTxDate;
         uint256 releasePeriod;
         uint256 lockedAmount;
-        // TODO: this can be removed, because = total / releasePeriod
-        uint256 dripRate;
     }
 
     struct Deposit {
@@ -70,8 +68,6 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
         taxReductionPercent = _taxReductionPercent;
     }
 
-
-
     function setDripPeriod(uint256 _seconds) external onlyOwner {
         require(_seconds > 0, "Cant be zero");
         dripPeriod = _seconds;
@@ -106,7 +102,7 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
      *  @param StackNFT generation id.
      *  @param Token id.
      *  @param One of the supported coins such as USDT, USDC, DAI
-     *  @dev Caller must approve us `price` * `numberOfMonths` amount of `_stablecoin`.
+     *  @dev Caller must approve us `price` amount of `_stablecoin`.
      *  @dev Tax resets to maximum if you re-subscribed after `nextPayDate` + `taxResetDeadline`.
      */
 
@@ -122,7 +118,6 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
     function _subscribe(
         uint256 generationId,
         uint256 tokenId,
-        // uint256 numberOfMonths,
         IERC20 _stablecoin,
         bool externalBuyer
     ) internal {
@@ -156,13 +151,42 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
         deposit.balance += amount;
 
         // bonuses logic
-        uint256 newBonusAmount = amount * bonusPercent / HUNDRED_PERCENT;
+        updateBonuses(generationId, tokenId);
+        uint256 bonusAmount = amount * bonusPercent / HUNDRED_PERCENT;
+        deposit.reward.push(Bonus({
+            total: bonusAmount, 
+            depositDate: block.timestamp, 
+            lastTxDate: block.timestamp, 
+            releasePeriod: dripPeriod, 
+            lockedAmount: bonusAmount
+        }));
 
+        // if(_stablecoin == stablecoins[0]) {
+        //     console.log("usdt sub:", price/1e18);
+        //     console.log("usdt sub:", amount/1e18);
+        //     console.log("reward:", bonusAmount / 1e18, bonusAmount);
+        //     console.log("balance:", deposit.balance / 1e18);
+        // }
+        // if(_stablecoin == stablecoins[2]) {
+        //     console.log("dai sub:", price/1e18);
+        //     console.log("dai sub:", amount/1e18);
+        //     console.log("reward:", bonusAmount / 1e18);
+        //     console.log("balance:", deposit.balance / 1e18);
+        // }
+    }
+
+    function updateBonuses(
+        uint256 generationId,
+        uint256 tokenId
+    ) private {
+        Deposit storage deposit = deposits[generationId][tokenId];
         uint256 index;
         for (uint256 i; i < deposit.reward.length; i++) {
             Bonus storage bonus = deposit.reward[i];
 
-            uint256 withdrawAmount = bonus.dripRate * (block.timestamp - bonus.lastTxDate);
+            uint256 withdrawAmount = 
+                (bonus.total / bonus.releasePeriod) * 
+                (block.timestamp - bonus.lastTxDate);
 
             if (withdrawAmount > bonus.lockedAmount)
                 withdrawAmount = bonus.lockedAmount;
@@ -179,7 +203,8 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
             else if(index > 0) {
                 uint256 currentIndex = i - index;
 
-                deposit.reward[currentIndex] = deposit.reward[index + currentIndex];
+                deposit.reward[currentIndex] = 
+                    deposit.reward[index + currentIndex];
                 delete deposit.reward[index + currentIndex];
             }
         }
@@ -189,28 +214,6 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
             if(bonus.lockedAmount > 0) break;
             deposit.reward.pop();
         }
-
-        deposit.reward.push(Bonus({
-            total: newBonusAmount, 
-            depositDate: block.timestamp, 
-            lastTxDate: block.timestamp, 
-            releasePeriod: dripPeriod, 
-            lockedAmount: newBonusAmount,
-            dripRate: newBonusAmount / dripPeriod 
-        }));
-
-        // if(_stablecoin == stablecoins[0]) {
-        //     console.log("usdt sub:", price/1e18);
-        //     console.log("usdt sub:", amount/1e18);
-        //     console.log("reward:", newBonusAmount / 1e18, newBonusAmount);
-        //     console.log("balance:", deposit.balance / 1e18);
-        // }
-        // if(_stablecoin == stablecoins[2]) {
-        //     console.log("dai sub:", price/1e18);
-        //     console.log("dai sub:", amount/1e18);
-        //     console.log("reward:", newBonusAmount / 1e18);
-        //     console.log("balance:", deposit.balance / 1e18);
-        // }
     }
 
     /*
@@ -281,44 +284,6 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
         );
         Deposit storage deposit = deposits[generationId][tokenId];
 
-        uint256 totalBonusAmount;
-        uint256 index;
-
-        for (uint256 i; i < deposit.reward.length; i++) {
-            Bonus storage bonus = deposit.reward[i];
-
-            uint256 amount = (block.timestamp - bonus.lastTxDate) * bonus.dripRate;
-            if (amount > bonus.lockedAmount)
-                amount = bonus.lockedAmount;
-
-            totalBonusAmount += amount;
-
-            bonus.lastTxDate = block.timestamp;
-            bonus.lockedAmount -= amount;
-            
-            if(bonus.lockedAmount == 0) index = i+1;
-            else if(index > 0) {
-                uint256 currentIndex = i - index;
-                
-                deposit.reward[currentIndex] = deposit.reward[index + currentIndex];
-                delete deposit.reward[index + currentIndex];
-            }
-        }
-
-        for (uint256 i = deposit.reward.length; i > 0; i--) {
-            Bonus storage bonus = deposit.reward[i - 1];
-            if(bonus.lockedAmount > 0) break;
-            deposit.reward.pop();
-        }
-
-        totalBonusAmount += overflow[generationId][tokenId];
-        overflow[generationId][tokenId] = 0;
-
-        require(
-            deposit.balance + totalBonusAmount <= stackToken.balanceOf(address(this)),
-            "Not enough balance on bonus wallet"
-        );
-
         // if not subscribed
         if (deposit.nextPayDate < block.timestamp) {
             deposit.nextPayDate = 0;
@@ -326,6 +291,13 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
         }
 
         uint256 amountWithdraw = deposit.balance;
+        updateBonuses(generationId, tokenId);
+        uint256 bonusAmount = overflow[generationId][tokenId];
+        overflow[generationId][tokenId] = 0;
+        require(
+            amountWithdraw + bonusAmount <= stackToken.balanceOf(address(this)),
+            "Not enough balance on bonus wallet"
+        );
 
         deposit.withdrawableNum = 0;
         deposit.balance = 0;
@@ -337,7 +309,7 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
             stackToken.transfer(taxAddress, tax);
         }
 
-        amountWithdraw += totalBonusAmount;
+        amountWithdraw += bonusAmount;
         require(amountWithdraw > 0, "Already withdrawn");
 
         if (subscription) {
@@ -378,8 +350,10 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
         for (uint256 i; i < deposit.reward.length; i++) {
             Bonus storage bonus = deposit.reward[i];
 
-            uint256 dripRate = bonus.total / bonus.releasePeriod;
-            uint256 amount = (block.timestamp - bonus.lastTxDate) * dripRate;
+            uint256 amount = 
+                (bonus.total / bonus.releasePeriod) * 
+                (block.timestamp - bonus.lastTxDate);
+
             if (amount > bonus.lockedAmount)
                 amount = bonus.lockedAmount;
             totalPending += amount;
