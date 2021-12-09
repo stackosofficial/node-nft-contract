@@ -232,7 +232,6 @@ contract StackOsNFTBasic is
 
     /*
      * @title Called when user want to mint and pay with bonuses from subscriptions.
-     * @param Number of tokens to mint.
      * @dev Can only be called by Subscription contract.
      */
 
@@ -258,11 +257,6 @@ contract StackOsNFTBasic is
         }
     }
 
-    /*
-     * @title User mint a token amount that he has been allowed to mint. Partner sales have to be activated.
-     * @param Number of tokens to mint.
-     */
-
     function getFromRewardsPrice(uint256 _nftAmount, address _stablecoin)
         external
         view
@@ -276,15 +270,15 @@ contract StackOsNFTBasic is
         path[0] = address(stackOSToken);
         path[1] = address(router.WETH());
         path[2] = address(_stablecoin);
-        // TODO: this was getAmountsOut
+        // TODO: this was getAmountsOut, but since no convertations anymore, we return price of required USD amount in STACK
         uint256[] memory amountInMin = router.getAmountsIn(amountOut, path);
         console.log("getAmountsIn: want usd & got stack: ", amountOut, amountInMin[0]);
         return amountInMin[0];
     }
 
     /*
-     * @title User mint a token amount that he has been allowed to mint. Partner sales have to be activated.
-     * @param Number of tokens to mint.
+     * @title Called when user want to mint and pay with bonuses from subscriptions.
+     * @dev Can only be called by Subscription contract.
      */
 
     function mintFromRoyaltyRewards(uint256 _nftAmount) public {

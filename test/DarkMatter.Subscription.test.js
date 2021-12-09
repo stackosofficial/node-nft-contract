@@ -247,7 +247,6 @@ describe("DarkMatter integration with Subscription", function () {
     await provider.send("evm_increaseTime", [MONTH]); // 4th month started
     await subscription.connect(bank).withdraw(0, [1]);
 
-    // TODO: gets 48 here, but should get less!
     print("bank: ", (await stackToken.balanceOf(bank.address)));
     print("tax: ", (await stackToken.balanceOf(tax.address)));
     expect(await stackToken.balanceOf(bank.address)).to.be.gt(parseEther("38.0")); // 27 + 12 = 39 

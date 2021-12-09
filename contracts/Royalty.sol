@@ -54,7 +54,6 @@ contract Royalty is Ownable {
 
     /*
      * @title Deposit royalty so that NFT holders can claim it later.
-     * TODO: in matic they send wrapped eth
      */
     receive() external payable {
         checkDelegationsForFirstCycle();

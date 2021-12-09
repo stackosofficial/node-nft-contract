@@ -44,7 +44,7 @@ contract StackOsNFT is TransferWhitelist, StableCoinAcceptor, VRFConsumerBase, E
     uint256 private prizes;
     uint256 private totalDelegated;
     uint256 private iterationCount;
-    // TODO: this was never set, why?
+    // TODO: this was never set, Alex why? (this is used in link randomizer, so I set it to 0.1)
     uint256 internal fee = 1e17;
     uint256 internal mintFee;
 
@@ -512,7 +512,7 @@ contract StackOsNFT is TransferWhitelist, StableCoinAcceptor, VRFConsumerBase, E
         }
     }
 
-    // TODO: reentrancy attack possible? if receiver is contract, then probably yes?
+    // TODO: reentrancy attack possible? if receiver is contract, then probably yes? because onReceiveERC721 is called
     function mint(address _address) internal {
         require(totalSupply < maxSupply, "Max supply reached");
         _safeMint(_address, _tokenIdCounter.current());

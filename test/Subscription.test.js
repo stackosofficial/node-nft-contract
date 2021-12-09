@@ -293,7 +293,7 @@ describe("Subscription", function () {
     );
 
     await subscription.withdraw(0, [6]); 
-    await provider.send("evm_increaseTime", [MONTH]); // TODO: without this delay, reverted with 'cant pay in advance', this is not exepected i guess
+    await provider.send("evm_increaseTime", [MONTH]);
     await subscription.connect(partner).subscribe(0, 6, usdt.address);
 
     await provider.send("evm_increaseTime", [MONTH]); 
