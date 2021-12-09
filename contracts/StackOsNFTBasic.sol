@@ -170,9 +170,10 @@ contract StackOsNFTBasic is
             "Cant transfer to the same address"
         );
         // check that caller is stackNFT contract
+        // TODO: maybe good idea to replace with `generations.get(0) == msg.sender`?
         generations.getIDByAddress(msg.sender);
 
-        //TODO: seems to be wrong? the price is in USD, but stackToken used here
+        //TODO: seems to be wrong? the participationFee is in USD, but stackToken used here ....
         uint256 participationFeeDiscount = participationFee
             .mul(10000 - transferDiscount)
             .div(10000);
@@ -230,14 +231,14 @@ contract StackOsNFTBasic is
     }
 
     /*
-     * @title User mint a token amount that he has been allowed to mint. Partner sales have to be activated.
+     * @title Called when user want to mint and pay with bonuses from subscriptions.
      * @param Number of tokens to mint.
+     * @dev Can only be called by Subscription contract.
      */
 
     function mintFromSubscriptionRewards(
-        uint256 _usdAmount,
+        uint256 _stackAmount,
         uint256 _nftAmount,
-        address _stablecoin,
         address _to
     ) external {
         require(salesStarted, "Sales not started");
@@ -246,14 +247,12 @@ contract StackOsNFTBasic is
             "Not Subscription Address"
         );
 
-        uint256 stackAmount = buyStackToken(_usdAmount, IERC20(_stablecoin));
-        console.log("mintFromSub:", IERC20(_stablecoin).balanceOf(msg.sender), _usdAmount, stackAmount);
+        uint256 subscriptionPart = (_stackAmount * mintFee) / 10000;
+        _stackAmount -= subscriptionPart;
 
-        uint256 subscriptionPart = (stackAmount * mintFee) / 10000;
-        stackAmount -= subscriptionPart;
-        stackOSToken.transfer(address(subscription), subscriptionPart);
+        stackOSToken.transferFrom(msg.sender, address(this), _stackAmount);
 
-        adminWithdrawableAmount += stackAmount;
+        adminWithdrawableAmount += _stackAmount;
         for (uint256 i; i < _nftAmount; i++) {
             _mint(_to);
         }
@@ -277,6 +276,7 @@ contract StackOsNFTBasic is
         path[0] = address(stackOSToken);
         path[1] = address(router.WETH());
         path[2] = address(_stablecoin);
+        // TODO: this was getAmountsOut
         uint256[] memory amountInMin = router.getAmountsIn(amountOut, path);
         console.log("getAmountsIn: want usd & got stack: ", amountOut, amountInMin[0]);
         return amountInMin[0];

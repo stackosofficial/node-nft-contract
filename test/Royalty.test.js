@@ -30,12 +30,13 @@ describe("Royalty", function () {
       usdc,
       dai,
       link,
+      weth,
       coordinator,
       generationManager,
       darkMatter,
       subscription,
       stackOsNFT,
-      weth,
+      royalty,
     ] = await setup();
   });
 

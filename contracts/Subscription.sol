@@ -324,36 +324,24 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
 
         if (allocationStatus == withdrawStatus.purchase) {
             // TODO: LOOK FOR A BETTER METHOD TO CALCULATE HOW MANY TOKENS NEED TO BE CONVERTED
-            uint256 amountToConvert = IStackOSNFTBasic(
+        
+            uint256 stackAmount = IStackOSNFTBasic(
                 address(generations.get(purchaseGenerationId))
             ).getFromRewardsPrice(amountToMint, address(_stablecoin));
 
-            IStackOSNFTBasic stack = IStackOSNFTBasic(
-                address(generations.get(purchaseGenerationId))
-            );
-            uint256 totalPriceInUSD = stack.price() -
-                (stack.price() * stack.rewardDiscount()) /
-                HUNDRED_PERCENT;
+            require(amountWithdraw > stackAmount, "Not enough earnings");
 
-            require(amountWithdraw > amountToConvert, "Not enough earnings");
-
-            uint256 usdForMint = sellStackToken(amountToConvert, totalPriceInUSD, _stablecoin);
-
-            // TODO: Alex, why 105% here? I assume it was for debugging
-            // usdForMint = usdForMint + (usdForMint * 500) / 10000;
-
-            console.log("usdForMint", usdForMint);
-            IERC20(_stablecoin).approve(
+            stackToken.approve(
                 address(generations.get(purchaseGenerationId)),
-                usdForMint
+                stackAmount
             );
 
             IStackOSNFTBasic(
                 address(generations.get(purchaseGenerationId))
-            ).mintFromSubscriptionRewards(usdForMint, amountToMint, address(_stablecoin), msg.sender);
+            ).mintFromSubscriptionRewards(stackAmount, amountToMint, msg.sender);
 
             // Add rest back to pending rewards
-            amountWithdraw -= amountToConvert;
+            amountWithdraw -= stackAmount;
             overflow[generationId][tokenId] = amountWithdraw;
         } else {
             stackToken.transfer(msg.sender, amountWithdraw);
