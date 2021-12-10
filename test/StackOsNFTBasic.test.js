@@ -30,8 +30,8 @@ describe("StackOS NFT Basic", function () {
       generationManager,
       darkMatter,
       subscription,
-      royalty,
       stackOsNFT,
+      royalty,
     ] = await setup();
 
     stackOsNFT = await deployStackOSBasic();

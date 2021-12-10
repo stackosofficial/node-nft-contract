@@ -288,7 +288,7 @@ describe("transferTickets and transferFromLastGen", function () {
       royalty,
     ] = await setup();
   });
-    it("Add liquidity", async function () {
+  it("Add liquidity", async function () {
     await stackToken.approve(router.address, parseEther("100.0"));
     await usdt.approve(router.address, parseEther("100.0"));
     await usdc.approve(router.address, parseEther("100.0"));
@@ -368,8 +368,6 @@ describe("transferTickets and transferFromLastGen", function () {
   });
 
   it("Deploy stackOsNFTBasic", async function () {
-    // TODO: in stack1 we treat participationFee as stackToken, but in stackBasic as USD... 
-    // That's why set price much lower for the basic.
     PRICE = parseEther("0.001626");
     stackOsNFTBasic = await deployStackOSBasic();
   });

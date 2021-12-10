@@ -89,9 +89,6 @@ describe("Subscription", function () {
   });
 
   it("Unable to withdraw without subs and foreign ids", async function () {
-    // await expect(subscription.withdraw(0, [0])).to.be.revertedWith(
-    //   "No subscription"
-    // );
     await expect(subscription.withdraw(0, [4])).to.be.revertedWith("Not owner");
   });
 

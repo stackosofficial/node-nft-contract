@@ -1,7 +1,7 @@
 const { ethers, upgrades } = require("hardhat");
 const { use, expect } = require("chai");
 const { parseEther } = require("@ethersproject/units");
-const { deployStackOS, setup, print } = require("./utils");
+const { deployStackOS, setup, print, deployStackOSBasic } = require("./utils");
 
 describe("Market", function () {
   it("Snapshot EVM", async function () {
@@ -21,16 +21,20 @@ describe("Market", function () {
   });
 
   it("Deploy full SETUP", async function () {
-    [stackToken,
+    [
+      stackToken,
       usdt,
       usdc,
       dai,
       link,
+      weth,
       coordinator,
       generationManager,
       darkMatter,
       subscription,
-      stackOsNFT] = await setup();
+      stackOsNFT,
+      royalty,
+    ] = await setup();
   });
 
   it("Deploy Market", async function () {
@@ -56,7 +60,7 @@ describe("Market", function () {
   });
 
   it("Deploy StackOS NFT generation 2", async function () {
-    stackOsNFTgen2 = await deployStackOS();
+    stackOsNFTgen2 = await deployStackOSBasic();
   });
 
   it("Add liquidity", async function () {
@@ -87,6 +91,7 @@ describe("Market", function () {
   });
 
   it("Mint some StackNFT", async function () {
+ 
     await stackOsNFT.startPartnerSales();
     await stackOsNFT.whitelistPartner(owner.address, 10);
     await usdt.approve(stackOsNFT.address, parseEther("100.0"));
@@ -94,10 +99,9 @@ describe("Market", function () {
     await stackOsNFT.whitelist(owner.address);
     await stackOsNFT.transferFrom(owner.address, joe.address, 5);
 
-    await stackOsNFTgen2.startPartnerSales();
-    await stackOsNFTgen2.whitelistPartner(owner.address, 2);
+    await stackOsNFTgen2.startSales();
     await usdt.approve(stackOsNFTgen2.address, parseEther("100.0"));
-    await stackOsNFTgen2.partnerMint(2, usdt.address);
+    await stackOsNFTgen2.mint(2, usdt.address);
   });
 
   it("Deposit NFTs", async function () {

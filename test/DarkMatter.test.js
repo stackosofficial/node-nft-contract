@@ -21,16 +21,20 @@ describe("DarkMatter", function () {
   });
 
   it("Deploy full SETUP", async function () {
-    [stackToken,
+    [
+      stackToken,
       usdt,
       usdc,
       dai,
       link,
+      weth,
       coordinator,
       generationManager,
       darkMatter,
       subscription,
-      stackOsNFT] = await setup();
+      stackOsNFT,
+      royalty,
+    ] = await setup();
 
   });
 

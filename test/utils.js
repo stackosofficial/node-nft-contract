@@ -4,7 +4,7 @@ const { solidity } = require("ethereum-waffle");
 const { BigNumber } = require("@ethersproject/bignumber");
 const { parseEther, formatEther } = require("@ethersproject/units");
 
-module.exports = { setup, deployStackOS, deployStackOSBasic, print };
+module.exports = { setup, setupLiquidity, deployStackOS, deployStackOSBasic, print };
 
 async function deployStackOSBasic() {
   // NAME = "STACK OS NFT";
@@ -18,8 +18,8 @@ async function deployStackOSBasic() {
   // MAX_SUPPLY = 25;
   // TRANSFER_DISCOUNT = 2000;
   // TIMELOCK = 6442850;
-  const StackOS = await ethers.getContractFactory("StackOsNFTBasic");
-  let stackOsNFT = await StackOS.deploy(
+  const StackOSBasic = await ethers.getContractFactory("StackOsNFTBasic");
+  let stackOsNFTBasic = await StackOSBasic.deploy(
     NAME,
     SYMBOL,
     STACK_TOKEN_FOR_PAYMENT,
@@ -33,19 +33,19 @@ async function deployStackOSBasic() {
     TIMELOCK,
     ROYALTY_ADDRESS
   );
-  await stackOsNFT.deployed();
-  console.log(stackOsNFT.address);
-  await generationManager.add(stackOsNFT.address);
-  await stackOsNFT.adjustAddressSettings(
+  await stackOsNFTBasic.deployed();
+  console.log(stackOsNFTBasic.address);
+  await generationManager.add(stackOsNFTBasic.address);
+  await stackOsNFTBasic.adjustAddressSettings(
     generationManager.address,
     router.address
   );
-  await stackOsNFT.whitelist(darkMatter.address);
-  return stackOsNFT;
+  await stackOsNFTBasic.whitelist(darkMatter.address);
+  return stackOsNFTBasic;
 }
 
 async function deployStackOS() {
-  const StackOS = await ethers.getContractFactory("StackOsNFT");
+  let StackOS = await ethers.getContractFactory("StackOsNFT");
   let stackOsNFT = await StackOS.deploy(
     NAME,
     SYMBOL,
@@ -165,7 +165,7 @@ async function setup() {
   MINT_FEE = 2000;
   TRANSFER_DISCOUNT = 2000;
   TIMELOCK = 6442850;
-  StackOS = await ethers.getContractFactory("StackOsNFT");
+  let StackOS = await ethers.getContractFactory("StackOsNFT");
   let stackOsNFT = await StackOS.deploy(
     NAME,
     SYMBOL,
@@ -227,6 +227,43 @@ async function setup() {
     stackOsNFT,
     royalty,
   ];
+}
+
+async function setupLiquidity() {
+    await stackToken.approve(router.address, parseEther("100.0"));
+    await usdt.approve(router.address, parseEther("100.0"));
+    await usdc.approve(router.address, parseEther("100.0"));
+    var deadline = Math.floor(Date.now() / 1000) + 1200;
+
+    await router.addLiquidityETH(
+      stackToken.address,
+      parseEther("100"),
+      parseEther("100"),
+      parseEther("3.77"),
+      joe.address,
+      deadline,
+      { value: parseEther("3.77") }
+    );
+
+    await router.addLiquidityETH(
+      usdt.address,
+      parseEther("4.3637"),
+      parseEther("4.3637"),
+      parseEther("1.0"),
+      joe.address,
+      deadline,
+      { value: parseEther("10.0") }
+    );
+
+    await router.addLiquidityETH(
+      usdc.address,
+      parseEther("4.3637"),
+      parseEther("4.3637"),
+      parseEther("1.0"),
+      joe.address,
+      deadline,
+      { value: parseEther("10.0") }
+    );
 }
 
 function print(...args) {
