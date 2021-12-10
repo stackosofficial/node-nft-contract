@@ -425,6 +425,46 @@ describe("transferTickets and transferFromLastGen", function () {
       .to.changeTokenBalance(stackToken, owner, adminWithdrawableAmount);
     
   });
+
+  it("Trigger auto deploy of the next generation", async function () {
+    stackOsNFT = await deployStackOS();
+    await stackOsNFT.startPartnerSales();
+
+    await stackOsNFT.whitelistPartner(joe.address, 25);
+    await usdc.transfer(joe.address, parseEther("220"));
+    await usdc.connect(joe).approve(stackOsNFT.address, parseEther("220"));
+
+    oldGenerationsCount = (await generationManager.count()).toNumber();
+    await stackOsNFT.connect(joe).partnerMint(25, usdc.address);
+
+  });
+
+  it("Trigger auto deploy of the next generation 2", async function () {
+
+    expect(await generationManager.count()).to.be.equal(
+      oldGenerationsCount + 1
+    );
+
+    await expect(
+      generationManager.connect(joe).add(joe.address)
+    ).to.be.revertedWith(
+      "Caller is not the owner or stack contract"
+    );
+
+    stackAutoDeployed = await ethers.getContractAt(
+      "StackOsNFTBasic",
+      await generationManager.get(oldGenerationsCount)
+    );
+    
+    expect(await stackAutoDeployed.owner()).to.be.equal(owner.address);
+    // didn't set growth percent, so max supply stay the same
+    expect(await stackAutoDeployed.getMaxSupply()).to.be.equal(
+      MAX_SUPPLY
+    );
+    await expect(generationManager.deployNextGenPreset()).to.be.revertedWith(
+      "Not Correct Address"
+    );
+  });
   it("Revert EVM state", async function () {
     await ethers.provider.send("evm_revert", [snapshotId]);
   });
