@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
-interface IStackOSNFT is IERC721 {
+interface IStackOsNFT is IERC721 {
     function getTotalDelegated() external view returns (uint256);
 
     function getDelegationTimestamp(uint256 _tokenId)

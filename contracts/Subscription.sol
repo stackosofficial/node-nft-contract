@@ -6,8 +6,8 @@ import "./GenerationManager.sol";
 import "./StableCoinAcceptor.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-import "./interfaces/IStackOSNFT.sol";
-import "./interfaces/IStackOsNftBasic.sol";
+import "./interfaces/IStackOsNFT.sol";
+import "./interfaces/IStackOSNftBasic.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
@@ -324,7 +324,7 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
 
         if (allocationStatus == withdrawStatus.purchase) {
 
-            uint256 amountToConvert = IStackOSNFTBasic(
+            uint256 amountToConvert = IStackOsNFTBasic(
                 address(generations.get(purchaseGenerationId))
             ).getFromRewardsPrice(amountToMint, address(_stablecoin));
 
@@ -337,7 +337,7 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
                 usdForMint
             );
 
-            uint256 usdUsed = IStackOSNFTBasic(
+            uint256 usdUsed = IStackOsNFTBasic(
                 address(generations.get(purchaseGenerationId))
             ).mintFromSubscriptionRewards(amountToMint, address(_stablecoin), msg.sender);
 

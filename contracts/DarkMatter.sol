@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "./interfaces/IStackOSNFT.sol";
+import "./interfaces/IStackOsNFT.sol";
 import "./GenerationManager.sol";
 
 contract DarkMatter is TransferWhitelist, ERC721, Ownable, ReentrancyGuard {
@@ -86,7 +86,7 @@ contract DarkMatter is TransferWhitelist, ERC721, Ownable, ReentrancyGuard {
      * @param StackNFT token id.
      * @dev The returned address owns StackNFT or DarkMatter that has locked this StackNFT. 
      */
-    function ownerOfStackOrDarkMatter(IStackOSNFT _stackOsNFT, uint256 tokenId)
+    function ownerOfStackOrDarkMatter(IStackOsNFT _stackOsNFT, uint256 tokenId)
         public
         view
         returns (address)
@@ -122,7 +122,7 @@ contract DarkMatter is TransferWhitelist, ERC721, Ownable, ReentrancyGuard {
         nonReentrant
     {
         require(generationId < generations.count(), "Generation doesn't exist");
-        IStackOSNFT stackNFT = generations.get(generationId);
+        IStackOsNFT stackNFT = generations.get(generationId);
 
         for (uint256 i = 0; i < tokenIds.length; i++) {
             uint256 tokenId = tokenIds[i];

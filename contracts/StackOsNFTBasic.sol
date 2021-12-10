@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
-import "./interfaces/IStackOSNFT.sol";
+import "./interfaces/IStackOsNFT.sol";
 import "./Subscription.sol";
 import "./StableCoinAcceptor.sol";
 import "./TransferWhitelist.sol";
@@ -147,7 +147,7 @@ contract StackOsNFTBasic is
     function getDelegator(uint256 _tokenId) public view returns (address) {
         return
             darkMatter.ownerOfStackOrDarkMatter(
-                IStackOSNFT(address(this)),
+                IStackOsNFT(address(this)),
                 _tokenId
             );
     }
@@ -170,7 +170,10 @@ contract StackOsNFTBasic is
             "Cant transfer to the same address"
         );
         // check that caller is generation 1 contract 
-        require(address(generations.get(0)) == msg.sender, "Not Correct Address");
+        require(
+            address(generations.get(0)) == msg.sender, 
+            "Not Correct Address"
+        );
 
         stackOSToken.transferFrom(msg.sender, address(this), _amount);
         uint256 usdAmount = sellStackToken(_amount, stablecoins[0]);
@@ -182,21 +185,28 @@ contract StackOsNFTBasic is
         uint256 ticketAmount = usdAmount.div(participationFeeDiscount);
         uint256 depositAmount = participationFeeDiscount.mul(ticketAmount);
 
-        uint256 stackAmount = buyStackToken(usdAmount, stablecoins[0]);
+        uint256 stackDepositAmount = buyStackToken(depositAmount, stablecoins[0]);
+        uint256 stackLeftOverAmount = buyStackToken(
+            usdAmount - depositAmount,
+            stablecoins[0]
+        );
 
         stackOSToken.transferFrom(
             address(msg.sender),
             address(this),
-            depositAmount
+            stackDepositAmount
         );
         stackOSToken.transferFrom(
             address(msg.sender),
             _ticketOwner,
-            _amount - depositAmount
+            stackLeftOverAmount
         );
 
-        // TODO: do we need take fee here for subscription? like in mint function
-        // YES
+        uint256 subscriptionPart = (stackDepositAmount * mintFee) / 10000;
+        stackDepositAmount -= subscriptionPart;
+        stackOSToken.transfer(address(subscription), subscriptionPart);
+
+        adminWithdrawableAmount += stackDepositAmount;
         for (uint256 i; i < ticketAmount; i++) {
             _mint(msg.sender);
         }
@@ -333,7 +343,7 @@ contract StackOsNFTBasic is
         require(
             msg.sender ==
                 darkMatter.ownerOfStackOrDarkMatter(
-                    IStackOSNFT(address(this)),
+                    IStackOsNFT(address(this)),
                     tokenId
                 ),
             "Not owner"

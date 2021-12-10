@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@chainlink/contracts/src/v0.8/VRFConsumerBase.sol";
 import "./DarkMatter.sol";
-import "./interfaces/IStackOSNFT.sol";
+import "./interfaces/IStackOsNFT.sol";
 import "./GenerationManager.sol";
 import "./StableCoinAcceptor.sol";
 import "hardhat/console.sol";
@@ -164,7 +164,7 @@ contract StackOsNFT is TransferWhitelist, StableCoinAcceptor, VRFConsumerBase, E
     function getDelegator(uint256 _tokenId) public view returns (address) {
         return
             darkMatter.ownerOfStackOrDarkMatter(
-                IStackOSNFT(address(this)),
+                IStackOsNFT(address(this)),
                 _tokenId
             );
     }
@@ -357,7 +357,7 @@ contract StackOsNFT is TransferWhitelist, StableCoinAcceptor, VRFConsumerBase, E
         }
         uint256 amount = _ticketID.length.mul(participationFee);
         stackOSToken.approve(_address, amount);
-        IStackOSNFTBasic(_address).transferFromLastGen(msg.sender, amount);
+        IStackOsNFTBasic(_address).transferFromLastGen(msg.sender, amount);
     }
 
     /*
@@ -494,7 +494,7 @@ contract StackOsNFT is TransferWhitelist, StableCoinAcceptor, VRFConsumerBase, E
         require(
             msg.sender ==
                 darkMatter.ownerOfStackOrDarkMatter(
-                    IStackOSNFT(address(this)),
+                    IStackOsNFT(address(this)),
                     tokenId
                 ),
             "Not owner"

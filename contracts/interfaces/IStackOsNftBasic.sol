@@ -1,9 +1,9 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-import "./IStackOSNFT.sol";
+import "./IStackOsNFT.sol";
 
-interface IStackOSNFTBasic is IStackOSNFT {
+interface IStackOsNFTBasic is IStackOsNFT {
     function mintFromSubscriptionRewards(
         uint256 _nftAmount,
         address _stablecoin,

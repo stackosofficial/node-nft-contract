@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "./GenerationManager.sol";
 import "./DarkMatter.sol";
-import "./interfaces/IStackOSNFT.sol";
+import "./interfaces/IStackOsNFT.sol";
 import "./Subscription.sol";
 
 contract Royalty is Ownable {
@@ -154,7 +154,7 @@ contract Royalty is Ownable {
     {
         uint256 result = 0;
         for (uint256 i = 0; i < generations.count(); i++) {
-            IStackOSNFT stack = generations.get(i);
+            IStackOsNFT stack = generations.get(i);
             uint256 generationTotalDelegated = stack.getTotalDelegated();
             for (
                 uint256 tokenId;
@@ -250,7 +250,7 @@ contract Royalty is Ownable {
         IERC20 _stablecoin
     ) internal {
         require(address(this).balance > 0, "No royalty");
-        IStackOSNFT stack = generations.get(generationId);
+        IStackOsNFT stack = generations.get(generationId);
         require(
             stack.balanceOf(msg.sender) > 0 ||
                 darkMatter.balanceOf(msg.sender) > 0,
@@ -328,7 +328,7 @@ contract Royalty is Ownable {
                         require(success, "Transfer failed");
                     }
                 } else {
-                    IStackOSNFTBasic stackNFT = IStackOSNFTBasic(address(generations.get(generationId)));
+                    IStackOsNFTBasic stackNFT = IStackOsNFTBasic(address(generations.get(generationId)));
                     uint256 usdReceived = buyStable(reward, _stablecoin);
                     _stablecoin.approve(address(stackNFT), usdReceived);
 
