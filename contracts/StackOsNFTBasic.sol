@@ -182,9 +182,13 @@ contract StackOsNFTBasic is
             .mul(10000 - transferDiscount)
             .div(10000);
 
+6505341481791705
+80000000000000000
         uint256 ticketAmount = usdAmount.div(participationFeeDiscount);
         uint256 depositAmount = participationFeeDiscount.mul(ticketAmount);
 
+        console.log(ticketAmount, participationFeeDiscount, participationFee, transferDiscount);
+        console.log(depositAmount, usdAmount, _amount, stablecoins[0].balanceOf(address(this)));
         uint256 stackDepositAmount = buyStackToken(depositAmount, stablecoins[0]);
         uint256 stackLeftOverAmount = buyStackToken(
             usdAmount - depositAmount,

@@ -1,7 +1,7 @@
 const { ethers } = require("hardhat");
 const { use, expect } = require("chai");
 const { parseEther } = require("@ethersproject/units");
-const { deployStackOS, setup, print } = require("./utils");
+const { deployStackOS, setup, print, deployStackOSBasic } = require("./utils");
 
 describe("StackOS NFT", function () {
   it("Snapshot EVM", async function () {
@@ -32,10 +32,6 @@ describe("StackOS NFT", function () {
       stackOsNFT,
       royalty,
     ] = await setup();
-  });
-
-  it("Deploy StackOS NFT generation 2", async function () {
-    stackOsNFTgen2 = await deployStackOS();
   });
 
   it("Stake for tickets", async function () {
@@ -243,138 +239,145 @@ describe("StackOS NFT", function () {
     await ethers.provider.send("evm_setNextBlockTimestamp", [deadline + 1]);
     await stackOsNFT.finalizeAuction();
   });
+});
 
-  it("Deploy stackOsNFT generation 2", async function () {
-    stackOsNFTgen2 = await deployStackOS();
+describe("transferTickets and transferFromLastGen", function () {
+  it("Revert EVM state", async function () {
+    await ethers.provider.send("evm_revert", [snapshotId]);
   });
-  it("Get some 'not winning' tickets on stack generation 2", async function () {
-    await stackToken.approve(stackOsNFTgen2.address, parseEther("10.0"));
 
-    await expect(stackOsNFTgen2.stakeForTickets(2)).to.be.revertedWith(
+  it("Setup 2", async function () {
+    [
+      stackToken,
+      usdt,
+      usdc,
+      dai,
+      link,
+      weth,
+      coordinator,
+      generationManager,
+      darkMatter,
+      subscription,
+      stackOsNFT,
+      royalty,
+    ] = await setup();
+  });
+    it("Add liquidity", async function () {
+    await stackToken.approve(router.address, parseEther("100.0"));
+    await usdt.approve(router.address, parseEther("100.0"));
+    await usdc.approve(router.address, parseEther("100.0"));
+    var deadline = Math.floor(Date.now() / 1000) + 1200;
+
+    await router.addLiquidityETH(
+      stackToken.address,
+      parseEther("100"),
+      parseEther("100"),
+      parseEther("3.77"),
+      joe.address,
+      deadline,
+      { value: parseEther("3.77") }
+    );
+
+    await router.addLiquidityETH(
+      usdt.address,
+      parseEther("4.3637"),
+      parseEther("4.3637"),
+      parseEther("1.0"),
+      joe.address,
+      deadline,
+      { value: parseEther("10.0") }
+    );
+
+    await router.addLiquidityETH(
+      usdc.address,
+      parseEther("4.3637"),
+      parseEther("4.3637"),
+      parseEther("1.0"),
+      joe.address,
+      deadline,
+      { value: parseEther("10.0") }
+    );
+  });
+  it("Get 'not winning' tickets", async function () {
+    await stackToken.approve(stackOsNFT.address, parseEther("10.0"));
+
+    await expect(stackOsNFT.stakeForTickets(2)).to.be.revertedWith(
       "Lottery inactive"
     );
-    await stackOsNFTgen2.activateLottery();
-    await stackOsNFTgen2.stakeForTickets(14);
+    await stackOsNFT.activateLottery();
+    await stackOsNFT.stakeForTickets(14);
 
     //"Start lottery"
-    await link.transfer(stackOsNFTgen2.address, parseEther("10.0"));
-    requestID = await stackOsNFTgen2.callStatic.announceLottery();
-    await stackOsNFTgen2.callStatic.announceLottery();
+    await link.transfer(stackOsNFT.address, parseEther("10.0"));
+    print(await link.balanceOf(stackOsNFT.address));
+    requestID = await stackOsNFT.callStatic.announceLottery();
+    await stackOsNFT.callStatic.announceLottery();
     print(requestID);
-    expect(await stackOsNFTgen2.ticketOwner(1)).to.be.equal(owner.address);
+    expect(await stackOsNFT.ticketOwner(1)).to.be.equal(owner.address);
 
     //"Start lottery"
     await coordinator.callBackWithRandomness(
       requestID,
       89765,
-      stackOsNFTgen2.address
+      stackOsNFT.address
     );
-    var randomNumber = await stackOsNFTgen2.randomNumber();
+    var randomNumber = await stackOsNFT.randomNumber();
     print(randomNumber);
 
-    await stackOsNFTgen2.announceWinners(100);
+    await stackOsNFT.announceWinners(100);
 
     winningTickets = [];
     for (let i = 0; i < PRIZES; i++) {
-      winningTickets.push((await stackOsNFTgen2.winningTickets(i)).toNumber());
+      winningTickets.push((await stackOsNFT.winningTickets(i)).toNumber());
     }
     // get NOT winning tickets
     notWinning = [...Array(14).keys()].filter(
       (e) => winningTickets.indexOf(e) == -1
     );
+    print(notWinning);
 
-    await stackOsNFTgen2.mapOutWinningTickets(0, PRIZES);
+    await stackOsNFT.mapOutWinningTickets(0, PRIZES);
 
-    await stackOsNFTgen2.changeTicketStatus();
+    await stackOsNFT.changeTicketStatus();
   });
 
-  it("Deploy stackOsNFT generation 3 from manager", async function () {
-    PRIZES = 2;
-    stackOsNFTgen3 = await deployStackOS();
+  it("Deploy stackOsNFTBasic", async function () {
+    stackOsNFTBasic = await deployStackOSBasic();
   });
 
-  // it("Try to buy directly using transferFromLastGen", async function () {
-  //   await expect(
-  //     stackOsNFTgen3.transferFromLastGen(owner.address, parseEther("10.0"))
-  //   ).to.be.revertedWith("Not Correct Address");
-  // });
+  it("Try to buy directly using transferFromLastGen", async function () {
+    await expect(
+      stackOsNFTBasic.transferFromLastGen(owner.address, parseEther("10.0"))
+    ).to.be.revertedWith("Not Correct Address");
+  });
 
-  // it("Transfer tickets that did not win from gen 2 to gen 3", async function () {
-  //   print("not winning tickets to be transferred: " + notWinning);
-  //   print(
-  //     "gen2 balance: " +
-  //       (await stackToken.balanceOf(stackOsNFTgen2.address))
-  //   );
-  //   print(
-  //     "gen3 balance: " +
-  //       (await stackToken.balanceOf(stackOsNFTgen3.address))
-  //   );
-  //   await stackOsNFTgen2.transferTicket(notWinning, stackOsNFTgen3.address);
-  //   expect(await stackToken.balanceOf(stackOsNFTgen2.address)).to.be.equal(
-  //     parseEther("1.0")
-  //   );
-  //   expect(await stackToken.balanceOf(stackOsNFTgen3.address)).to.be.equal(
-  //     parseEther("0.4")
-  //   );
-  //   print("Tickets transfered!");
-  //   print(
-  //     "gen2 balance: " +
-  //       (await stackToken.balanceOf(stackOsNFTgen2.address))
-  //   );
-  //   print(
-  //     "gen3 balance: " +
-  //       (await stackToken.balanceOf(stackOsNFTgen3.address))
-  //   );
-  // });
-  // it("Play lottery with transferred tickets", async function () {
-  //   await link.transfer(stackOsNFTgen3.address, parseEther("10.0"));
-  //   requestID = await stackOsNFTgen3.callStatic.announceLottery();
-  //   await stackOsNFTgen3.announceLottery();
-  //   print(requestID);
-  //   expect(await stackOsNFTgen3.ticketOwner(1)).to.be.equal(owner.address);
-
-  //   await coordinator.callBackWithRandomness(
-  //     requestID,
-  //     89765,
-  //     stackOsNFTgen3.address
-  //   );
-  //   var randomNumber = await stackOsNFTgen3.randomNumber();
-  //   print(randomNumber);
-
-  //   await stackOsNFTgen3.announceWinners(100);
-
-  //   winningTickets = [];
-  //   for (let i = 0; i < PRIZES; i++) {
-  //     winningTickets.push((await stackOsNFTgen3.winningTickets(i)).toNumber());
-  //   }
-  //   // get NOT winning tickets
-  //   notWinning = [...Array(4).keys()].filter(
-  //     (e) => winningTickets.indexOf(e) == -1
-  //   );
-  //   print("winning tickets: " + winningTickets);
-
-  //   await stackOsNFTgen3.mapOutWinningTickets(0, PRIZES);
-
-  //   await stackOsNFTgen3.changeTicketStatus();
-
-  //   await expect(stackOsNFTgen3.claimReward(notWinning)).to.be.revertedWith(
-  //     "Awarded Or Not Won"
-  //   );
-  //   await stackOsNFTgen3.claimReward(winningTickets);
-  //   expect(await stackOsNFTgen3.balanceOf(owner.address)).to.be.equal(
-  //     winningTickets.length
-  //   );
-
-  //   print(
-  //     "Balance Before Return Stake: " +
-  //       (await stackToken.balanceOf(owner.address))
-  //   );
-  //   await stackOsNFTgen3.returnStake(notWinning);
-  //   print(
-  //     "Balance After Return Stake: " +
-  //       (await stackToken.balanceOf(owner.address))
-  //   );
-  // });
+  it("Transfer tickets that did not win from gen 1 to gen 2", async function () {
+    print("not winning tickets to be transferred: " + notWinning);
+    print(
+      "gen2 balance: " +
+        (await stackToken.balanceOf(stackOsNFT.address))
+    );
+    print(
+      "gen3 balance: " +
+        (await stackToken.balanceOf(stackOsNFTBasic.address))
+    );
+    await stackOsNFT.transferTicket(notWinning, stackOsNFTBasic.address);
+    expect(await stackToken.balanceOf(stackOsNFT.address)).to.be.equal(
+      parseEther("1.0")
+    );
+    expect(await stackToken.balanceOf(stackOsNFTBasic.address)).to.be.equal(
+      parseEther("0.4")
+    );
+    print("Tickets transfered!");
+    print(
+      "gen2 balance: " +
+        (await stackToken.balanceOf(stackOsNFT.address))
+    );
+    print(
+      "gen3 balance: " +
+        (await stackToken.balanceOf(stackOsNFTBasic.address))
+    );
+  });
   it("Unable to transfer when not whitelisted", async function () {
     await expect(
       stackOsNFT.transferFrom(owner.address, joe.address, 0)
@@ -386,7 +389,7 @@ describe("StackOS NFT", function () {
     await stackOsNFT.transferFrom(owner.address, joe.address, 0);
   });
   it("Admin tried to withdraw before time lock expires.", async function () {
-    var adminWithdrawableAmount = await stackOsNFT.adminWithdrawableAmount();
+    adminWithdrawableAmount = await stackOsNFT.adminWithdrawableAmount();
     print(adminWithdrawableAmount);
     await expect(stackOsNFT.adminWithdraw()).to.be.revertedWith("Locked!");
   });
@@ -395,7 +398,9 @@ describe("StackOS NFT", function () {
     await ethers.provider.send("evm_setNextBlockTimestamp", [
       deadline + TIMELOCK,
     ]);
-    await stackOsNFT.adminWithdraw();
+    await expect(() => stackOsNFT.adminWithdraw())
+      .to.changeTokenBalance(stackToken, owner, adminWithdrawableAmount);
+    
   });
   it("Revert EVM state", async function () {
     await ethers.provider.send("evm_revert", [snapshotId]);

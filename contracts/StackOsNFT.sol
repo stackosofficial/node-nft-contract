@@ -44,7 +44,7 @@ contract StackOsNFT is TransferWhitelist, StableCoinAcceptor, VRFConsumerBase, E
     uint256 private prizes;
     uint256 private totalDelegated;
     uint256 private iterationCount;
-    uint256 internal fee = 1e14; // 0.0001 or 1e14 on MATIC, 1e17 on eth
+    uint256 internal fee = 1e14; // 0.0001 (1e14) on MATIC, 0.1 (1e17) on eth
     uint256 internal mintFee;
 
     mapping(uint256 => bool) public randomUniqueNumbers;
@@ -355,6 +355,7 @@ contract StackOsNFT is TransferWhitelist, StableCoinAcceptor, VRFConsumerBase, E
                 ticketStatus[_ticketID[i]] = TicketStatus.Withdrawn;
             }
         }
+        // TODO: hmm, the price is in USD, but we approve and use stackToken ...
         uint256 amount = _ticketID.length.mul(participationFee);
         stackOSToken.approve(_address, amount);
         IStackOsNFTBasic(_address).transferFromLastGen(msg.sender, amount);
