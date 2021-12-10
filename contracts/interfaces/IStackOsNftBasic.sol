@@ -4,6 +4,12 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "./IStackOsNFT.sol";
 
 interface IStackOsNFTBasic is IStackOsNFT {
+
+    function adjustAddressSettings(
+        address _genManager, 
+        address _router
+    ) external;
+
     function mintFromSubscriptionRewards(
         uint256 _nftAmount,
         address _stablecoin,

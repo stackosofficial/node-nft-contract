@@ -9,6 +9,8 @@ import "./StackOsNFTBasic.sol";
 import "./Subscription.sol";
 
 contract GenerationManager is Ownable, ReentrancyGuard {
+    using Strings for uint256;
+
     IStackOsNFT[] private generations; // StackNFT contract generations
     mapping(address => uint256) private ids; // generation ids
     uint256[] private generationAddedTimestamp; // time when new StackOS added to this contract
@@ -16,15 +18,16 @@ contract GenerationManager is Ownable, ReentrancyGuard {
     struct Deployment {
         string name;
         string symbol;
-        IERC20 stackOSTokenToken;
-        DarkMatter darkMatter;
-        Subscription subscription;
+        address stackOSTokenToken;
+        address darkMatter;
+        address subscription;
         uint256 participationFee;
         uint256 mintFee;
-        uint256 maxSupply;
+        uint256 maxSupplyGrowthPercent;
         uint256 transferDiscount;
         uint256 timeLock;
         address royaltyAddress;
+        address router;
     }
     Deployment deployment;
 
@@ -38,12 +41,12 @@ contract GenerationManager is Ownable, ReentrancyGuard {
     function setupDeploy(
         string memory _name,
         string memory _symbol,
-        IERC20 _stackOSTokenToken,
-        DarkMatter _darkMatter,
-        Subscription _subscription,
+        address _stackOSTokenToken,
+        address _darkMatter,
+        address _subscription,
         uint256 _participationFee,
         uint256 _mintFee,
-        uint256 _maxSupply,
+        uint256 _maxSupplyGrowthPercent,
         uint256 _transferDiscount,
         uint256 _timeLock,
         address _royaltyAddress
@@ -55,10 +58,14 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         deployment.subscription = _subscription;
         deployment.participationFee = _participationFee;
         deployment.mintFee = _mintFee;
-        deployment.maxSupply = _maxSupply;
+        deployment.maxSupplyGrowthPercent = _maxSupplyGrowthPercent;
         deployment.transferDiscount = _transferDiscount;
         deployment.timeLock = _timeLock;
         deployment.royaltyAddress = _royaltyAddress;
+    }
+
+    function setupDeploy2(address _router) public onlyOwner {
+        deployment.router = _router;
     }
 
     function deployNextGenPreset() public returns (IStackOsNFTBasic) 
@@ -69,17 +76,26 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         require(callerGenerationId == generations.length - 1, 
             "Next generation already deployed"
         );
+
+        IStackOsNFT caller = get(callerGenerationId);
+        uint256 maxSupply = caller.getMaxSupply() * 
+            (deployment.maxSupplyGrowthPercent + 10000) / 10000;
+        string memory name = string(abi.encodePacked(
+            deployment.name,
+            " ",
+            uint256(count() + 1).toString()
+        ));
         IStackOsNFTBasic stack = IStackOsNFTBasic(
             address(
                 new StackOsNFTBasic(
-                    deployment.name,
+                    name,
                     deployment.symbol,
                     deployment.stackOSTokenToken,
                     deployment.darkMatter,
                     deployment.subscription,
                     deployment.participationFee,
                     deployment.mintFee,
-                    deployment.maxSupply,
+                    maxSupply,
                     deployment.transferDiscount,
                     deployment.timeLock,
                     deployment.royaltyAddress
@@ -88,6 +104,11 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         );
         stack.transferOwnership(Ownable(msg.sender).owner());
         add(stack);
+        stack.adjustAddressSettings(
+            address(this),
+            deployment.router
+        );
+        stack.whitelist(address(deployment.darkMatter));
         return stack;
     }
 
@@ -110,13 +131,14 @@ contract GenerationManager is Ownable, ReentrancyGuard {
     /*
      * @title Deploy new StackOsNFT.
      * @dev All params should be same as in stack NFT constructor.
+     * @dev Additional setup calls required on newly deployed contract. 
      */
     function deployNextGen(
         string memory _name,
         string memory _symbol,
-        IERC20 _stackOSTokenToken,
-        DarkMatter _darkMatter,
-        Subscription _subscription,
+        address _stackOSTokenToken,
+        address _darkMatter,
+        address _subscription,
         uint256 _participationFee,
         uint256 _mintFee,
         uint256 _maxSupply,

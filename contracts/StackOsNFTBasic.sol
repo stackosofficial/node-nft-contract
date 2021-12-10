@@ -10,11 +10,9 @@ import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "./interfaces/IStackOsNFT.sol";
 import "./Subscription.sol";
 import "./StableCoinAcceptor.sol";
-import "./TransferWhitelist.sol";
 import "hardhat/console.sol";
 
 contract StackOsNFTBasic is
-    TransferWhitelist,
     ERC721,
     StableCoinAcceptor,
     ERC721URIStorage,
@@ -44,16 +42,25 @@ contract StackOsNFTBasic is
 
     mapping(uint256 => uint256) private delegationTimestamp;
     mapping(uint256 => address) private delegates;
+    mapping(address => bool) _whitelist;
 
     bool private salesStarted;
     string private URI = "https://google.com/";
 
+    modifier onlyOwnerOrGenerationManager() {
+        require(
+            owner() == _msgSender() || address(generations) == _msgSender(), 
+            "Caller is not the owner or GenerationManager"
+        );
+        _;
+    }
+
     constructor(
         string memory _name,
         string memory _symbol,
-        IERC20 _stackOSTokenToken,
-        DarkMatter _darkMatter,
-        Subscription _subscription,
+        address _stackOSTokenToken,
+        address _darkMatter,
+        address _subscription,
         uint256 _participationFee,
         uint256 _mintFee,
         uint256 _maxSupply,
@@ -61,9 +68,9 @@ contract StackOsNFTBasic is
         uint256 _timeLock,
         address _royaltyAddress
     ) ERC721(_name, _symbol) {
-        stackOSToken = _stackOSTokenToken;
-        darkMatter = _darkMatter;
-        subscription = _subscription;
+        stackOSToken = IERC20(_stackOSTokenToken);
+        darkMatter = DarkMatter(_darkMatter);
+        subscription = Subscription(_subscription);
         participationFee = _participationFee;
         mintFee = _mintFee;
         maxSupply = _maxSupply;
@@ -103,12 +110,16 @@ contract StackOsNFTBasic is
 
     function adjustAddressSettings(address _genManager, address _router)
         public
-        onlyOwner
+        onlyOwnerOrGenerationManager
     {
         generations = GenerationManager(_genManager);
         router = IUniswapV2Router02(_router);
     }
 
+    function getMaxSupply() public view returns (uint256) {
+        return maxSupply;
+    }
+    
     /*
      * @title Get total delegated NFTs.
      */
@@ -162,6 +173,14 @@ contract StackOsNFTBasic is
 
     function price() public view returns (uint256) {
         return participationFee;
+    }
+
+    function whitelist(address _addr) public onlyOwnerOrGenerationManager {
+        _whitelist[_addr] = true;
+    }
+
+    function isWhitelisted(address _addr) public view returns (bool) {
+        return _whitelist[_addr];
     }
 
     function transferFromLastGen(address _ticketOwner, uint256 _amount) public {

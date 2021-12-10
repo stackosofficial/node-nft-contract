@@ -12,7 +12,7 @@ import "./GenerationManager.sol";
 import "./StableCoinAcceptor.sol";
 import "hardhat/console.sol";
 
-contract StackOsNFT is TransferWhitelist, StableCoinAcceptor, VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
+contract StackOsNFT is StableCoinAcceptor, VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
     using Counters for Counters.Counter;
     using SafeMath for uint256;
 
@@ -55,6 +55,7 @@ contract StackOsNFT is TransferWhitelist, StableCoinAcceptor, VRFConsumerBase, E
     mapping(uint256 => uint256) private delegationTimestamp;
     mapping(uint256 => address) private delegates;
     mapping(address => uint256) private strategicPartner;
+    mapping(address => bool) _whitelist;
 
     bool private auctionFinalized;
     bool private ticketStatusAssigned;
@@ -126,6 +127,10 @@ contract StackOsNFT is TransferWhitelist, StableCoinAcceptor, VRFConsumerBase, E
         subscription = Subscription(_subscription);
     }
 
+    function getMaxSupply() public view returns (uint256) {
+        return maxSupply;
+    }
+
     /*
      * @title Get total delegated NFTs.
      */
@@ -175,6 +180,14 @@ contract StackOsNFT is TransferWhitelist, StableCoinAcceptor, VRFConsumerBase, E
 
     function exists(uint256 tokenId) public view returns (bool) {
         return _exists(tokenId);
+    }
+
+    function whitelist(address _addr) public {
+        _whitelist[_addr] = true;
+    }
+
+    function isWhitelisted(address _addr) public view returns (bool) {
+        return _whitelist[_addr];
     }
 
     /*
