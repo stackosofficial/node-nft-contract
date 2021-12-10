@@ -260,6 +260,8 @@ describe("StackOS NFT", function () {
     await ethers.provider.send("evm_setNextBlockTimestamp", [
       deadline + TIMELOCK,
     ]);
+
+    
     await expect(() => stackOsNFT.adminWithdraw())
       .to.changeTokenBalance(stackToken, owner, adminWithdrawableAmount);
     
@@ -271,6 +273,10 @@ describe("StackOS NFT", function () {
 });
 
 describe("transferTickets and transferFromLastGen", function () {
+
+  it("Snapshot EVM", async function () {
+    snapshotId = await ethers.provider.send("evm_snapshot");
+  });
 
   it("Setup 2", async function () {
     [

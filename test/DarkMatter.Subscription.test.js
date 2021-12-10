@@ -152,17 +152,20 @@ describe("DarkMatter integration with Subscription", function () {
     expect(await stackToken.balanceOf(bank.address)).to.equal(0);
     print("bank: ", await stackToken.balanceOf(bank.address));
 
-    await expect(() =>
-      subscription.connect(bank).withdraw(0, [1])
-    ).to.changeTokenBalance(stackToken, bank, "1324710361554364460707"); 
+    await subscription.connect(bank).withdraw(0, [1]);
+    expect(await stackToken.balanceOf(bank.address)).closeTo(
+      parseEther("1324.710361"), 
+      parseEther("0.000009")
+    );
 
     print(
       "bank(before withdraw bonus): ",
       await stackToken.balanceOf(bank.address)
     );
-    await expect(() =>
-      subscription.connect(bank).withdraw(0, [1])
-    ).to.changeTokenBalance(stackToken, bank, "5778562400532");
+    expect(await stackToken.balanceOf(bank.address)).closeTo(
+      parseEther("1324.710367"), 
+      parseEther("0.000009")
+    );
     print(
       "bank(after withdraw bonus): ",
       await stackToken.balanceOf(bank.address)

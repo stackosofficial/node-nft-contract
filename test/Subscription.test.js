@@ -144,17 +144,21 @@ describe("Subscription", function () {
     expect(await stackToken.balanceOf(bank.address)).to.equal(0);
     print("bank: ", await stackToken.balanceOf(bank.address));
 
-    await expect(() =>
-      subscription.connect(bank).withdraw(0, [1])
-    ).to.changeTokenBalance(stackToken, bank, "1324710361554364460707"); // tax should be 25% as we at 3rd month
+    await subscription.connect(bank).withdraw(0, [1]);
+    expect(await stackToken.balanceOf(bank.address)).closeTo(
+      parseEther("1324.710361"), 
+      parseEther("0.000009")
+    );
 
     print(
       "bank(before withdraw bonus): ",
       await stackToken.balanceOf(bank.address)
     );
-    await expect(() =>
-      subscription.connect(bank).withdraw(0, [1])
-    ).to.changeTokenBalance(stackToken, bank, "5778562400532");
+    await subscription.connect(bank).withdraw(0, [1]);
+    expect(await stackToken.balanceOf(bank.address)).closeTo(
+      parseEther("1324.710367"), 
+      parseEther("0.000009")
+    );
     print(
       "bank(after withdraw bonus): ",
       await stackToken.balanceOf(bank.address)
@@ -188,21 +192,22 @@ describe("Subscription", function () {
     print("owner: ", await stackToken.balanceOf(owner.address));
     print("tax: ", await stackToken.balanceOf(tax.address));
     // Restart tax because skipped subs.
-    await expect(() => subscription.withdraw(0, [5])).to.changeTokenBalance(
-      stackToken,
-      owner,
-      "291254197177320282157"
+    await subscription.withdraw(0, [5]);
+    expect(await stackToken.balanceOf(owner.address)).closeTo(
+      parseEther("291.254197"), 
+      parseEther("0.000009")
     ); // withdraw for 2 months, tax 75% (282 + 9)
     print("owner: ", await stackToken.balanceOf(owner.address));
     print("tax: ", await stackToken.balanceOf(tax.address));
 
     await provider.send("evm_increaseTime", [MONTH]);
     await subscription.subscribe(0, 5, dai.address); // tax max, 600, bonus
-    await expect(() => subscription.withdraw(0, [5])).to.changeTokenBalance(
-      stackToken,
-      owner,
-      "146732021795210098224"
+    await subscription.withdraw(0, [5]);
+    expect(await stackToken.balanceOf(owner.address)).closeTo(
+      parseEther("437.986218"), 
+      parseEther("0.000009")
     ); // withdraw for 1 month
+
     print("owner: ", await stackToken.balanceOf(owner.address));
     print("tax: ", await stackToken.balanceOf(tax.address));
   });
