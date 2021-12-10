@@ -239,12 +239,38 @@ describe("StackOS NFT", function () {
     await ethers.provider.send("evm_setNextBlockTimestamp", [deadline + 1]);
     await stackOsNFT.finalizeAuction();
   });
-});
 
-describe("transferTickets and transferFromLastGen", function () {
+  it("Unable to transfer when not whitelisted", async function () {
+    await expect(
+      stackOsNFT.transferFrom(owner.address, joe.address, 0)
+    ).to.be.revertedWith("Not whitelisted for transfers");
+  });
+
+  it("Whitelist address and transfer from it", async function () {
+    await stackOsNFT.whitelist(owner.address);
+    await stackOsNFT.transferFrom(owner.address, joe.address, 0);
+  });
+  it("Admin tried to withdraw before time lock expires.", async function () {
+    adminWithdrawableAmount = await stackOsNFT.adminWithdrawableAmount();
+    print(adminWithdrawableAmount);
+    await expect(stackOsNFT.adminWithdraw()).to.be.revertedWith("Locked!");
+  });
+
+  it("Admin withdraws after time lock.", async function () {
+    await ethers.provider.send("evm_setNextBlockTimestamp", [
+      deadline + TIMELOCK,
+    ]);
+    await expect(() => stackOsNFT.adminWithdraw())
+      .to.changeTokenBalance(stackToken, owner, adminWithdrawableAmount);
+    
+  });
+
   it("Revert EVM state", async function () {
     await ethers.provider.send("evm_revert", [snapshotId]);
   });
+});
+
+describe("transferTickets and transferFromLastGen", function () {
 
   it("Setup 2", async function () {
     [
@@ -342,6 +368,9 @@ describe("transferTickets and transferFromLastGen", function () {
   });
 
   it("Deploy stackOsNFTBasic", async function () {
+    // TODO: in stack1 we treat participationFee as stackToken, but in stackBasic as USD... 
+    // That's why set price much lower for the basic.
+    PRICE = parseEther("0.001626");
     stackOsNFTBasic = await deployStackOSBasic();
   });
 
@@ -366,7 +395,7 @@ describe("transferTickets and transferFromLastGen", function () {
       parseEther("1.0")
     );
     expect(await stackToken.balanceOf(stackOsNFTBasic.address)).to.be.equal(
-      parseEther("0.4")
+      parseEther("0.316130265511108281")
     );
     print("Tickets transfered!");
     print(
@@ -377,16 +406,6 @@ describe("transferTickets and transferFromLastGen", function () {
       "gen3 balance: " +
         (await stackToken.balanceOf(stackOsNFTBasic.address))
     );
-  });
-  it("Unable to transfer when not whitelisted", async function () {
-    await expect(
-      stackOsNFT.transferFrom(owner.address, joe.address, 0)
-    ).to.be.revertedWith("Not whitelisted for transfers");
-  });
-
-  it("Whitelist address and transfer from it", async function () {
-    await stackOsNFT.whitelist(owner.address);
-    await stackOsNFT.transferFrom(owner.address, joe.address, 0);
   });
   it("Admin tried to withdraw before time lock expires.", async function () {
     adminWithdrawableAmount = await stackOsNFT.adminWithdrawableAmount();

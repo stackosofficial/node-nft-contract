@@ -355,9 +355,8 @@ contract StackOsNFT is TransferWhitelist, StableCoinAcceptor, VRFConsumerBase, E
                 ticketStatus[_ticketID[i]] = TicketStatus.Withdrawn;
             }
         }
-        // TODO: hmm, the price is in USD, but we approve and use stackToken ...
         uint256 amount = _ticketID.length.mul(participationFee);
-        stackOSToken.approve(_address, amount);
+        stackOSToken.approve(_address, stackOSToken.balanceOf(address(this)));
         IStackOsNFTBasic(_address).transferFromLastGen(msg.sender, amount);
     }
 
@@ -512,7 +511,7 @@ contract StackOsNFT is TransferWhitelist, StableCoinAcceptor, VRFConsumerBase, E
         }
     }
 
-    // TODO: is reentrancy attack possible?
+    // is reentrancy attack possible?
     function mint(address _address) internal {
         require(totalSupply < maxSupply, "Max supply reached");
         uint256 _current = _tokenIdCounter.current();
@@ -592,4 +591,5 @@ contract StackOsNFT is TransferWhitelist, StableCoinAcceptor, VRFConsumerBase, E
 
         return amounts[2];
     }
+
 }
