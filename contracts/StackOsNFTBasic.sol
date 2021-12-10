@@ -445,11 +445,11 @@ contract StackOsNFTBasic is
         private
         returns (uint256)
     {
-        stackToken.approve(address(router), amount);
+        stackOSToken.approve(address(router), amount);
 
         uint256 deadline = block.timestamp + 1200;
         address[] memory path = new address[](3);
-        path[0] = address(stackToken);
+        path[0] = address(stackOSToken);
         path[1] = address(router.WETH());
         path[2] = address(_stablecoin);
         uint256[] memory amountOutMin = router.getAmountsOut(amount, path);
