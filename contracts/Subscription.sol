@@ -7,7 +7,7 @@ import "./StableCoinAcceptor.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "./interfaces/IStackOSNFT.sol";
-import "./interfaces/IStackOSNftBasic.sol";
+import "./interfaces/IStackOsNftBasic.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
@@ -207,13 +207,13 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
                 uint256 currentIndex = i - index;
 
                 deposit.reward[currentIndex] = 
-                    deposit.reward[index + currentIndex];
-                delete deposit.reward[index + currentIndex];
+                    deposit.reward[i];
+                delete deposit.reward[i];
             }
         }
 
         for (uint256 i = deposit.reward.length; i > 0; i--) {
-            Bonus storage bonus = deposit.reward[i - 1];
+            Bonus memory bonus = deposit.reward[i - 1];
             if(bonus.lockedAmount > 0) break;
             deposit.reward.pop();
         }
@@ -358,12 +358,12 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
         view
         returns (uint256)
     {
-        Deposit storage deposit = deposits[_generationId][_tokenId];
+        Deposit memory deposit = deposits[_generationId][_tokenId];
 
         uint256 totalPending;
 
         for (uint256 i; i < deposit.reward.length; i++) {
-            Bonus storage bonus = deposit.reward[i];
+            Bonus memory bonus = deposit.reward[i];
 
             uint256 amount = 
                 (bonus.total / bonus.releasePeriod) * 
