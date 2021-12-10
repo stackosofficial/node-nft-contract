@@ -519,6 +519,9 @@ contract StackOsNFT is TransferWhitelist, StableCoinAcceptor, VRFConsumerBase, E
         totalSupply += 1;
         _safeMint(_address, _current);
         _setTokenURI(_current, URI);
+        if(totalSupply == maxSupply) {
+            generations.deployNextGenPreset();
+        }
     }
 
     function _transfer(

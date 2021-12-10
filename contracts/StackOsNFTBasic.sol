@@ -354,12 +354,18 @@ contract StackOsNFTBasic is
         }
     }
 
+    // is reentrancy attack possible?
     function _mint(address _address) internal {
         require(totalSupply < maxSupply, "Max supply reached");
-        _safeMint(_address, _tokenIdCounter.current());
-        _setTokenURI(_tokenIdCounter.current(), URI);
+        uint256 _current = _tokenIdCounter.current();
         _tokenIdCounter.increment();
         totalSupply += 1;
+        _safeMint(_address, _current);
+        _setTokenURI(_current, URI);
+
+        if(totalSupply == maxSupply) {
+            generations.deployNextGenPreset();
+        }
     }
 
     function _transfer(

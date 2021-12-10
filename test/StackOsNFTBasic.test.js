@@ -100,6 +100,20 @@ describe("StackOS NFT Basic", function () {
     expect(await stackOsNFT.getDelegatee(0)).to.equal(joe.address);
   });
 
+  it("Trigger auto deploy of the next generation", async function () {
+    await usdt.approve(stackOsNFT.address, parseEther("100.0"));
+    let oldGenerationsCount = (await generationManager.count()).toNumber();
+    await stackOsNFT.mint(20, usdt.address);
+    expect(await generationManager.count()).to.be.equal(
+      oldGenerationsCount + 1
+    );
+    await expect(
+      generationManager.connect(joe).add(joe.address)
+    ).to.be.revertedWith(
+      "Caller is not the owner or stack contract"
+    );
+  });
+
   it("Deploy stackOsNFT generation 2 from manager", async function () {
     ROYALTY = royalty.address;
     await generationManager.deployNextGen(
@@ -181,6 +195,11 @@ describe("StackOS NFT Basic", function () {
     var price = await stackOsNFT.getFromRewardsPrice(2, usdt.address);
     console.log(price.toString());
   });
+
+  // it("Reach maxSupply to trigger auto deploy next generation", async function () {
+  //   await usdt.approve(stackOsNFT.address, parseEther("100.0"));
+  //   await stackOsNFT.mint(20, usdt.address);
+  // });
 
   it("Revert EVM state", async function () {
     await ethers.provider.send("evm_revert", [snapshotId]);
