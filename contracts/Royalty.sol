@@ -123,7 +123,7 @@ contract Royalty is Ownable {
     }    
 
     /*
-     * @title Set WETH address, probably should be only used on Matic network
+     * @title Set WETH address, probably should be used on Matic network
      * @param WETH address
      * @dev Could only be invoked by the contract owner.
      */
@@ -133,8 +133,8 @@ contract Royalty is Ownable {
     }
 
     /*
-     * @title Set fee percent
-     * @param fee percent
+     * @title Set fee percent taken of each deposit
+     * @param fee basis points
      * @dev Could only be invoked by the contract owner.
      */
     function setFeePercent(uint256 _percent) external onlyOwner {
@@ -145,7 +145,7 @@ contract Royalty is Ownable {
     /*
      * @title Get total delegated NFT's that exists prior current block, in all added generations
      * @dev May consume a lot of gas if there is a lot of generations and NFTs.
-     * @dev O(x * y)
+     * @dev This is called only once, when first cycle start.
      */
     function getTotalDelegatedBeforeCurrentBlock()
         private
@@ -176,7 +176,7 @@ contract Royalty is Ownable {
     }
 
     /*
-     * @titile Get number of delegated tokens in every added StackOS generation
+     * @titile Get number of delegated tokens in every generation
      */
     function getTotalDelegated() private view returns (uint256) {
         uint256 total = 0;
@@ -200,9 +200,9 @@ contract Royalty is Ownable {
     }
 
     /*
-     * @title User can take royalty for holding delegated NFTs that he owns
-     * @param generationId StackOS generation id to get royalty for
-     * @param tokenIds Token ids to get royalty for
+     * @title Claim royalty for holding delegated NFTs 
+     * @param StackOS generation id 
+     * @param Token ids
      * @dev tokens must be delegated and owned by the caller
      */
     function claim(uint256 _generationId, uint256[] calldata _tokenIds)
@@ -212,10 +212,9 @@ contract Royalty is Ownable {
     }
 
     /*
-     * @title User can take royalty for holding delegated NFTs that he owns
-     * @param generationId StackOS generation id to get royalty for
-     * @param tokenIds Token ids to get royalty for
+     * @title Same as `claim` but holders receive WETH
      * @dev tokens must be delegated and owned by the caller
+     * @dev WETH address must be set by the admin
      */
     function claimWETH(uint256 _generationId, uint256[] calldata _tokenIds)
         external
@@ -225,18 +224,18 @@ contract Royalty is Ownable {
     }
 
     /*
-     * @title 
-     * @param StackNFT generation id to get royalty for
-     * @param tokenIds Token ids to get royalty for
-     * @param StackNFT generation id to subscribe
-     * @param tokenIds Token ids to subscribe
+     * @title Purchase StackNFTs for royalties, caller will receive the left over amount of royalties
+     * @param StackNFT generation id
+     * @param Token ids
+     * @param Amount to mint
+     * @param Supported stablecoin to use to buy stack token
      * @dev tokens must be delegated and owned by the caller
      */
     function purchaseNewNft(
         uint256 _generationId,
         uint256[] calldata _tokenIds,
         uint256 _mintNum,
-        IERC20 _stablecoin
+        IERC20 _stablecoin // TODO: this is unnecesary, can just use stablecoins[0], should do that?
     ) external {
         require(_generationId > 0, "Must be not first generation");
         _claim(_generationId, _tokenIds, _mintNum, true, _stablecoin);
@@ -259,7 +258,6 @@ contract Royalty is Ownable {
 
         checkDelegationsForFirstCycle();
 
-        // similar 'if' as in `receive()`
         if (
             cycles[counter.current()].startTimestamp + CYCLE_DURATION <
             block.timestamp
@@ -272,10 +270,10 @@ contract Royalty is Ownable {
             }
         }
 
-        // first cycle still not ended, cant claim for it
         if (counter.current() > 0) {
             uint256 reward;
-            // iterate over passed tokens
+
+            // iterate over tokens from args
             for (uint256 i = 0; i < tokenIds.length; i++) {
                 uint256 tokenId = tokenIds[i];
 
@@ -337,7 +335,7 @@ contract Royalty is Ownable {
                         address(_stablecoin), 
                         msg.sender
                     );
-                    _stablecoin.transfer(msg.sender, spendAmount);
+                    _stablecoin.transfer(msg.sender, usdReceived - spendAmount);
                 }
             }
         }
@@ -369,7 +367,7 @@ contract Royalty is Ownable {
     function buyWETH(uint256 amount) private returns (uint256) {
         uint256 deadline = block.timestamp + 1200;
         address[] memory path = new address[](2);
-        path[0] = address(router.WETH()); // on matic network this is wrapped matic
+        path[0] = address(router.WETH()); // on matic network this should return W-MATIC
         path[1] = address(WETH);
         uint256[] memory amountOutMin = router.getAmountsOut(amount, path);
         uint256[] memory amounts = router.swapExactETHForTokens{value: amount}(

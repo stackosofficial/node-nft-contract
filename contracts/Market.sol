@@ -113,7 +113,7 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeab
         uint256 tokenId,
         uint256 price 
     ) public nonReentrant {
-        // TODO: there is not check for token owner
+        // TODO: there is no check for token owner
         DarkMatterLot storage lot = darkMatterToLot[tokenId];
         require(lot.seller == address(0), "Already listed");
 
