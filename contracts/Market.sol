@@ -116,6 +116,7 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeab
         // TODO: there is no check for token owner
         DarkMatterLot storage lot = darkMatterToLot[tokenId];
         require(lot.seller == address(0), "Already listed");
+        require(darkMatter.ownerOf(tokenId) == msg.sender, "Not token owner");
 
         lot.price = price;
         lot.seller = msg.sender;
@@ -136,6 +137,7 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeab
         uint256 price
     ) public nonReentrant {
         require(generationId < generations.count(), "Generation doesn't exist");
+        require(generations.get(generationId).ownerOf(tokenId) == msg.sender, "Not token owner");
 
         StackLot storage lot = stackToLot[generationId][tokenId];
         require(lot.seller == address(0), "Already listed");
