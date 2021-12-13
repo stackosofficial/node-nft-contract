@@ -27,6 +27,26 @@ module.exports = {
     compilers: [
       {
         version: "0.8.2",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 200,
+          },
+          // evmVersion: "istanbul",
+          // outputSelection: {
+          //   "*": {
+          //     "": ["ast"],
+          //     "*": [
+          //       "evm.bytecode.object",
+          //       "evm.deployedBytecode.object",
+          //       "abi",
+          //       "evm.bytecode.sourceMap",
+          //       "evm.deployedBytecode.sourceMap",
+          //       "metadata",
+          //     ],
+          //   },
+          // },
+        },
       },
       {
         version: "0.8.0",
@@ -35,36 +55,76 @@ module.exports = {
             enabled: true,
             runs: 200,
           },
-          evmVersion: "istanbul",
-          outputSelection: {
-            "*": {
-              "": ["ast"],
-              "*": [
-                "evm.bytecode.object",
-                "evm.deployedBytecode.object",
-                "abi",
-                "evm.bytecode.sourceMap",
-                "evm.deployedBytecode.sourceMap",
-                "metadata",
-              ],
-            },
-          },
+          // evmVersion: "istanbul",
+          // outputSelection: {
+          //   "*": {
+          //     "": ["ast"],
+          //     "*": [
+          //       "evm.bytecode.object",
+          //       "evm.deployedBytecode.object",
+          //       "abi",
+          //       "evm.bytecode.sourceMap",
+          //       "evm.deployedBytecode.sourceMap",
+          //       "metadata",
+          //     ],
+          //   },
+          // },
         },
       },
       {
         version: "0.6.6",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 200,
+          },
+          // evmVersion: "istanbul",
+          // outputSelection: {
+          //   "*": {
+          //     "": ["ast"],
+          //     "*": [
+          //       "evm.bytecode.object",
+          //       "evm.deployedBytecode.object",
+          //       "abi",
+          //       "evm.bytecode.sourceMap",
+          //       "evm.deployedBytecode.sourceMap",
+          //       "metadata",
+          //     ],
+          //   },
+          // },
+        },
       },
       {
         version: "0.4.24",
+        // settings: {
+        //   optimizer: {
+        //     enabled: true,
+        //     runs: 200,
+        //   },
+        //   evmVersion: "istanbul",
+        //   outputSelection: {
+        //     "*": {
+        //       "": ["ast"],
+        //       "*": [
+        //         "evm.bytecode.object",
+        //         "evm.deployedBytecode.object",
+        //         "abi",
+        //         "evm.bytecode.sourceMap",
+        //         "evm.deployedBytecode.sourceMap",
+        //         "metadata",
+        //       ],
+        //     },
+        //   },
+        // },
       },
     ],
   },
   networks: {
     hardhat: {
-       allowUnlimitedContractSize: true,
         forking: {
-          url: process.env.MATIC_TESTNET_URL, // must be archive node for next line to work
-          blockNumber: 9608366, // block pinning gives x20 perfromance due to caching as stated on hardhat docs 
+          url: process.env.RINKEBY_URL, // must be archive node for next line to work
+                       
+          blockNumber: 9808000, // block pinning gives x20 perfromance due to caching as stated on hardhat docs 
           enabled: true
         }
     },

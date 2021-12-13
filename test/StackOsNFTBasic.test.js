@@ -118,7 +118,8 @@ describe("StackOS NFT Basic", function () {
       ROYALTY
     );
     await generationManager.setupDeploy2(
-      router.address
+      router.address,
+      owner.address // fake market address
     )
   });
 

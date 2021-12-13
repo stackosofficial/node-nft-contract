@@ -26,6 +26,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         uint256 timeLock;
         address royaltyAddress;
         address router;
+        address market;
     }
     Deployment deployment;
 
@@ -75,8 +76,12 @@ contract GenerationManager is Ownable, ReentrancyGuard {
      * @dev Could only be invoked by the contract owner.
      * @dev Must be called along with first setup function.
      */
-    function setupDeploy2(address _router) public onlyOwner {
+    function setupDeploy2(
+        address _router,
+        address _market
+    ) public onlyOwner {
         deployment.router = _router;
+        deployment.market = _market;
     }
 
     /*
@@ -124,6 +129,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
             deployment.router
         );
         stack.whitelist(address(deployment.darkMatter));
+        stack.whitelist(address(deployment.market));
         return stack;
     }
 

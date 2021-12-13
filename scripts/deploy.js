@@ -1,24 +1,52 @@
+const { parseEther } = require("ethers/lib/utils");
 const hre = require("hardhat");
 
 async function main() {
-
-  const parseEther = ethers.utils.parseEther;
   const delay = (ms) => new Promise((res) => setTimeout(res, ms));
 
   //vvvvvvvvvvvvvvvvvv SETTINGS vvvvvvvvvvvvvvvvvv
 
+  // Need to set USDT, USDC, DAI in StableCoinAcceptor.sol
+  // Need to set WETH with setWETH for Royalty
+  // Need to set LINK token address in StackOsNFT.sol
+  // Need to set VRF Coordinator address in StackOsNFT.sol
+  // Need to set fee amount for chainlink in StackOsNFT.sol
+  // Need to call setupDeploy and setupDeploy2 after GenerationManager deploy
+  // Need to whitelist Market to transfer DarkMatter and StackNFT 
+  // Need to whitelist DarkMatter to transfer StackNFT 
+
+  DARK_MATTER_PRICE = 5;
+
+  ROUTER_ADDRESS = "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D";
+  TAX_ADDRESS = "0xF90fF6d484331399f4eAa13f73D03b8B18eA1373";
+
+  SUBSCRIPTION_PRICE = parseEther("100.0");
+  BONUS_PECENT = 2000;
+  TAX_REDUCTION_PERCENT = 2500; // 25% means: 1month withdraw 75% tax, 2 month 50%, 3 month 25%, 4 month 0%
+  TAX_RESET_DEADLINE = 60 * 60 * 24 * 7; // 1 week
+  
+  DEPOSIT_FEE_ADDRESS = "0xF90fF6d484331399f4eAa13f73D03b8B18eA1373";
+  MIN_CYCLE_ETHER = parseEther("1");
+  DEPOSIT_FEE_PERCENT = 1000;
+  WETH_ADDRESS = "0xc778417E063141139Fce010982780140Aa0cD5Ab";
+
+  DAO_ADDRESS = "0xF90fF6d484331399f4eAa13f73D03b8B18eA1373";
+  ROYALTY_DISTRIBUTION_ADDRESS = "0xF90fF6d484331399f4eAa13f73D03b8B18eA1373";
+  DAO_FEE = 1000;
+  ROYALTY_FEE = 1000;
+
   NAME = "STACK OS NFT";
   SYMBOL = "SON";
-  STACK_TOKEN_FOR_PAYMENT = "0x641f40c85e070b92ce14b25c21609a68cd2d8a53";
+  STACK_TOKEN = "0x641f40c85e070b92ce14b25c21609a68cd2d8a53";
   PRICE = parseEther("0.1");
   MAX_SUPPLY = 25;
   PRIZES = 10;
   AUCTIONED_NFTS = 10;
-  VRF_COORDINATOR = "0xb3dCcb4Cf7a26f6cf6B120Cf5A73875B7BBc655B";
-  LINK_TOKEN = "0x01BE23585060835E02B77ef475b0Cc51aA1e0709";
   KEY_HASH =
     "0x2ed0feb3e7fd2022120aa84fab1945545a9f2ffc9076fd6156fa96eaff4c1311";
-  FEE = parseEther("0.1");
+  TRANSFER_DISCOUNT = 2000;
+  TIMELOCK = 6442850;
+  MINT_FEE = 2000;
   /**
    * Set to true if you want partners to be able to mint for themselves (can be started later, after deployment)
    */
@@ -47,22 +75,95 @@ async function main() {
   //^^^^^^^^^^^^^^^^^^ SETTINGS ^^^^^^^^^^^^^^^^^^
 
   //vvvvvvvvvvvvvvvvvvvvv DEPLOYMENT vvvvvvvvvvvvvvvvvvvvv
-  const StackOS = await ethers.getContractFactory("StackOsNFT");
-  stackOsNFT = await StackOS.deploy(
+  const GenerationManager = await ethers.getContractFactory(
+    "GenerationManager"
+  );
+  let generationManager = await GenerationManager.deploy();
+  await generationManager.deployed();
+  console.log("generationManager", generationManager.address);
+
+  const DarkMatter = await ethers.getContractFactory("DarkMatter");
+  let darkMatter = await DarkMatter.deploy(
+    generationManager.address,
+    DARK_MATTER_PRICE
+  );
+  await darkMatter.deployed();
+  console.log("darkMatter", darkMatter.address);
+
+  const Market = await ethers.getContractFactory("Market");
+  market = await upgrades.deployProxy(
+    Market,
+    [
+      generationManager.address,
+      darkMatter.address,
+      DAO_ADDRESS,
+      ROYALTY_DISTRIBUTION_ADDRESS,
+      DAO_FEE,
+      ROYALTY_FEE
+    ]
+  );
+  await market.deployed();
+  console.log("market", market.address);
+  await darkMatter.whitelist(market.address);
+  
+  const Subscription = await ethers.getContractFactory("Subscription");
+  let subscription = await Subscription.deploy(
+    STACK_TOKEN,
+    generationManager.address,
+    darkMatter.address,
+    ROUTER_ADDRESS,
+    TAX_ADDRESS,
+    TAX_RESET_DEADLINE,
+    SUBSCRIPTION_PRICE,
+    BONUS_PECENT,
+    TAX_REDUCTION_PERCENT
+  );
+  await subscription.deployed();
+  console.log("subscription", subscription.address);
+  // await subscription.setPrice(SUBSCRIPTION_PRICE);
+  // await subscription.setBonusPercent(BONUS_PECENT);
+  // await subscription.settaxReductionAmount(TAX_REDUCTION_PERCENT);
+  // await subscription.setTaxResetDeadline(TAX_RESET_DEADLINE);
+
+  let StackOS = await ethers.getContractFactory("StackOsNFT");
+  let stackOsNFT = await StackOS.deploy(
     NAME,
     SYMBOL,
-    STACK_TOKEN_FOR_PAYMENT,
+    STACK_TOKEN,
+    darkMatter.address,
     PRICE,
     MAX_SUPPLY,
     PRIZES,
     AUCTIONED_NFTS,
-    VRF_COORDINATOR,
-    LINK_TOKEN,
     KEY_HASH,
-    FEE
+    TRANSFER_DISCOUNT,
+    TIMELOCK
   );
   await stackOsNFT.deployed();
-  console.log("StackOS deployed at: ", stackOsNFT.address);
+  console.log("stackOsNFT", stackOsNFT.address);
+  await generationManager.add(stackOsNFT.address);
+  await stackOsNFT.adjustAddressSettings(
+    generationManager.address,
+    ROUTER_ADDRESS,
+    subscription.address
+  );
+  await stackOsNFT.setMintFee(MINT_FEE);
+  await stackOsNFT.whitelist(darkMatter.address);
+  await stackOsNFT.whitelist(market.address);
+
+  const Royalty = await ethers.getContractFactory("Royalty");
+  royalty = await Royalty.deploy(
+    ROUTER_ADDRESS,
+    generationManager.address,
+    darkMatter.address,
+    subscription.address,
+    DEPOSIT_FEE_ADDRESS,
+    MIN_CYCLE_ETHER
+  );
+  await royalty.deployed();
+  console.log("royalty", royalty.address);
+  await royalty.setFeePercent(DEPOSIT_FEE_PERCENT);
+  await royalty.setWETH(WETH_ADDRESS);
 
   //vvvvvvvvvvvvvvvvvv CONTRACT SETTINGS vvvvvvvvvvvvvvvvvv
   if (WHITELISTED_PARTNERS.length > 0) {
@@ -82,16 +183,6 @@ async function main() {
   }
   //^^^^^^^^^^^^^^^^^^ CONTRACT SETTINGS ^^^^^^^^^^^^^^^^^^
 
-  const Royalty = await ethers.getContractFactory("Royalty");
-  royalty = await Royalty.deploy(
-    stackOsNFT.address,
-    ROYALTY_MIN_CYCLE_ETHER,
-    ROYALTY_DEPOSIT_FEE_ADDRESS,
-  );
-  await royalty.deployed();
-  console.log("Royalty deployed at: ", royalty.address);
-  await royalty.setFeePercent(ROYALTY_DEPOSIT_FEE_PERCENT);
-
   //^^^^^^^^^^^^^^^^^^^^^ DEPLOYMENT ^^^^^^^^^^^^^^^^^^^^^
 
   // vvvvvvvvvvvvvvvvvvvvvvvvv VERIFICATION vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
@@ -100,29 +191,67 @@ async function main() {
   console.log("Waited 46s");
 
   await hre.run("verify:verify", {
+    address: generationManager.address,
+    constructorArguments: [],
+  });
+  await hre.run("verify:verify", {
+    address: darkMatter.address,
+    constructorArguments: [
+      generationManager.address,
+      DARK_MATTER_PRICE
+    ],
+  });
+  await hre.run("verify:verify", {
+    address: market.address,
+    constructorArguments: [
+      generationManager.address,
+      darkMatter.address,
+      DAO_ADDRESS,
+      ROYALTY_DISTRIBUTION_ADDRESS,
+      DAO_FEE,
+      ROYALTY_FEE
+    ],
+  });
+  await hre.run("verify:verify", {
+    address: subscription.address,
+    constructorArguments: [
+      STACK_TOKEN,
+      generationManager.address,
+      darkMatter.address,
+      ROUTER_ADDRESS,
+      TAX_ADDRESS,
+      TAX_RESET_DEADLINE,
+      SUBSCRIPTION_PRICE,
+      BONUS_PECENT,
+      TAX_REDUCTION_PERCENT
+    ],
+  });
+  await hre.run("verify:verify", {
     address: stackOsNFT.address,
     constructorArguments: [
       NAME,
       SYMBOL,
-      STACK_TOKEN_FOR_PAYMENT,
+      STACK_TOKEN,
+      darkMatter.address,
       PRICE,
       MAX_SUPPLY,
       PRIZES,
       AUCTIONED_NFTS,
-      VRF_COORDINATOR,
-      LINK_TOKEN,
       KEY_HASH,
-      FEE,
+      TRANSFER_DISCOUNT,
+      TIMELOCK
     ],
   });
 
   await hre.run("verify:verify", {
     address: royalty.address,
     constructorArguments: [
-      stackOsNFT.address,
-      ROYALTY_MIN_CYCLE_ETHER,
-      ROYALTY_DEPOSIT_FEE_ADDRESS,
-      ROYALTY_DEPOSIT_FEE_PERCENT,
+      ROUTER_ADDRESS,
+      generationManager.address,
+      darkMatter.address,
+      subscription.address,
+      DEPOSIT_FEE_ADDRESS,
+      MIN_CYCLE_ETHER
     ],
   });
 

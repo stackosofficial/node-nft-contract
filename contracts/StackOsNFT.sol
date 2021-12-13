@@ -79,8 +79,8 @@ contract StackOsNFT is StableCoinAcceptor, VRFConsumerBase, ERC721, ERC721URISto
     )
         ERC721(_name, _symbol)
         VRFConsumerBase(
-            0x390d29a822C21F57B163F1173cD43382bd643401, // VRF Coordinator
-            0xE71AC7A1ccB822423576EfFdb0B74564C49BEcBA  // LINK Token
+            0x2a2E02b876d42408D755428aF6F4dCa0AdFC18dd, // VRF Coordinator
+            0x184B9B4573186602cb034cEdEAB6a4101A58DF65  // LINK Token
         )
     {
         stackOSToken = _stackOSTokenToken;
@@ -419,6 +419,8 @@ contract StackOsNFT is StableCoinAcceptor, VRFConsumerBase, ERC721, ERC721URISto
      */
 
     function partnerMint(uint256 _nftAmount, IERC20 _stablecoin) public {
+        console.log("WETH");
+        console.log("WETH", router.WETH());
         require(salesStarted, "Sales not started");
         require(supportsCoin(_stablecoin), "Unsupported payment coin");
         require(strategicPartner[msg.sender] >= _nftAmount, "Amount Too Big");
