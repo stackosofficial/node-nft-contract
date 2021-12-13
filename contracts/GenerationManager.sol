@@ -221,7 +221,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
     }
 
     /*
-     * @title Get generation added timestamp.
+     * @title Get timestamp when generation was added.
      * @param Generation id.
      */
     function getAddedTimestamp(uint256 generationId)
