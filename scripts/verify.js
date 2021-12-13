@@ -1,5 +1,6 @@
 const { parseEther } = require("ethers/lib/utils");
 const hre = require("hardhat");
+const { getImplementationAddress } = require('@openzeppelin/upgrades-core');
 
 async function main() {
 
@@ -36,6 +37,30 @@ async function main() {
   TIMELOCK = 6442850;
   MINT_FEE = 2000;
 
+  const implementationAddress = await getImplementationAddress(ethers.provider, "0xC7c52676319D8783d6864ae587dEf90c0FEf8543");
+    // const implementation = new ethers.Contract(
+    //     implementationAddress,
+    //     ArcheanGoldToken.interface,
+    //     ethers.provider
+    // );
+    // await implementation.deployed();
+    // console.log(`Implementation address: ${implementationAddress}`);
+
+    //Important security measure. Make sure no one can manage implementation contract
+    // console.log(`Initializing implementation contract. Signer is: ${signer.address}`);
+    try{
+        await implementation.initialize(
+          "0x161fb8a44a4E47090059fbB6b055fFf3416b015f",
+          "0x7E0767BBe99C6b1A21f45c1D7BEBb19143F4Fad9",
+          DAO_ADDRESS,
+          ROYALTY_DISTRIBUTION_ADDRESS,
+          DAO_FEE,
+          ROYALTY_FEE
+        );
+    }catch(e){
+        console.log(e);
+    }
+
   // await hre.run("verify:verify", {
   //   address: "0x161fb8a44a4E47090059fbB6b055fFf3416b015f",
   //   constructorArguments: [],
@@ -47,59 +72,60 @@ async function main() {
   //     DARK_MATTER_PRICE
   //   ],
   // });
+  // const implementationAddress = await getImplementationAddress(ethers.provider, "0xC7c52676319D8783d6864ae587dEf90c0FEf8543");
   // await hre.run("verify:verify", {
-  //   address: "0xC7c52676319D8783d6864ae587dEf90c0FEf8543",
+  //   address: implementationAddress,
   //   constructorArguments: [
-  //     "0x161fb8a44a4E47090059fbB6b055fFf3416b015f",
-  //     "0x7E0767BBe99C6b1A21f45c1D7BEBb19143F4Fad9",
-  //     DAO_ADDRESS,
-  //     ROYALTY_DISTRIBUTION_ADDRESS,
-  //     DAO_FEE,
-  //     ROYALTY_FEE
+      // "0x161fb8a44a4E47090059fbB6b055fFf3416b015f",
+      // "0x7E0767BBe99C6b1A21f45c1D7BEBb19143F4Fad9",
+      // DAO_ADDRESS,
+      // ROYALTY_DISTRIBUTION_ADDRESS,
+      // DAO_FEE,
+      // ROYALTY_FEE
   //   ],
   // });
-  await hre.run("verify:verify", {
-    address: "0x5Eb8728223f798F2318e4a2C890127e29F497F99",
-    constructorArguments: [
-      STACK_TOKEN,
-      "0x161fb8a44a4E47090059fbB6b055fFf3416b015f",
-      "0x7E0767BBe99C6b1A21f45c1D7BEBb19143F4Fad9",
-      ROUTER_ADDRESS,
-      TAX_ADDRESS,
-      TAX_RESET_DEADLINE,
-      SUBSCRIPTION_PRICE,
-      BONUS_PECENT,
-      TAX_REDUCTION_PERCENT
-    ],
-  });
-  await hre.run("verify:verify", {
-    address: "0xF04A576f20D7CC102099F385B1dee3Db9D90AE42",
-    constructorArguments: [
-      NAME,
-      SYMBOL,
-      STACK_TOKEN,
-      "0x7E0767BBe99C6b1A21f45c1D7BEBb19143F4Fad9",
-      PRICE,
-      MAX_SUPPLY,
-      PRIZES,
-      AUCTIONED_NFTS,
-      KEY_HASH,
-      TRANSFER_DISCOUNT,
-      TIMELOCK
-    ],
-  });
+  // await hre.run("verify:verify", {
+  //   address: "0x5Eb8728223f798F2318e4a2C890127e29F497F99",
+  //   constructorArguments: [
+  //     STACK_TOKEN,
+  //     "0x161fb8a44a4E47090059fbB6b055fFf3416b015f",
+  //     "0x7E0767BBe99C6b1A21f45c1D7BEBb19143F4Fad9",
+  //     ROUTER_ADDRESS,
+  //     TAX_ADDRESS,
+  //     TAX_RESET_DEADLINE,
+  //     SUBSCRIPTION_PRICE,
+  //     BONUS_PECENT,
+  //     TAX_REDUCTION_PERCENT
+  //   ],
+  // });
+  // await hre.run("verify:verify", {
+  //   address: "0xF04A576f20D7CC102099F385B1dee3Db9D90AE42",
+  //   constructorArguments: [
+  //     NAME,
+  //     SYMBOL,
+  //     STACK_TOKEN,
+  //     "0x7E0767BBe99C6b1A21f45c1D7BEBb19143F4Fad9",
+  //     PRICE,
+  //     MAX_SUPPLY,
+  //     PRIZES,
+  //     AUCTIONED_NFTS,
+  //     KEY_HASH,
+  //     TRANSFER_DISCOUNT,
+  //     TIMELOCK
+  //   ],
+  // });
 
-  await hre.run("verify:verify", {
-    address: "0xcea942f6010B81a5945eBe602944441AB96EC869",
-    constructorArguments: [
-      ROUTER_ADDRESS,
-      "0x161fb8a44a4E47090059fbB6b055fFf3416b015f",
-      "0x7E0767BBe99C6b1A21f45c1D7BEBb19143F4Fad9",
-      "0x5Eb8728223f798F2318e4a2C890127e29F497F99",
-      DEPOSIT_FEE_ADDRESS,
-      MIN_CYCLE_ETHER
-    ],
-  });
+  // await hre.run("verify:verify", {
+  //   address: "0xcea942f6010B81a5945eBe602944441AB96EC869",
+  //   constructorArguments: [
+  //     ROUTER_ADDRESS,
+  //     "0x161fb8a44a4E47090059fbB6b055fFf3416b015f",
+  //     "0x7E0767BBe99C6b1A21f45c1D7BEBb19143F4Fad9",
+  //     "0x5Eb8728223f798F2318e4a2C890127e29F497F99",
+  //     DEPOSIT_FEE_ADDRESS,
+  //     MIN_CYCLE_ETHER
+  //   ],
+  // });
 
 }
 
