@@ -84,26 +84,36 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeab
         __UUPSUpgradeable_init();
     }
 
+    /*
+     * @title Set dao fee taken of each sell.
+     * @param Fee basis points.
+     * @dev Could only be called by the contract owner.
+     */
     function setDaoFee(uint256 _percent) public onlyOwner {
         require(_percent <= HUNDRED_PERCENT, "invalid fee basis points");
         daoFee = _percent;
     }
 
+    /*
+     * @title Set fee percent to send to royalty distribution contract taken of each sell.
+     * @param Fee basis points.
+     * @dev Could only be called by the contract owner.
+     */
     function setRoyaltyFee(uint256 _percent) public onlyOwner {
         require(_percent <= HUNDRED_PERCENT, "invalid fee basis points");
         royaltyFee = _percent;
     }
 
-    // function viewLots() public view returns (Lot[] memory) {
-    //     return lots;
-    // }
-
-
+    /*
+     * @title List DarkMatterNFT for selling
+     * @param Token id
+     * @param Price
+     */
     function listDarkMatterNFT(
         uint256 tokenId,
         uint256 price 
     ) public nonReentrant {
-
+        // TODO: there is not check for token owner
         DarkMatterLot storage lot = darkMatterToLot[tokenId];
         require(lot.seller == address(0), "Already listed");
 
@@ -114,7 +124,12 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeab
         emit DarkMatterListing(msg.sender, tokenId, price);
     }
 
-
+    /*
+     * @title List StackNFT for selling
+     * @param StackNFT generation id
+     * @param Token id
+     * @param Price
+     */
     function listStackNFT(
         uint256 generationId,
         uint256 tokenId,
@@ -133,7 +148,10 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeab
         emit StackListing(msg.sender, generationId, tokenId, price);
     }
 
-
+    /*
+     * @title Delist DarkMatterNFT from selling
+     * @param Token id
+     */
     function deListDarkMatterNFT(
         uint256 tokenId
     ) public nonReentrant {
@@ -144,7 +162,11 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeab
         delete darkMatterToLot[tokenId];
     }
 
-
+    /*
+     * @title Delist StackNFT from selling
+     * @param StackNFT generation id
+     * @param Token id
+     */
     function deListStackNFT(
         uint256 generationId,
         uint256 tokenId
@@ -156,7 +178,12 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeab
         delete stackToLot[generationId][tokenId];
     }
 
-
+    /*
+     * @title Buy listed StackNFT
+     * @param StackNFT generation id
+     * @param Token id
+     * @dev Market contract must be whitelisted in StackNFT contract to transfer tokens.
+     */
     function buyStack(
         uint256 generationId,
         uint256 tokenId
@@ -182,7 +209,11 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeab
         delete stackToLot[generationId][tokenId];
     }
 
-
+    /*
+     * @title Buy listed StackNFT
+     * @param Token id
+     * @dev Market contract must be whitelisted in StackNFT contract to transfer tokens.
+     */
     function buyDarkMatter(
         uint256 tokenId
     ) public payable nonReentrant {
