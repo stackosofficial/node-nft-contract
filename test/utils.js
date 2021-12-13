@@ -116,7 +116,6 @@ async function setup() {
   await darkMatter.deployed();
   console.log(darkMatter.address);
 
-  PAYMENT_TOKEN = usdt.address;
   STACK_TOKEN_FOR_PAYMENT = stackToken.address;
   GENERATION_MANAGER_ADDRESS = generationManager.address;
   DARK_MATTER_ADDRESS = darkMatter.address;
@@ -130,7 +129,6 @@ async function setup() {
 
   const Subscription = await ethers.getContractFactory("Subscription");
   let subscription = await Subscription.deploy(
-    // PAYMENT_TOKEN,
     STACK_TOKEN_FOR_PAYMENT,
     GENERATION_MANAGER_ADDRESS,
     DARK_MATTER_ADDRESS,

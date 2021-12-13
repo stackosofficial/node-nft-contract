@@ -63,7 +63,7 @@ module.exports = {
     hardhat: {
        allowUnlimitedContractSize: true,
         forking: {
-          url: process.env.RINKEBY_URL, // must be archive node for next line to work
+          url: process.env.MATIC_TESTNET_URL, // must be archive node for next line to work
           blockNumber: 9608366, // block pinning gives x20 perfromance due to caching as stated on hardhat docs 
           enabled: true
         }

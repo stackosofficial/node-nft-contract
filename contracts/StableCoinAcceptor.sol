@@ -9,9 +9,9 @@ contract StableCoinAcceptor {
 
     constructor(
     ) {
-        stablecoins.push(IERC20(0xB678B953dD909a4386ED1cA7841550a89fb508cc));
-        stablecoins.push(IERC20(0x6Aea593F1E70beb836049929487F7AF3d5e4432F));
-        stablecoins.push(IERC20(0x89842f40928f81FC4415b39bfBFC3205eB6161cB));
+        stablecoins.push(IERC20(0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0));
+        stablecoins.push(IERC20(0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9));
+        stablecoins.push(IERC20(0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9));
     }
 
     /*
