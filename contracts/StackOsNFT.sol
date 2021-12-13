@@ -342,7 +342,7 @@ contract StackOsNFT is StableCoinAcceptor, VRFConsumerBase, ERC721, ERC721URISto
     function transferTicket(uint256[] calldata _ticketID, address _address)
         public
     {
-        generations.getIDByAddress(_address);
+        require(generations.isAdded(_address), "Wrong stack contract");
         require(winningTickets.length > 0, "Not Decided Yet.");
         require(ticketStatusAssigned == true, "Not Assigned Yet!");
         for (uint256 i; i < _ticketID.length; i++) {
