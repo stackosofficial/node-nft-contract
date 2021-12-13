@@ -61,23 +61,27 @@ contract StackOsNFTBasic is
         address _stackOSTokenToken,
         address _darkMatter,
         address _subscription,
-        uint256 _participationFee,
-        uint256 _mintFee,
-        uint256 _maxSupply,
-        uint256 _transferDiscount,
-        uint256 _timeLock,
         address _royaltyAddress
     ) ERC721(_name, _symbol) {
         stackOSToken = IERC20(_stackOSTokenToken);
         darkMatter = DarkMatter(_darkMatter);
         subscription = Subscription(_subscription);
+        royaltyAddress = _royaltyAddress;
+        generations = GenerationManager(msg.sender);
+    }
+
+    function initialize(
+        uint256 _participationFee,
+        uint256 _mintFee,
+        uint256 _maxSupply,
+        uint256 _transferDiscount,
+        uint256 _timeLock
+    ) public onlyOwnerOrGenerationManager {
         participationFee = _participationFee;
         mintFee = _mintFee;
         maxSupply = _maxSupply;
         transferDiscount = _transferDiscount;
         timeLock = block.timestamp + _timeLock;
-        royaltyAddress = _royaltyAddress;
-        generations = GenerationManager(msg.sender);
     }
 
     /*

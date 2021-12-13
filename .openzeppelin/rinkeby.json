@@ -1,0 +1,192 @@
+{
+  "manifestVersion": "3.2",
+  "proxies": [
+    {
+      "address": "0xC7c52676319D8783d6864ae587dEf90c0FEf8543",
+      "txHash": "0x8cb5a82940ab12520d4a419d64ded40b9c6e10ff931eff66065cf928f51842ed",
+      "kind": "uups"
+    }
+  ],
+  "impls": {
+    "9dc6d888e04f93b88a1929cdc25e247c5bf56edcfc167dd170dfbef47cf6ead5": {
+      "address": "0x92E8D934A3e861BCfDB27723636087a1Ec3c2d00",
+      "txHash": "0x17140efe45eebe1d321ccfee9046eede919be68119713e410264c568aba3912b",
+      "layout": {
+        "storage": [
+          {
+            "contract": "Initializable",
+            "label": "_initialized",
+            "type": "t_bool",
+            "src": "@openzeppelin\\contracts-upgradeable\\proxy\\utils\\Initializable.sol:36"
+          },
+          {
+            "contract": "Initializable",
+            "label": "_initializing",
+            "type": "t_bool",
+            "src": "@openzeppelin\\contracts-upgradeable\\proxy\\utils\\Initializable.sol:41"
+          },
+          {
+            "contract": "ContextUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "@openzeppelin\\contracts-upgradeable\\utils\\ContextUpgradeable.sol:31"
+          },
+          {
+            "contract": "OwnableUpgradeable",
+            "label": "_owner",
+            "type": "t_address",
+            "src": "@openzeppelin\\contracts-upgradeable\\access\\OwnableUpgradeable.sol:22"
+          },
+          {
+            "contract": "OwnableUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)49_storage",
+            "src": "@openzeppelin\\contracts-upgradeable\\access\\OwnableUpgradeable.sol:82"
+          },
+          {
+            "contract": "ReentrancyGuardUpgradeable",
+            "label": "_status",
+            "type": "t_uint256",
+            "src": "@openzeppelin\\contracts-upgradeable\\security\\ReentrancyGuardUpgradeable.sol:38"
+          },
+          {
+            "contract": "ReentrancyGuardUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)49_storage",
+            "src": "@openzeppelin\\contracts-upgradeable\\security\\ReentrancyGuardUpgradeable.sol:68"
+          },
+          {
+            "contract": "ERC1967UpgradeUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "@openzeppelin\\contracts-upgradeable\\proxy\\ERC1967\\ERC1967UpgradeUpgradeable.sol:215"
+          },
+          {
+            "contract": "UUPSUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "@openzeppelin\\contracts-upgradeable\\proxy\\utils\\UUPSUpgradeable.sol:81"
+          },
+          {
+            "contract": "Market",
+            "label": "darkMatter",
+            "type": "t_contract(DarkMatter)5091",
+            "src": "contracts\\Market.sol:41"
+          },
+          {
+            "contract": "Market",
+            "label": "generations",
+            "type": "t_contract(GenerationManager)5677",
+            "src": "contracts\\Market.sol:42"
+          },
+          {
+            "contract": "Market",
+            "label": "daoAddress",
+            "type": "t_address",
+            "src": "contracts\\Market.sol:44"
+          },
+          {
+            "contract": "Market",
+            "label": "royaltyAddress",
+            "type": "t_address",
+            "src": "contracts\\Market.sol:45"
+          },
+          {
+            "contract": "Market",
+            "label": "daoFee",
+            "type": "t_uint256",
+            "src": "contracts\\Market.sol:49"
+          },
+          {
+            "contract": "Market",
+            "label": "royaltyFee",
+            "type": "t_uint256",
+            "src": "contracts\\Market.sol:50"
+          },
+          {
+            "contract": "Market",
+            "label": "stackToLot",
+            "type": "t_mapping(t_uint256,t_mapping(t_uint256,t_struct(StackLot)5757_storage))",
+            "src": "contracts\\Market.sol:65"
+          },
+          {
+            "contract": "Market",
+            "label": "darkMatterToLot",
+            "type": "t_mapping(t_uint256,t_struct(DarkMatterLot)5764_storage)",
+            "src": "contracts\\Market.sol:66"
+          }
+        ],
+        "types": {
+          "t_contract(DarkMatter)5091": {
+            "label": "contract DarkMatter"
+          },
+          "t_contract(GenerationManager)5677": {
+            "label": "contract GenerationManager"
+          },
+          "t_address": {
+            "label": "address"
+          },
+          "t_uint256": {
+            "label": "uint256"
+          },
+          "t_mapping(t_uint256,t_mapping(t_uint256,t_struct(StackLot)5757_storage))": {
+            "label": "mapping(uint256 => mapping(uint256 => struct Market.StackLot))"
+          },
+          "t_mapping(t_uint256,t_struct(StackLot)5757_storage)": {
+            "label": "mapping(uint256 => struct Market.StackLot)"
+          },
+          "t_struct(StackLot)5757_storage": {
+            "label": "struct Market.StackLot",
+            "members": [
+              {
+                "label": "price",
+                "type": "t_uint256"
+              },
+              {
+                "label": "generationId",
+                "type": "t_uint256"
+              },
+              {
+                "label": "tokenId",
+                "type": "t_uint256"
+              },
+              {
+                "label": "seller",
+                "type": "t_address"
+              }
+            ]
+          },
+          "t_mapping(t_uint256,t_struct(DarkMatterLot)5764_storage)": {
+            "label": "mapping(uint256 => struct Market.DarkMatterLot)"
+          },
+          "t_struct(DarkMatterLot)5764_storage": {
+            "label": "struct Market.DarkMatterLot",
+            "members": [
+              {
+                "label": "price",
+                "type": "t_uint256"
+              },
+              {
+                "label": "tokenId",
+                "type": "t_uint256"
+              },
+              {
+                "label": "seller",
+                "type": "t_address"
+              }
+            ]
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]"
+          },
+          "t_bool": {
+            "label": "bool"
+          }
+        }
+      }
+    }
+  }
+}

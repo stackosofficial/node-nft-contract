@@ -32,20 +32,20 @@ module.exports = {
             enabled: true,
             runs: 200,
           },
-          // evmVersion: "istanbul",
-          // outputSelection: {
-          //   "*": {
-          //     "": ["ast"],
-          //     "*": [
-          //       "evm.bytecode.object",
-          //       "evm.deployedBytecode.object",
-          //       "abi",
-          //       "evm.bytecode.sourceMap",
-          //       "evm.deployedBytecode.sourceMap",
-          //       "metadata",
-          //     ],
-          //   },
-          // },
+          evmVersion: "istanbul",
+          outputSelection: {
+            "*": {
+              "": ["ast"],
+              "*": [
+                "evm.bytecode.object",
+                "evm.deployedBytecode.object",
+                "abi",
+                "evm.bytecode.sourceMap",
+                "evm.deployedBytecode.sourceMap",
+                "metadata",
+              ],
+            },
+          },
         },
       },
       {
@@ -55,20 +55,20 @@ module.exports = {
             enabled: true,
             runs: 200,
           },
-          // evmVersion: "istanbul",
-          // outputSelection: {
-          //   "*": {
-          //     "": ["ast"],
-          //     "*": [
-          //       "evm.bytecode.object",
-          //       "evm.deployedBytecode.object",
-          //       "abi",
-          //       "evm.bytecode.sourceMap",
-          //       "evm.deployedBytecode.sourceMap",
-          //       "metadata",
-          //     ],
-          //   },
-          // },
+          evmVersion: "istanbul",
+          outputSelection: {
+            "*": {
+              "": ["ast"],
+              "*": [
+                "evm.bytecode.object",
+                "evm.deployedBytecode.object",
+                "abi",
+                "evm.bytecode.sourceMap",
+                "evm.deployedBytecode.sourceMap",
+                "metadata",
+              ],
+            },
+          },
         },
       },
       {
@@ -78,29 +78,29 @@ module.exports = {
             enabled: true,
             runs: 200,
           },
-          // evmVersion: "istanbul",
-          // outputSelection: {
-          //   "*": {
-          //     "": ["ast"],
-          //     "*": [
-          //       "evm.bytecode.object",
-          //       "evm.deployedBytecode.object",
-          //       "abi",
-          //       "evm.bytecode.sourceMap",
-          //       "evm.deployedBytecode.sourceMap",
-          //       "metadata",
-          //     ],
-          //   },
-          // },
+          evmVersion: "istanbul",
+          outputSelection: {
+            "*": {
+              "": ["ast"],
+              "*": [
+                "evm.bytecode.object",
+                "evm.deployedBytecode.object",
+                "abi",
+                "evm.bytecode.sourceMap",
+                "evm.deployedBytecode.sourceMap",
+                "metadata",
+              ],
+            },
+          },
         },
       },
       {
         version: "0.4.24",
-        // settings: {
-        //   optimizer: {
-        //     enabled: true,
-        //     runs: 200,
-        //   },
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 200,
+          },
         //   evmVersion: "istanbul",
         //   outputSelection: {
         //     "*": {
@@ -115,7 +115,7 @@ module.exports = {
         //       ],
         //     },
         //   },
-        // },
+        },
       },
     ],
   },

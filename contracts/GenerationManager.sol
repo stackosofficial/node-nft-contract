@@ -113,14 +113,16 @@ contract GenerationManager is Ownable, ReentrancyGuard {
                     deployment.stackOSTokenToken,
                     deployment.darkMatter,
                     deployment.subscription,
-                    deployment.participationFee,
-                    deployment.mintFee,
-                    maxSupply,
-                    deployment.transferDiscount,
-                    deployment.timeLock,
                     deployment.royaltyAddress
                 )
             )
+        );
+        stack.initialize(
+            deployment.participationFee,
+            deployment.mintFee,
+            maxSupply,
+            deployment.transferDiscount,
+            deployment.timeLock
         );
         stack.transferOwnership(Ownable(msg.sender).owner());
         add(stack);
@@ -175,14 +177,16 @@ contract GenerationManager is Ownable, ReentrancyGuard {
                     _stackOSTokenToken,
                     _darkMatter,
                     _subscription,
-                    _participationFee,
-                    _mintFee,
-                    _maxSupply,
-                    _transferDiscount,
-                    _timeLock,
                     _royaltyAddress
                 )
             )
+        );
+        stack.initialize(
+            _participationFee,
+            _mintFee,
+            _maxSupply,
+            _transferDiscount,
+            _timeLock
         );
         stack.transferOwnership(msg.sender);
         add(stack);
