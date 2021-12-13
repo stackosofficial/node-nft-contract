@@ -1,4 +1,8 @@
-### TODO: write about LINK and VRF addresses that should be replaced in random generator contract, and also `fee` in stackOsNFT contract, and also addreses in stablecoin acceptor contract
+### TODO
+1. write about LINK and VRF addresses that should be replaced in random generator contract
+2. `fee` variable in stackOsNFT contract 
+3. to use correct addreses in stablecoin acceptor contract
+4. remove console logs
 
 ## TOKEN DEPLOYED
 

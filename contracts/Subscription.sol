@@ -27,7 +27,7 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
     uint256 public taxResetDeadline = 7 days;
     uint256 public price = 1e18;
     uint256 public bonusPercent = 2000;
-    uint256 public taxReductionPercent = 2500; // monthly tax reduction
+    uint256 public taxReductionAmount = 2500;
 
     enum withdrawStatus {
         withdraw,
@@ -45,8 +45,8 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
         uint256 balance; // amount without bonus
         Bonus[] reward; // bonuses
         uint256 tax; // tax percent on withdraw
-        uint256 withdrawableNum; // number of months that you able to claim bonus for.
-        uint256 nextPayDate; // you can subscribe after this date, but before deadline
+        uint256 withdrawableNum; // number of months that you able to withdraw
+        uint256 nextPayDate; // you can subscribe after this date, but before deadline to reduce tax
     }
 
     mapping(uint256 => mapping(uint256 => Deposit)) public deposits; // generationId => tokenId => Deposit
@@ -61,7 +61,7 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
         uint256 _taxResetDeadline,
         uint256 _price,
         uint256 _bonusPercent,
-        uint256 _taxReductionPercent
+        uint256 _taxReductionAmount
     ) {
         stackToken = _stackToken;
         generations = _generations;
@@ -71,47 +71,69 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
         taxResetDeadline = _taxResetDeadline;
         price = _price;
         bonusPercent = _bonusPercent;
-        taxReductionPercent = _taxReductionPercent;
+        taxReductionAmount = _taxReductionAmount;
     }
 
+    /*
+     * @title Set drip perdiod
+     * @param Amount of seconds required to release bonus fully
+     * @dev Could only be invoked by the contract owner.
+     */
     function setDripPeriod(uint256 _seconds) external onlyOwner {
         require(_seconds > 0, "Cant be zero");
         dripPeriod = _seconds;
     }
 
+    /*
+     * @title Set subscription price
+     * @param New price in USD
+     * @dev Could only be invoked by the contract owner.
+     */
     function setPrice(uint256 _price) external onlyOwner {
         require(_price > 0, "Cant be zero");
         price = _price;
     }
 
-    function viewPrice() external view returns (uint256) {
-        return price;
-    }
-
+    /*
+     * @title Set bonus percent added for each subscription on top of it's price
+     * @param Bonus basis points
+     * @dev Could only be invoked by the contract owner.
+     */
     function setBonusPercent(uint256 _percent) external onlyOwner {
-        require(_percent <= HUNDRED_PERCENT, "Maximum is 100%");
+        require(_percent <= HUNDRED_PERCENT, "invalid basis points");
         bonusPercent = _percent;
     }
 
-    function setTaxReductionPercent(uint256 _percent) external onlyOwner {
-        require(_percent <= HUNDRED_PERCENT, "Maximum is 100%");
-        taxReductionPercent = _percent;
+    /*
+     * @title Set tax reduction amount on subscription
+     * @param Amount to subtract from tax amount at the moment
+     * @dev Could only be invoked by the contract owner
+     * @dev Tax reduced by subtracting this value from it
+     */
+    function settaxReductionAmount(uint256 _percent) external onlyOwner {
+        require(_percent <= HUNDRED_PERCENT, "invalid basis points");
+        taxReductionAmount = _percent;
     }
 
+    /*
+     * @title Set time window after `nextPayDate` when tax will reduce
+     * @param Amount of seconds
+     * @dev Could only be invoked by the contract owner
+     * @dev If you miss that time window then the tax will reset
+     */
     function setTaxResetDeadline(uint256 _seconds) external onlyOwner {
         require(_seconds > 0, "Cant be zero");
         taxResetDeadline = _seconds;
     }
 
     /*
-     *  @title Buy subscription.
-     *  @param StackNFT generation id.
-     *  @param Token id.
-     *  @param One of the supported coins such as USDT, USDC, DAI
-     *  @dev Caller must approve us `price` amount of `_stablecoin`.
+     *  @title Pay subscription
+     *  @param StackNFT generation id
+     *  @param Token id
+     *  @param Address of supported stablecoin
+     *  @dev Caller must approve us to spend `price` amount of `_stablecoin`.
      *  @dev Tax resets to maximum if you re-subscribed after `nextPayDate` + `taxResetDeadline`.
      */
-
     function subscribe(
         uint256 generationId,
         uint256 tokenId,
@@ -145,7 +167,7 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
             deposit.tax = HUNDRED_PERCENT;
         }
 
-        deposit.tax = subOrZero(deposit.tax, taxReductionPercent);
+        deposit.tax = subOrZero(deposit.tax, taxReductionAmount);
         deposit.withdrawableNum += 1;
         deposit.nextPayDate += MONTH;
 
@@ -162,19 +184,6 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
             releasePeriod: dripPeriod, 
             lockedAmount: bonusAmount
         }));
-
-        // if(_stablecoin == stablecoins[0]) {
-        //     console.log("usdt sub:", price/1e18);
-        //     console.log("usdt sub:", amount/1e18);
-        //     console.log("reward:", bonusAmount / 1e18, bonusAmount);
-        //     console.log("balance:", deposit.balance / 1e18);
-        // }
-        // if(_stablecoin == stablecoins[2]) {
-        //     console.log("dai sub:", price/1e18);
-        //     console.log("dai sub:", amount/1e18);
-        //     console.log("reward:", bonusAmount / 1e18);
-        //     console.log("balance:", deposit.balance / 1e18);
-        // }
     }
 
     function updateBonuses(
@@ -220,14 +229,13 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
     }
 
     /*
-     *  @title Withdraw accumulated deposit taking into account bonus and tax.
-     *  @param StackNFT generation id.
-     *  @param Token ids.
-     *  @dev Caller must own `tokenIds` and unwithdrawn bonus for current or previous months.
-     *  @dev Tax reduced by `taxReductionPercent` each month subscribed in a row until tax is 0.
-     *  @dev Tax resets to maximum if you missed your re-subscription.
+     *  @title Withdraw deposit taking into account bonus and tax
+     *  @param StackNFT generation id
+     *  @param Token ids
+     *  @dev Caller must own `tokenIds`
+     *  @dev Tax reduced by `taxReductionAmount` each month subscribed in a row, unless already 0
+     *  @dev Tax resets to maximum on withdraw
      */
-
     function withdraw(uint256 generationId, uint256[] calldata tokenIds)
         external
         nonReentrant
@@ -244,17 +252,14 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
         }
     }
 
-    /*
-     *  @title Withdraw and then ReSubscribe using the withdrawn amount.
-     *  @param StackNFT generation id to withdraw.
-     *  @param Token ids to withdraw.
-     *  @param StackNFT generation id to subscribe.
-     *  @param Token id to subscribe.
-     *  @dev Caller must own `tokenIds` and unwithdrawn bonus for current or previous months.
-     *  @dev Tax reduced by `taxReductionPercent` each month subscribed in a row until tax is 0.
-     *  @dev Tax resets to maximum if you missed your re-subscription.
+   /*
+     * @title Purchase StackNFTs, caller will receive the left over amount of royalties
+     * @param StackNFT generation id
+     * @param Token ids
+     * @param Amount to mint
+     * @param Supported stablecoin to use to buy stack token
+     * @dev tokens must be delegated and owned by the caller
      */
-
     function purchaseNewNft(
         uint256 withdrawGenerationId,
         uint256[] calldata withdrawTokenIds,
@@ -297,7 +302,7 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
         // if not subscribed
         if (deposit.nextPayDate < block.timestamp) {
             deposit.nextPayDate = 0;
-            deposit.tax = HUNDRED_PERCENT - taxReductionPercent;
+            deposit.tax = HUNDRED_PERCENT - taxReductionAmount;
         }
 
         uint256 amountWithdraw = deposit.balance;
@@ -341,18 +346,24 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
                 address(generations.get(purchaseGenerationId))
             ).mintFromSubscriptionRewards(amountToMint, address(_stablecoin), msg.sender);
 
-            // send left over amount back to user
+            // send left over USD back to user
             _stablecoin.transfer(msg.sender, usdForMint - usdUsed);
 
             // Add rest back to pending rewards
             amountWithdraw -= amountToConvert;
-            overflow[generationId][tokenId] = amountToConvert;
+            overflow[generationId][tokenId] = amountWithdraw;
         } else {
             stackToken.transfer(msg.sender, amountWithdraw);
             deposit.tax = HUNDRED_PERCENT;
         }
     }
 
+   /*
+     * @title Get pending reward amount
+     * @param StackNFT generation id
+     * @param Token id
+     * @dev Doesn't account deposit amount, only bonuses
+     */
     function pendingReward(uint256 _generationId, uint256 _tokenId)
         public
         view
@@ -378,7 +389,7 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
     }
 
     /*
-     *  @title Buy `stackToken` for `_stablecoin`.
+     *  @title Buy `stackToken` for `amount` of _stablecoin.
      *  @param Amount of `_stablecoin` to sell.
      *  @param Called by external wallet or by this contract?
      */
@@ -410,7 +421,7 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
     }
 
     /*
-     *  @title Buy `_stablecoin` for `stackToken`.
+     *  @title Buy `_stablecoin` for `amount` of stackToken.
      *  @param Amount of `stackToken` to sell.
      */
     function sellStackToken(uint256 amount, IERC20 _stablecoin)
@@ -437,9 +448,7 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
     }   
     
     /*
-     *  @title Subtract function, a - b.
-     *  @title But instead of reverting with subtraction underflow we return zero.
-     *  @title For tax reduction 25% this is excessive safety, but if its 33% then on last 1% we would get underflow error.
+     *  @title Subtract function, on underflow returns zero.
      */
     function subOrZero(uint256 a, uint256 b) internal pure returns (uint256) {
         return a > b ? a - b : 0;

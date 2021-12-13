@@ -235,7 +235,7 @@ contract Royalty is Ownable {
         uint256 _generationId,
         uint256[] calldata _tokenIds,
         uint256 _mintNum,
-        IERC20 _stablecoin // TODO: this is unnecesary, can just use stablecoins[0], should do that?
+        IERC20 _stablecoin 
     ) external {
         require(_generationId > 0, "Must be not first generation");
         _claim(_generationId, _tokenIds, _mintNum, true, _stablecoin);

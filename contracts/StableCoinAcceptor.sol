@@ -15,7 +15,7 @@ contract StableCoinAcceptor {
     }
 
     /*
-     * @title Whether or not provided stablecoin is supported.
+     * @title Whether provided stablecoin is supported.
      * @param Address to lookup.
      */
 
