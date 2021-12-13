@@ -103,7 +103,7 @@ contract StackOsNFTBasic is
     }
 
     /*
-     * @title On first NFT contract deployment the msg.sender is the deployer not contract
+     * @title Adjust address settings
      * @param address of generation manager contract
      * @param address of router contract
      * @dev Could only be invoked by the contract owner or generation manager contract
@@ -460,7 +460,7 @@ contract StackOsNFTBasic is
     function adminWithdraw() public onlyOwner {
         require(block.timestamp > timeLock, "Locked!");
         stackOSToken.transfer(msg.sender, adminWithdrawableAmount);
-        adminWithdrawableAmount.sub(adminWithdrawableAmount);
+        adminWithdrawableAmount = 0;
     }
 
     /*

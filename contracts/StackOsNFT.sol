@@ -111,7 +111,7 @@ contract StackOsNFT is StableCoinAcceptor, VRFConsumerBase, ERC721, ERC721URISto
     }
 
     /*
-     * @title On first NFT contract deployment the msg.sender is the deployer not contract
+     * @title Adjust address settings
      * @param address of generation manager contract
      * @param address of router contract, such as uniswap
      * @param address of subscription contract
@@ -127,6 +127,9 @@ contract StackOsNFT is StableCoinAcceptor, VRFConsumerBase, ERC721, ERC721URISto
         subscription = Subscription(_subscription);
     }
 
+    /*
+     * @title Get max supply
+     */
     function getMaxSupply() public view returns (uint256) {
         return maxSupply;
     }
@@ -231,7 +234,7 @@ contract StackOsNFT is StableCoinAcceptor, VRFConsumerBase, ERC721, ERC721URISto
     }
 
     /*
-     * @title Request random numbers. Might have to call multiple times as not unique numbers will be ignored.
+     * @title Get winning tickets. Might have to call multiple times as not unique tickets will be ignored.
      * @param Amount of unique random numbers expected to receive.
      * @dev Could only be invoked by the contract owner.
      */
@@ -366,9 +369,8 @@ contract StackOsNFT is StableCoinAcceptor, VRFConsumerBase, ERC721, ERC721URISto
     }
 
     /*
-     * @title Whitelist and address that will be able to do strategy purchaise.
+     * @title Whitelist an address that will be able to do strategy purchase.
      * @param Address of the partner.
-     * @param Whitelist - TRUE/FALSE
      * @param Number of tokens will be able to mint.
      * @dev Could only be invoked by the contract owner.
      */
@@ -381,7 +383,7 @@ contract StackOsNFT is StableCoinAcceptor, VRFConsumerBase, ERC721, ERC721URISto
     }
 
     /*
-     * @title Allow partners to buy NFT's.
+     * @title Start partner sales.
      * @dev Could only be invoked by the contract owner.
      */
 
@@ -400,7 +402,7 @@ contract StackOsNFT is StableCoinAcceptor, VRFConsumerBase, ERC721, ERC721URISto
 
     /*
      * @title Adjust auction closing time.
-     * @param Timestamp when it closes.
+     * @param Timestamp when auction should be closed.
      * @dev Could only be invoked by the contract owner and when the auction has not been finalized.
      */
 
@@ -410,8 +412,10 @@ contract StackOsNFT is StableCoinAcceptor, VRFConsumerBase, ERC721, ERC721URISto
     }
 
     /*
-     * @title Partner can mint a token amount that he has been allowed to mint. Partner sales have to be activated.
+     * @title Partner can mint a token amount that he has been allowed to mint.
      * @param Number of tokens to mint.
+     * @param Address of supported stablecoin to pay for mint
+     * @dev Partner sales should be started before mint.
      */
 
     function partnerMint(uint256 _nftAmount, IERC20 _stablecoin) public {
@@ -420,16 +424,12 @@ contract StackOsNFT is StableCoinAcceptor, VRFConsumerBase, ERC721, ERC721URISto
         require(strategicPartner[msg.sender] >= _nftAmount, "Amount Too Big");
 
         uint256 stackAmount = participationFee.mul(_nftAmount);
-        // calculate amount of `_stablecoin` needed to buy `stackAmount` of stack token
         uint256 amountIn = getAmountIn(stackAmount, _stablecoin);
         stackAmount = buyStackToken(amountIn, _stablecoin);
 
         uint256 subscriptionPart = stackAmount * mintFee / 10000;
         stackAmount -= subscriptionPart;
         stackOSToken.transfer(address(subscription), subscriptionPart);
-        // console.log("pm");
-        // console.log(stackAmount);
-        // console.log(subscriptionPart);
         
         adminWithdrawableAmount += stackAmount;
         for (uint256 i; i < _nftAmount; i++) {
@@ -440,7 +440,7 @@ contract StackOsNFT is StableCoinAcceptor, VRFConsumerBase, ERC721, ERC721URISto
 
     /*
      * @title Place bid on auction.
-     * @param Amount to place.
+     * @param Amount of stack token to place.
      * @dev Could only be invoked when the auction is open.
      */
 
@@ -487,14 +487,6 @@ contract StackOsNFT is StableCoinAcceptor, VRFConsumerBase, ERC721, ERC721URISto
         }
     }
 
-    /*
-     * @title Delegate NFT.
-     * @param _delegatee Address of delegatee.
-     * @param tokenId token id to delegate.
-     * @dev Caller must be owner of NFT, caller and delegatee must not be zero-address.
-     * @dev Delegation can be done only once.
-     */
-
     function _delegate(address _delegatee, uint256 tokenId) private {
         require(
             msg.sender ==
@@ -509,6 +501,14 @@ contract StackOsNFT is StableCoinAcceptor, VRFConsumerBase, ERC721, ERC721URISto
         if (delegationTimestamp[tokenId] == 0) totalDelegated += 1;
         delegationTimestamp[tokenId] = block.timestamp;
     }
+
+    /*
+     * @title Delegate NFT.
+     * @param Address of delegatee.
+     * @param tokenIds to delegate.
+     * @dev Caller must be owner of NFT.
+     * @dev Delegation can be done only once.
+     */
 
     function delegate(address _delegatee, uint256[] calldata tokenIds) public {
         for(uint256 i; i < tokenIds.length; i++) {
@@ -584,14 +584,18 @@ contract StackOsNFT is StableCoinAcceptor, VRFConsumerBase, ERC721, ERC721URISto
     /*
      * @title Contract owner can withdraw collected fees.
      * @dev Caller must be contract owner, timelock should be passed.
+     * @dev Tickets statuses must be assigned.
      */
     function adminWithdraw() public onlyOwner {
         require(block.timestamp > timeLock, "Locked!");
         require(ticketStatusAssigned == true, "Not Assigned.");
         stackOSToken.transfer(msg.sender, adminWithdrawableAmount);
-        adminWithdrawableAmount.sub(adminWithdrawableAmount);
+        adminWithdrawableAmount = 0;
     }
 
+    /*
+     * @title Get amount of USD needed to buy `amount` of stack token
+     */
     function getAmountIn(uint256 amount, IERC20 _stablecoin) private view returns (uint256) {
         address[] memory path = new address[](3);
         path[0] = address(_stablecoin);
@@ -600,6 +604,12 @@ contract StackOsNFT is StableCoinAcceptor, VRFConsumerBase, ERC721, ERC721URISto
         uint256[] memory amountsIn = router.getAmountsIn(amount, path);
         return amountsIn[0];
     }
+
+    /*
+     *  @title Buy `stackToken` for `amount` of _stablecoin.
+     *  @param Amount of `_stablecoin` to sell.
+     *  @param Address of supported stablecoin
+     */
 
     function buyStackToken(uint256 amount, IERC20 _stablecoin) private returns (uint256) {
         _stablecoin.transferFrom(msg.sender, address(this), amount);
