@@ -342,8 +342,9 @@ contract Royalty is Ownable {
     }
 
     /*
-     *  @title Buy `_stablecoin` for WETH.
+     *  @title Buy `_stablecoin` for `amount` of WETH.
      *  @param Amount of WETH to swap.
+     *  @param Address of supported stablecoin
      */
     function buyStable(uint256 amount, IERC20 _stablecoin) private returns (uint256) {
         uint256 deadline = block.timestamp + 1200;

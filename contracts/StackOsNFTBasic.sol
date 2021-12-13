@@ -81,13 +81,13 @@ contract StackOsNFTBasic is
     }
 
     /*
-     * @title Set % that is sended to Subscription contract on mint
+     * @title Set discont appliend on mint from subscription or royalty rewards
      * @param percent
      * @dev Could only be invoked by the contract owner.
      */
 
     function setRewardDiscount(uint256 _rewardDiscount) public onlyOwner {
-        require(_rewardDiscount <= 10000, "invalid fee basis points");
+        require(_rewardDiscount <= 10000, "invalid basis points");
         rewardDiscount = _rewardDiscount;
     }
 
@@ -105,7 +105,8 @@ contract StackOsNFTBasic is
     /*
      * @title On first NFT contract deployment the msg.sender is the deployer not contract
      * @param address of generation manager contract
-     * @dev Could only be invoked by the contract owner.
+     * @param address of router contract
+     * @dev Could only be invoked by the contract owner or generation manager contract
      */
 
     function adjustAddressSettings(address _genManager, address _router)
@@ -116,6 +117,9 @@ contract StackOsNFTBasic is
         router = IUniswapV2Router02(_router);
     }
 
+    /*
+     * @title Get max supply
+     */
     function getMaxSupply() public view returns (uint256) {
         return maxSupply;
     }
@@ -170,16 +174,22 @@ contract StackOsNFTBasic is
     function exists(uint256 tokenId) public view returns (bool) {
         return _exists(tokenId);
     }
-
+    
+    /*
+     * @title Get mint price in USD
+     */
     function price() public view returns (uint256) {
         return participationFee;
     }
 
+    /*
+     * @title Called by 1st generation as part of `transferTickets`
+     * @param Wallet to mint tokens to
+     * @dev Could only be invoked by the StackNFT contract.
+     * @dev It receives stack token and use it to mint NFTs at a discount
+     */
     function transferFromLastGen(address _ticketOwner, uint256 _amount) public {
-        require(
-            address(this) != address(msg.sender),
-            "Cant transfer to the same address"
-        );
+
         // check that caller is generation 1 contract 
         require(
             address(generations.get(0)) == msg.sender, 
@@ -227,8 +237,10 @@ contract StackOsNFTBasic is
     }
 
     /*
-     * @title User mint a token amount that he has been allowed to mint. Partner sales have to be activated.
+     * @title User mint a token amount.
      * @param Number of tokens to mint.
+     * @param Address of supported stablecoin to pay for mint
+     * @dev Sales should be started before mint.
      */
 
     function mint(uint256 _nftAmount, IERC20 _stablecoin) public {
@@ -251,7 +263,11 @@ contract StackOsNFTBasic is
 
     /*
      * @title Called when user want to mint and pay with bonuses from subscriptions.
+     * @param Amount to mint
+     * @param Address of supported stablecoin
+     * @param Address to mint to
      * @dev Can only be called by Subscription contract.
+     * @dev Sales should be started before mint.
      */
 
     function mintFromSubscriptionRewards(
@@ -287,6 +303,11 @@ contract StackOsNFTBasic is
         return amountIn;
     }
 
+    /*
+     * @title Get how much stack token we need to sell to receive amount of USD needed to mint `_nftAmount`
+     * @param Amount to mint
+     * @param Address of supported stablecoin
+     */
     function getFromRewardsPrice(uint256 _nftAmount, address _stablecoin)
         external 
         view
@@ -306,8 +327,12 @@ contract StackOsNFTBasic is
     }
 
     /*
-     * @title Called when user want to mint and pay with bonuses from Royalty.
-     * @dev Can only be called by Subscription contract.
+     * @title Called when user want to mint and pay with bonuses from royalties.
+     * @param Amount to mint
+     * @param Address of supported stablecoin
+     * @param Address to mint to
+     * @dev Can only be called by Royalty contract.
+     * @dev Sales should be started before mint.
      */
 
     function mintFromRoyaltyRewards(uint256 _mintNum, address _stablecoin, address _to) 
@@ -336,14 +361,6 @@ contract StackOsNFTBasic is
         return amountIn;
     }
 
-    /*
-     * @title Delegate NFT.
-     * @param _delegatee Address of delegatee.
-     * @param tokenId token id to delegate.
-     * @dev Caller must be owner of NFT, caller and delegatee must not be zero-address.
-     * @dev Delegation can be done only once.
-     */
-
     function _delegate(address _delegatee, uint256 tokenId) private {
         require(
             msg.sender ==
@@ -358,6 +375,14 @@ contract StackOsNFTBasic is
         if (delegationTimestamp[tokenId] == 0) totalDelegated += 1;
         delegationTimestamp[tokenId] = block.timestamp;
     }
+
+    /*
+     * @title Delegate NFT.
+     * @param Address of delegatee.
+     * @param tokenIds to delegate.
+     * @dev Caller must be owner of NFT.
+     * @dev Delegation can be done only once.
+     */
 
     function delegate(address _delegatee, uint256[] calldata tokenIds) public {
         for (uint256 i; i < tokenIds.length; i++) {
@@ -394,7 +419,7 @@ contract StackOsNFTBasic is
     /*
      *  @title Whitelist address to transfer tokens.
      *  @param Address to whitelist.
-     *  @dev Caller must be owner of the contract.
+     *  @dev Could only be invoked by the contract owner or generation manager contract
      */
     function whitelist(address _addr) public onlyOwnerOrGenerationManager {
         _whitelist[_addr] = true;
@@ -438,19 +463,11 @@ contract StackOsNFTBasic is
         adminWithdrawableAmount.sub(adminWithdrawableAmount);
     }
 
-    function getAmountIn(uint256 amount, IERC20 _stablecoin)
-        private
-        view
-        returns (uint256)
-    {
-        address[] memory path = new address[](3);
-        path[0] = address(_stablecoin);
-        path[1] = address(router.WETH());
-        path[2] = address(stackOSToken);
-        uint256[] memory amountsIn = router.getAmountsIn(amount, path);
-        return amountsIn[0];
-    }
-
+    /*
+     *  @title Buy `stackToken` for `amount` of _stablecoin.
+     *  @param Amount of `_stablecoin` to sell.
+     *  @param Address of supported stablecoin
+     */
     function buyStackToken(uint256 amount, IERC20 _stablecoin)
         private
         returns (uint256)
@@ -473,6 +490,12 @@ contract StackOsNFTBasic is
 
         return amounts[2];
     }
+
+    /*
+     *  @title Sell `amount` of `stackToken`.
+     *  @param Amount of `stackToken` to sell.
+     *  @param Address of supported stablecoin
+     */
 
     function sellStackToken(uint256 amount, IERC20 _stablecoin)
         private

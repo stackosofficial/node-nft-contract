@@ -391,6 +391,7 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
     /*
      *  @title Buy `stackToken` for `amount` of _stablecoin.
      *  @param Amount of `_stablecoin` to sell.
+     *  @param Address of supported stablecoin
      *  @param Called by external wallet or by this contract?
      */
     function buyStackToken(
@@ -421,8 +422,9 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
     }
 
     /*
-     *  @title Buy `_stablecoin` for `amount` of stackToken.
+     *  @title Sell `amount` of `stackToken`.
      *  @param Amount of `stackToken` to sell.
+     *  @param Address of supported stablecoin
      */
     function sellStackToken(uint256 amount, IERC20 _stablecoin)
         private
