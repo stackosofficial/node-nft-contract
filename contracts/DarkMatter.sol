@@ -13,7 +13,7 @@ contract DarkMatter is ERC721, Ownable, ReentrancyGuard {
 
     Counters.Counter private _tokenIdCounter;
 
-    mapping(address => uint256) private deposits; // total tokens deposited, from any generation
+    mapping(address => uint256) private deposits; // total tokens deposited from any generation
     mapping(address => uint256) private lastUserDarkMatter; // owner => current incomplete darkmatter id
     mapping(address => uint256[]) private toBeMinted; // owner => DarkMatterNFT ids to be minted
     mapping(uint256 => mapping(uint256 => uint256)) private stackToDarkMatter; // generation => stackNFT id => darkmatter id
@@ -49,21 +49,8 @@ contract DarkMatter is ERC721, Ownable, ReentrancyGuard {
     }
 
     /*
-     * @title Returns true if StackNFT token is locked in DarkMatter.
-     * @param StackNFT generation id.
-     * @param StackNFT token id.
-     */
-    function isLocked(uint256 generationId, uint256 tokenId)
-        public
-        view
-        returns (bool)
-    {
-        return _exists(stackToDarkMatter[generationId][tokenId]);
-    }
-
-    /*
-     * @title Returns true if `_wallet` own either StackNFT or DarkMatterNFT that has locked this StackNFT.
-     * @param Token holder address.
+     * @title Returns true if `_wallet` owns either StackNFT or DarkMatterNFT that owns this StackNFT.
+     * @param Address of wallet.
      * @param StackNFT generation id.
      * @param StackNFT token id.
      */
@@ -85,7 +72,7 @@ contract DarkMatter is ERC721, Ownable, ReentrancyGuard {
      * @title Returns owner of StackNFT.
      * @param StackNFT address.
      * @param StackNFT token id.
-     * @dev The returned address owns StackNFT or DarkMatter that has locked this StackNFT. 
+     * @dev The returned address owns StackNFT or DarkMatter that owns this StackNFT. 
      */
     function ownerOfStackOrDarkMatter(IStackOsNFT _stackOsNFT, uint256 tokenId)
         public
@@ -113,10 +100,10 @@ contract DarkMatter is ERC721, Ownable, ReentrancyGuard {
     }
 
     /*
-     *  @title Deposit StackNFT.
+     *  @title Deposit StackNFTs.
      *  @param StackNFT generation id.
      *  @param Token ids.
-     *  @dev StackNFT generation must be added prior to deposit.
+     *  @dev StackNFT generation must be added in manager prior to deposit.
      */
     function deposit(uint256 generationId, uint256[] calldata tokenIds)
         external
@@ -166,6 +153,9 @@ contract DarkMatter is ERC721, Ownable, ReentrancyGuard {
         }
     }
 
+    /*
+     *  @title Override to make use of whitelist.
+     */
     function _transfer(
         address from,
         address to,
@@ -178,10 +168,20 @@ contract DarkMatter is ERC721, Ownable, ReentrancyGuard {
         super._transfer(from, to, tokenId);
     }
 
-    function whitelist(address _addr) public {
+    /*
+     *  @title Whitelist address to transfer tokens.
+     *  @param Address to whitelist.
+     *  @dev Caller must be owner of the contract.
+     */
+    function whitelist(address _addr) public onlyOwner {
         _whitelist[_addr] = true;
     }
 
+    /*
+     *  @title Whether or not an address is allowed to transfer tokens. 
+     *  @param Address to check.
+     *  @dev Caller must be owner of the contract.
+     */
     function isWhitelisted(address _addr) public view returns (bool) {
         return _whitelist[_addr];
     }

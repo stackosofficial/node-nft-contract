@@ -182,14 +182,6 @@ contract StackOsNFT is StableCoinAcceptor, VRFConsumerBase, ERC721, ERC721URISto
         return _exists(tokenId);
     }
 
-    function whitelist(address _addr) public {
-        _whitelist[_addr] = true;
-    }
-
-    function isWhitelisted(address _addr) public view returns (bool) {
-        return _whitelist[_addr];
-    }
-
     /*
      * @title Wallets choose how many tickets they want to stake for.
      * @title Each ticket has a number which can be selected in the lottery.
@@ -537,6 +529,9 @@ contract StackOsNFT is StableCoinAcceptor, VRFConsumerBase, ERC721, ERC721URISto
         }
     }
 
+    /*
+     *  @title Override to make use of whitelist.
+     */
     function _transfer(
         address from,
         address to,
@@ -548,6 +543,25 @@ contract StackOsNFT is StableCoinAcceptor, VRFConsumerBase, ERC721, ERC721URISto
         require(isWhitelisted(msg.sender), "Not whitelisted for transfers");
         super._transfer(from, to, tokenId);
     }
+
+    /*
+     *  @title Whitelist address to transfer tokens.
+     *  @param Address to whitelist.
+     *  @dev Caller must be owner of the contract.
+     */
+    function whitelist(address _addr) public onlyOwner {
+        _whitelist[_addr] = true;
+    }
+
+    /*
+     *  @title Whether or not an address is allowed to transfer tokens. 
+     *  @param Address to check.
+     *  @dev Caller must be owner of the contract.
+     */
+    function isWhitelisted(address _addr) public view returns (bool) {
+        return _whitelist[_addr];
+    }
+
 
     // The following functions are overrides required by Solidity.
 

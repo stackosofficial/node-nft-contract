@@ -175,14 +175,6 @@ contract StackOsNFTBasic is
         return participationFee;
     }
 
-    function whitelist(address _addr) public onlyOwnerOrGenerationManager {
-        _whitelist[_addr] = true;
-    }
-
-    function isWhitelisted(address _addr) public view returns (bool) {
-        return _whitelist[_addr];
-    }
-
     function transferFromLastGen(address _ticketOwner, uint256 _amount) public {
         require(
             address(this) != address(msg.sender),
@@ -387,6 +379,9 @@ contract StackOsNFTBasic is
         }
     }
 
+    /*
+     *  @title Override to make use of whitelist.
+     */
     function _transfer(
         address from,
         address to,
@@ -395,6 +390,25 @@ contract StackOsNFTBasic is
         require(isWhitelisted(msg.sender), "Not whitelisted for transfers");
         super._transfer(from, to, tokenId);
     }
+
+    /*
+     *  @title Whitelist address to transfer tokens.
+     *  @param Address to whitelist.
+     *  @dev Caller must be owner of the contract.
+     */
+    function whitelist(address _addr) public onlyOwnerOrGenerationManager {
+        _whitelist[_addr] = true;
+    }
+
+    /*
+     *  @title Whether or not an address is allowed to transfer tokens. 
+     *  @param Address to check.
+     *  @dev Caller must be owner of the contract.
+     */
+    function isWhitelisted(address _addr) public view returns (bool) {
+        return _whitelist[_addr];
+    }
+
 
     // The following functions are overrides required by Solidity.
 
