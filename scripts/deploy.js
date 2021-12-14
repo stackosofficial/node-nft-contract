@@ -13,7 +13,7 @@ async function main() {
   //       so maybe should do something with all of this to simplify things...
 
   // [x] Transfer ownership of every contract, admin proxy contract, and implementation to 0xeb2198ba8047B20aC84fBfB78af33f5A9690F674
-  // [ ] Set USDT, USDC, DAI in StableCoinAcceptor.sol
+  // [x] Set USDT, USDC, DAI in StableCoinAcceptor.sol
   // [x] Set WETH with setWETH for Royalty
   // [x] Set LINK token address in StackOsNFT.sol
   // [x] Set VRF Coordinator address in StackOsNFT.sol
@@ -26,7 +26,7 @@ async function main() {
   // Required deposit amount of StackNFTs to be able to mint DarkMatter
   DARK_MATTER_PRICE = 5;
 
-  // Router for Subscription, Royalty, StackNFT
+  // Router for Subscription, Royalty, StackNFT, StackNFTBasic
   ROUTER_ADDRESS = "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D";
   // Address to receive early Subscription withdraw TAX
   TAX_ADDRESS = "0xF90fF6d484331399f4eAa13f73D03b8B18eA1373";
@@ -62,10 +62,6 @@ async function main() {
   // For chainlink VRF.
   KEY_HASH =
     "0x2ed0feb3e7fd2022120aa84fab1945545a9f2ffc9076fd6156fa96eaff4c1311";
-  // Discount applied to mint NFTs when you transfer tickets from 1st generation to the next
-  // TODO: this is not used in 1st generation, but the other generations cannot transfer tickets, they only receive.
-  //       So maybe it's better to remove this variable from 2nd generation and pass it as argument to transferFromLastGen? (from 1st to other generations)
-  TRANSFER_DISCOUNT = 2000;
   // Timelock for admin withdraw. Counting from current block's timestamp.
   TIMELOCK = 6442850;
   // Fee percent for Subscription contract on partner mint
@@ -100,6 +96,23 @@ async function main() {
   // Set weth address to be able to claim royalty in WETH on matic network.
   WETH_ADDRESS = "0xc778417E063141139Fce010982780140Aa0cD5Ab";
 
+  // Settings for auto deploy StackNFTBasic
+  // On auto deploy we append " N" where N is generation number
+  NAME = "STACK OS NFT";
+  SYMBOL = "STACK NFT";
+  // Mint price in USD
+  PRICE = parseEther("0.001626");
+  // Fee percent for Subscription contract on mint
+  MINT_FEE = 2000;
+  // How much to grow max supply on auto deployed StackNFTBasic
+  // We get max supply from current generation, and add this percent
+  // So if we have 25, then 10000 will give us 50
+  MAX_SUPPLY_GROWTH = 10000;
+  // Discount applied to mint NFTs when you transfer tickets from 1st generation to the next
+  TRANSFER_DISCOUNT = 2000;
+  // Timelock for admin withdraw. Counting from current block's timestamp.
+  TIMELOCK = 6442850;
+
   //^^^^^^^^^^^^^^^^^^ SETTINGS ^^^^^^^^^^^^^^^^^^
 
   //vvvvvvvvvvvvvvvvvvvvv DEPLOYMENT vvvvvvvvvvvvvvvvvvvvv
@@ -129,13 +142,28 @@ async function main() {
       DAO_FEE,
       ROYALTY_FEE
     ],
-    { kind: "uups", initializer: 'initialize' }
+    { kind: "uups" }
   );
   await marketProxy.deployed();
   const marketImplementaionAddress = await getImplementationAddress(ethers.provider, marketProxy.address);
+  try {
+    const marketImplementaion = await hre.ethers.getContractAt(
+      "Market",
+      marketImplementaionAddress
+    );
+    await marketImplementaion.initialize(
+      generationManager.address,
+      darkMatter.address,
+      DAO_ADDRESS,
+      ROYALTY_DISTRIBUTION_ADDRESS,
+      DAO_FEE,
+      ROYALTY_FEE
+    );
+  } catch (error) {
+    console.log(error);
+  }
   const marketProxyAdminAddress = await getAdminAddress(ethers.provider, marketProxy.address);
-  // TODO: remove daofee print
-  console.log("Market Proxy", marketProxy.address, (await marketProxy.daoFee()).toNumber());
+  console.log("Market Proxy", marketProxy.address);
   console.log("Market Implementation", marketImplementaionAddress);
   console.log("Market Proxy Admin", marketProxyAdminAddress);
   
@@ -219,6 +247,25 @@ async function main() {
   await royalty.setFeePercent(DEPOSIT_FEE_PERCENT);
   await royalty.setWETH(WETH_ADDRESS);
 
+  // Settings for auto deploy
+  await generationManager.setupDeploy(
+    NAME,
+    SYMBOL,
+    STACK_TOKEN,
+    darkMatter.address,
+    subscription.address,
+    PRICE,
+    MINT_FEE,
+    MAX_SUPPLY_GROWTH,
+    TRANSFER_DISCOUNT,
+    TIMELOCK,
+    royalty.address
+  );
+  await generationManager.setupDeploy2(
+    ROUTER_ADDRESS,
+    marketProxy.address
+  )
+
   // TRANSFER OWNERSHIP
   await generationManager.transferOwnership(OWNERSHIP);
   await darkMatter.transferOwnership(OWNERSHIP);
@@ -237,63 +284,85 @@ async function main() {
   console.log("Verification started, please wait for a minute!");
   await delay(46000);
 
-  await hre.run("verify:verify", {
-    address: generationManager.address,
-    constructorArguments: [],
-  });
-  await hre.run("verify:verify", {
-    address: darkMatter.address,
-    constructorArguments: [
-      generationManager.address,
-      DARK_MATTER_PRICE
-    ],
-  });
-  await hre.run("verify:verify", {
-    address: marketImplementaionAddress,
-    constructorArguments: [ ],
-  });
-  await hre.run("verify:verify", {
-    address: subscription.address,
-    constructorArguments: [
-      STACK_TOKEN,
-      generationManager.address,
-      darkMatter.address,
-      ROUTER_ADDRESS,
-      TAX_ADDRESS,
-      TAX_RESET_DEADLINE,
-      SUBSCRIPTION_PRICE,
-      BONUS_PECENT,
-      TAX_REDUCTION_AMOUNT
-    ],
-  });
-  await hre.run("verify:verify", {
-    address: stackOsNFT.address,
-    constructorArguments: [
-      NAME,
-      SYMBOL,
-      STACK_TOKEN,
-      darkMatter.address,
-      PRICE,
-      MAX_SUPPLY,
-      PRIZES,
-      AUCTIONED_NFTS,
-      KEY_HASH,
-      TRANSFER_DISCOUNT,
-      TIMELOCK
-    ],
-  });
-
-  await hre.run("verify:verify", {
-    address: royalty.address,
-    constructorArguments: [
-      ROUTER_ADDRESS,
-      generationManager.address,
-      darkMatter.address,
-      subscription.address,
-      DEPOSIT_FEE_ADDRESS,
-      MIN_CYCLE_ETHER
-    ],
-  });
+  try {
+    await hre.run("verify:verify", {
+      address: generationManager.address,
+      constructorArguments: [],
+    });
+  } catch (error) {
+    console.log(error)
+  }
+  try {
+    await hre.run("verify:verify", {
+      address: darkMatter.address,
+      constructorArguments: [
+        generationManager.address,
+        DARK_MATTER_PRICE
+      ],
+    });
+  } catch (error) {
+    console.log(error)
+  }
+  try {
+    await hre.run("verify:verify", {
+      address: marketImplementaionAddress,
+      constructorArguments: [ ],
+    });
+  } catch (error) {
+    console.log(error)
+  }
+  try {
+    await hre.run("verify:verify", {
+      address: subscription.address,
+      constructorArguments: [
+        STACK_TOKEN,
+        generationManager.address,
+        darkMatter.address,
+        ROUTER_ADDRESS,
+        TAX_ADDRESS,
+        TAX_RESET_DEADLINE,
+        SUBSCRIPTION_PRICE,
+        BONUS_PECENT,
+        TAX_REDUCTION_AMOUNT
+      ],
+    });
+  } catch (error) {
+    console.log(error)
+  }
+  try {
+    await hre.run("verify:verify", {
+      address: stackOsNFT.address,
+      constructorArguments: [
+        NAME,
+        SYMBOL,
+        STACK_TOKEN,
+        darkMatter.address,
+        PRICE,
+        MAX_SUPPLY,
+        PRIZES,
+        AUCTIONED_NFTS,
+        KEY_HASH,
+        TIMELOCK
+      ],
+    });
+  } catch (error) {
+    console.log(error)
+  }
+  try {
+    await hre.run("verify:verify", {
+      address: royalty.address,
+      constructorArguments: [
+        ROUTER_ADDRESS,
+        generationManager.address,
+        darkMatter.address,
+        subscription.address,
+        DEPOSIT_FEE_ADDRESS,
+        MIN_CYCLE_ETHER
+      ],
+    });
+  } catch (error) {
+    console.log(error)
+  }
 
 }
 
