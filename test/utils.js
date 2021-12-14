@@ -16,24 +16,24 @@ async function deployStackOSBasic() {
   // PRICE = parseEther("5");
   // MINT_FEE = 2000;
   // MAX_SUPPLY = 25;
-  // TRANSFER_DISCOUNT = 2000;
+  TRANSFER_DISCOUNT = 2000;
   // TIMELOCK = 6442850;
   const StackOSBasic = await ethers.getContractFactory("StackOsNFTBasic");
-  let stackOsNFTBasic = await StackOSBasic.deploy(
-    NAME,
-    SYMBOL,
+  let stackOsNFTBasic = await StackOSBasic.deploy();
+  await stackOsNFTBasic.deployed();
+  await stackOsNFTBasic.setName(NAME);
+  await stackOsNFTBasic.setSymbol(SYMBOL);
+  await stackOsNFTBasic.initialize(
     STACK_TOKEN_FOR_PAYMENT,
     DARK_MATTER_ADDRESS,
-    // ROUTER,
     SUBSCRIPTION,
+    ROYALTY_ADDRESS,
     PRICE,
     MINT_FEE,
     MAX_SUPPLY,
     TRANSFER_DISCOUNT,
     TIMELOCK,
-    ROYALTY_ADDRESS
   );
-  await stackOsNFTBasic.deployed();
   console.log(stackOsNFTBasic.address);
   await generationManager.add(stackOsNFTBasic.address);
   await stackOsNFTBasic.adjustAddressSettings(
@@ -56,7 +56,6 @@ async function deployStackOS() {
     PRIZES,
     AUCTIONED_NFTS,
     KEY_HASH,
-    TRANSFER_DISCOUNT,
     TIMELOCK
   );
   await stackOsNFT.deployed();
@@ -161,7 +160,6 @@ async function setup() {
     "0x2ed0feb3e7fd2022120aa84fab1945545a9f2ffc9076fd6156fa96eaff4c1311";
   FEE = parseEther("0.1");
   MINT_FEE = 2000;
-  TRANSFER_DISCOUNT = 2000;
   TIMELOCK = 6442850;
   let StackOS = await ethers.getContractFactory("StackOsNFT");
   let stackOsNFT = await StackOS.deploy(
@@ -174,7 +172,6 @@ async function setup() {
     PRIZES,
     AUCTIONED_NFTS,
     KEY_HASH,
-    TRANSFER_DISCOUNT,
     TIMELOCK
   );
   await stackOsNFT.deployed();

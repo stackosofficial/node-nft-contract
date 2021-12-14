@@ -105,19 +105,18 @@ contract GenerationManager is Ownable, ReentrancyGuard {
             " ",
             uint256(count() + 1).toString()
         ));
-        IStackOsNFTBasic stack = IStackOsNFTBasic(
+        StackOsNFTBasic stack = StackOsNFTBasic(
             address(
-                new StackOsNFTBasic(
-                    name,
-                    deployment.symbol,
-                    deployment.stackOSTokenToken,
-                    deployment.darkMatter,
-                    deployment.subscription,
-                    deployment.royaltyAddress
-                )
+                new StackOsNFTBasic()
             )
         );
+        stack.setName(name);
+        stack.setSymbol(deployment.symbol);
         stack.initialize(
+            deployment.stackOSTokenToken,
+            deployment.darkMatter,
+            deployment.subscription,
+            deployment.royaltyAddress,
             deployment.participationFee,
             deployment.mintFee,
             maxSupply,
@@ -125,14 +124,14 @@ contract GenerationManager is Ownable, ReentrancyGuard {
             deployment.timeLock
         );
         stack.transferOwnership(Ownable(msg.sender).owner());
-        add(stack);
+        add(IStackOsNFT(address(stack)));
         stack.adjustAddressSettings(
             address(this),
             deployment.router
         );
         stack.whitelist(address(deployment.darkMatter));
         stack.whitelist(address(deployment.market));
-        return stack;
+        return IStackOsNFTBasic(address(stack));
     }
 
     /*
@@ -169,19 +168,18 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         uint256 _timeLock,
         address _royaltyAddress
     ) public onlyOwner returns (IStackOsNFTBasic) {
-        IStackOsNFTBasic stack = IStackOsNFTBasic(
+        StackOsNFTBasic stack = StackOsNFTBasic(
             address(
-                new StackOsNFTBasic(
-                    _name,
-                    _symbol,
-                    _stackOSTokenToken,
-                    _darkMatter,
-                    _subscription,
-                    _royaltyAddress
-                )
+                new StackOsNFTBasic()
             )
         );
+        stack.setName(_name);
+        stack.setSymbol(_symbol);
         stack.initialize(
+            _stackOSTokenToken,
+            _darkMatter,
+            _subscription,
+            _royaltyAddress,
             _participationFee,
             _mintFee,
             _maxSupply,
@@ -189,8 +187,8 @@ contract GenerationManager is Ownable, ReentrancyGuard {
             _timeLock
         );
         stack.transferOwnership(msg.sender);
-        add(stack);
-        return stack;
+        add(IStackOsNFT(address(stack)));
+        return IStackOsNFTBasic(address(stack));
     }
 
     /*

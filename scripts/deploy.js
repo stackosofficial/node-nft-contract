@@ -1,12 +1,16 @@
 const { parseEther } = require("ethers/lib/utils");
 const hre = require("hardhat");
-const { getImplementationAddress, getAdminAddress, admin } = require('@openzeppelin/upgrades-core');
-const { upgrades } = require("hardhat");
+const { getImplementationAddress, getAdminAddress } = require('@openzeppelin/upgrades-core');
+// const { upgrades } = require("hardhat");
 
 async function main() {
   const delay = (ms) => new Promise((res) => setTimeout(res, ms));
 
   //vvvvvvvvvvvvvvvvvv SETTINGS vvvvvvvvvvvvvvvvvv
+
+  // TODO: we should always replace stablecoinds, link, coordinator addresses
+  //       if we wan't to run tests or run deploy.js, because for tests we deploy our mock contracts
+  //       so maybe should do something with all of this to simplify things...
 
   // [x] Transfer ownership of every contract, admin proxy contract, and implementation to 0xeb2198ba8047B20aC84fBfB78af33f5A9690F674
   // [ ] Set USDT, USDC, DAI in StableCoinAcceptor.sol
@@ -16,6 +20,7 @@ async function main() {
   // [x] Set fee amount for chainlink in StackOsNFT.sol
   // [ ] Call setupDeploy and setupDeploy2 after GenerationManager deploy 
 
+  // This address will be owner of all contracts plus market proxy owner
   OWNERSHIP = "0xeb2198ba8047B20aC84fBfB78af33f5A9690F674"
 
   // Required deposit amount of StackNFTs to be able to mint DarkMatter
@@ -160,7 +165,6 @@ async function main() {
     PRIZES,
     AUCTIONED_NFTS,
     KEY_HASH,
-    TRANSFER_DISCOUNT,
     TIMELOCK
   );
   await stackOsNFT.deployed();

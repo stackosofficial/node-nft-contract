@@ -416,8 +416,6 @@ contract StackOsNFT is StableCoinAcceptor, VRFConsumerBase, ERC721, ERC721URISto
      */
 
     function partnerMint(uint256 _nftAmount, IERC20 _stablecoin) public {
-        console.log("WETH");
-        console.log("WETH", router.WETH());
         require(salesStarted, "Sales not started");
         require(supportsCoin(_stablecoin), "Unsupported payment coin");
         require(strategicPartner[msg.sender] >= _nftAmount, "Amount Too Big");

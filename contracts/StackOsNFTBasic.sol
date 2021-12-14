@@ -47,6 +47,8 @@ contract StackOsNFTBasic is
     bool private salesStarted;
     string private URI = "https://google.com/";
 
+    bool private initialized;
+
     modifier onlyOwnerOrGenerationManager() {
         require(
             owner() == _msgSender() || address(generations) == _msgSender(), 
@@ -55,33 +57,35 @@ contract StackOsNFTBasic is
         _;
     }
 
-    constructor(
-        string memory _name,
-        string memory _symbol,
-        address _stackOSTokenToken,
-        address _darkMatter,
-        address _subscription,
-        address _royaltyAddress
-    ) ERC721(_name, _symbol) {
-        stackOSToken = IERC20(_stackOSTokenToken);
-        darkMatter = DarkMatter(_darkMatter);
-        subscription = Subscription(_subscription);
-        royaltyAddress = _royaltyAddress;
-        generations = GenerationManager(msg.sender);
+    constructor() ERC721("", "") {
     }
 
     function initialize(
+        address _stackOSTokenToken,
+        address _darkMatter,
+        address _subscription,
+        address _royaltyAddress,
         uint256 _participationFee,
         uint256 _mintFee,
         uint256 _maxSupply,
         uint256 _transferDiscount,
         uint256 _timeLock
     ) public onlyOwnerOrGenerationManager {
+        require(initialized == false, "Already initialized");
+        initialized = true;
+        
+        stackOSToken = IERC20(_stackOSTokenToken);
+        darkMatter = DarkMatter(_darkMatter);
+        subscription = Subscription(_subscription);
+        royaltyAddress = _royaltyAddress;
+
         participationFee = _participationFee;
         mintFee = _mintFee;
         maxSupply = _maxSupply;
         transferDiscount = _transferDiscount;
         timeLock = block.timestamp + _timeLock;
+
+        generations = GenerationManager(msg.sender);
     }
 
     /*

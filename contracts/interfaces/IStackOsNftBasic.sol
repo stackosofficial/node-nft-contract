@@ -5,14 +5,15 @@ import "./IStackOsNFT.sol";
 
 interface IStackOsNFTBasic is IStackOsNFT {
 
-    function initialize(
-        uint256 _participationFee,
-        uint256 _mintFee,
-        uint256 _maxSupply,
-        uint256 _transferDiscount,
-        uint256 _timeLock
+
+    function setName(
+        string memory name_
     ) external;
 
+    function setSymbol(
+        string memory symbol_
+    ) external;
+    
     function adjustAddressSettings(
         address _genManager, 
         address _router
