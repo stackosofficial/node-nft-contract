@@ -54,7 +54,7 @@ async function main() {
   // Lottery prizes amount
   PRIZES = 10;
   AUCTIONED_NFTS = 10;
-  // For chainlink VRF. TODO: KeyHash must already be registered in VRF coordinator, what that means?
+  // For chainlink VRF.
   KEY_HASH =
     "0x2ed0feb3e7fd2022120aa84fab1945545a9f2ffc9076fd6156fa96eaff4c1311";
   // Discount applied to mint NFTs when you transfer tickets from 1st generation to the next

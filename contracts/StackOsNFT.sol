@@ -39,7 +39,6 @@ contract StackOsNFT is StableCoinAcceptor, VRFConsumerBase, ERC721, ERC721URISto
     uint256 private maxSupply;
     uint256 private totalSupply;
     uint256 private participationFee;
-    uint256 private transferDiscount;
     uint256 private participationTickets;
     uint256 private prizes;
     uint256 private totalDelegated;
@@ -74,7 +73,6 @@ contract StackOsNFT is StableCoinAcceptor, VRFConsumerBase, ERC721, ERC721URISto
         uint256 _prizes,
         uint256 _auctionedNFTs,
         bytes32 _keyHash,
-        uint256 _transferDiscount,
         uint256 _timeLock
     )
         ERC721(_name, _symbol)
@@ -89,7 +87,6 @@ contract StackOsNFT is StableCoinAcceptor, VRFConsumerBase, ERC721, ERC721URISto
         maxSupply = _maxSupply;
         prizes = _prizes;
         keyHash = _keyHash;
-        transferDiscount = _transferDiscount;
         auctionedNFTs = _auctionedNFTs;
         timeLock = block.timestamp + _timeLock;
         generations = GenerationManager(msg.sender);
