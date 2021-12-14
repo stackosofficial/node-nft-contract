@@ -8,17 +8,10 @@ async function main() {
 
   //vvvvvvvvvvvvvvvvvv SETTINGS vvvvvvvvvvvvvvvvvv
 
-  // TODO: we should always replace stablecoinds, link, coordinator addresses
-  //       if we wan't to run tests or run deploy.js, because for tests we deploy our mock contracts
-  //       so maybe should do something with all of this to simplify things...
-
-  // [x] Transfer ownership of every contract, admin proxy contract, and implementation to 0xeb2198ba8047B20aC84fBfB78af33f5A9690F674
-  // [x] Set USDT, USDC, DAI in StableCoinAcceptor.sol
-  // [x] Set WETH with setWETH for Royalty
-  // [x] Set LINK token address in StackOsNFT.sol
-  // [x] Set VRF Coordinator address in StackOsNFT.sol
-  // [x] Set fee amount for chainlink in StackOsNFT.sol
-  // [ ] Call setupDeploy and setupDeploy2 after GenerationManager deploy 
+  // Set USDT, USDC, DAI in StableCoinAcceptor.sol
+  // Set LINK token address in StackOsNFT.sol
+  // Set VRF Coordinator address in StackOsNFT.sol
+  // Set fee amount for chainlink in StackOsNFT.sol
 
   // This address will be owner of all contracts plus market proxy owner
   OWNERSHIP = "0xeb2198ba8047B20aC84fBfB78af33f5A9690F674"
@@ -151,6 +144,7 @@ async function main() {
       "Market",
       marketImplementaionAddress
     );
+    // params here doesn't matter, as we only wan't to set the owner
     await marketImplementaion.initialize(
       generationManager.address,
       darkMatter.address,
@@ -162,10 +156,10 @@ async function main() {
   } catch (error) {
     console.log(error);
   }
-  const marketProxyAdminAddress = await getAdminAddress(ethers.provider, marketProxy.address);
+  // const marketProxyAdminAddress = await getAdminAddress(ethers.provider, marketProxy.address);
   console.log("Market Proxy", marketProxy.address);
   console.log("Market Implementation", marketImplementaionAddress);
-  console.log("Market Proxy Admin", marketProxyAdminAddress);
+  // console.log("Market Proxy Admin", marketProxyAdminAddress);
   
   const Subscription = await ethers.getContractFactory("Subscription");
   let subscription = await Subscription.deploy(
