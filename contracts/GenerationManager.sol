@@ -56,6 +56,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         uint256 _timeLock,
         address _royaltyAddress
     ) public onlyOwner {
+        require(_maxSupplyGrowthPercent <= 10000, "invalid basis points");
         deployment.name = _name;
         deployment.symbol = _symbol;
         deployment.stackOSTokenToken = _stackOSTokenToken;
@@ -63,7 +64,6 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         deployment.subscription = _subscription;
         deployment.participationFee = _participationFee;
         deployment.mintFee = _mintFee;
-        require(_maxSupplyGrowthPercent <= 10000, "invalid basis points");
         deployment.maxSupplyGrowthPercent = _maxSupplyGrowthPercent;
         deployment.transferDiscount = _transferDiscount;
         deployment.timeLock = _timeLock;
@@ -154,7 +154,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
     /*
      * @title Deploy new StackOsNFT.
      * @dev All params should be the same as in StackOsNFTBasic constructor.
-     * @dev Additional setup is required on newly deployed contract, please refer to deploy scripts or tests.
+     * @dev Additional setup is required on newly deployed contract, such as adjustAddressSettings and whitelist DarkMatter and Market.
      */
     function deployNextGen(
         string memory _name,

@@ -82,6 +82,7 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeab
         __Ownable_init();
         __ReentrancyGuard_init();
         __UUPSUpgradeable_init();
+        console.log("ini mark:", owner(), address(this));
     }
 
     /*

@@ -79,8 +79,8 @@ contract StackOsNFT is StableCoinAcceptor, VRFConsumerBase, ERC721, ERC721URISto
     )
         ERC721(_name, _symbol)
         VRFConsumerBase(
-            0x2a2E02b876d42408D755428aF6F4dCa0AdFC18dd, // VRF Coordinator
-            0x184B9B4573186602cb034cEdEAB6a4101A58DF65  // LINK Token
+            0xb3dCcb4Cf7a26f6cf6B120Cf5A73875B7BBc655B, // VRF Coordinator
+            0x01BE23585060835E02B77ef475b0Cc51aA1e0709  // LINK Token
         )
     {
         stackOSToken = _stackOSTokenToken;

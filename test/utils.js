@@ -124,7 +124,7 @@ async function setup() {
 
   SUBSCRIPTION_PRICE = parseEther("100.0");
   BONUS_PECENT = 2000;
-  TAX_REDUCTION_PERCENT = 2500; // 25% means: 1month withdraw 75% tax, 2 month 50%, 3 month 25%, 4 month 0%
+  TAX_REDUCTION_AMOUNT = 2500; // 25% means: 1month withdraw 75% tax, 2 month 50%, 3 month 25%, 4 month 0%
   TAX_RESET_DEADLINE = 60 * 60 * 24 * 7; // 1 week
 
   const Subscription = await ethers.getContractFactory("Subscription");
@@ -137,12 +137,12 @@ async function setup() {
     TAX_RESET_DEADLINE,
     SUBSCRIPTION_PRICE,
     BONUS_PECENT,
-    TAX_REDUCTION_PERCENT
+    TAX_REDUCTION_AMOUNT
   );
   await subscription.deployed();
   await subscription.setPrice(SUBSCRIPTION_PRICE);
   await subscription.setBonusPercent(BONUS_PECENT);
-  await subscription.settaxReductionAmount(TAX_REDUCTION_PERCENT);
+  await subscription.settaxReductionAmount(TAX_REDUCTION_AMOUNT);
   await subscription.setTaxResetDeadline(TAX_RESET_DEADLINE);
   MONTH = (await subscription.MONTH()).toNumber();
   console.log("MONTH: ", MONTH);
