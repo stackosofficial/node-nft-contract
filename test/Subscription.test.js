@@ -97,7 +97,7 @@ describe("Subscription", function () {
 
   it("Unable to subscribe and withdraw on wrong generation id", async function () {
     await expect(
-      subscription.subscribe(1337, 0, usdt.address)
+      subscription.subscribe(1337, 0, usdt.address, false)
     ).to.be.revertedWith("Generation doesn't exist");
     await expect(subscription.withdraw(1337, [0])).to.be.revertedWith(
       "Generation doesn't exist"
@@ -106,14 +106,14 @@ describe("Subscription", function () {
 
   it("Subscribe with usdt token", async function () {
     await usdt.approve(subscription.address, parseEther("5000.0"));
-    await subscription.subscribe(0, 0, usdt.address);
+    await subscription.subscribe(0, 0, usdt.address, false);
   });
   it("Subscribe with dai coin", async function () {
     // await usdt.approve(subscription.address, parseEther("5000.0"));
-    // await subscription.subscribe(0, 1, 4, usdt.address);
+    // await subscription.subscribe(0, 1, 4, usdt.address, false);
 
     await dai.approve(subscription.address, parseEther("5000.0"));
-    await subscription.subscribe(0, 1, dai.address);
+    await subscription.subscribe(0, 1, dai.address, false);
   });
   it("Take TAX for early withdrawal", async function () {
     await stackOsNFTFull.whitelist(owner.address);
@@ -130,9 +130,9 @@ describe("Subscription", function () {
   it("Subscribe 3 months in a row", async function () {
     await usdt.approve(subscription.address, parseEther("5000.0"));
     await provider.send("evm_increaseTime", [MONTH]);
-    await subscription.subscribe(0, 1, usdt.address);
+    await subscription.subscribe(0, 1, usdt.address, false);
     await provider.send("evm_increaseTime", [MONTH]);
-    await subscription.subscribe(0, 1, usdt.address);
+    await subscription.subscribe(0, 1, usdt.address, false);
   });
   it("Unable to withdraw when low balance on bonus wallet", async function () {
     await expect(subscription.withdraw(0, [1])).to.be.revertedWith(
@@ -180,7 +180,7 @@ describe("Subscription", function () {
     await stackOsNFTFull.partnerMint(4, dai.address); // 5-9
 
     await dai.approve(subscription.address, parseEther("5000.0"));
-    await subscription.subscribe(0, 5, dai.address); // 600, bonus 120
+    await subscription.subscribe(0, 5, dai.address, false); // 600, bonus 120
     await provider.send("evm_increaseTime", [MONTH * 2]); // wait 2 months, tax is max
     await provider.send("evm_mine"); // wait 2 months, tax is max
 
@@ -190,7 +190,7 @@ describe("Subscription", function () {
       await stackToken.balanceOf(owner.address)
     );
     expect(await stackToken.balanceOf(owner.address)).to.equal(0);
-    await subscription.subscribe(0, 5, dai.address); // tax max, 1200, bonus 240
+    await subscription.subscribe(0, 5, dai.address, false); // tax max, 1200, bonus 240
 
     print("owner: ", await stackToken.balanceOf(owner.address));
     print("tax: ", await stackToken.balanceOf(tax.address));
@@ -204,7 +204,7 @@ describe("Subscription", function () {
     print("tax: ", await stackToken.balanceOf(tax.address));
 
     await provider.send("evm_increaseTime", [MONTH]);
-    await subscription.subscribe(0, 5, dai.address); // tax max, 600, bonus
+    await subscription.subscribe(0, 5, dai.address, false); // tax max, 600, bonus
     await subscription.withdraw(0, [5]);
     expect(await stackToken.balanceOf(owner.address)).closeTo(
       parseEther("437.986218"), 
@@ -225,8 +225,8 @@ describe("Subscription", function () {
     console.log("GEN 2 NFT ADDRESS", stackOsNFTGen2.address);
 
     await usdt.approve(subscription.address, parseEther("20000.0"));
-    await subscription.subscribe(0, 6, usdt.address); // gen 0, token 6
-    await subscription.subscribe(1, 0, usdt.address); // gen 1, token 0
+    await subscription.subscribe(0, 6, usdt.address, false); // gen 0, token 6
+    await subscription.subscribe(1, 0, usdt.address, false); // gen 1, token 0
 
     // clear balances for simplicity
     await stackToken
@@ -250,9 +250,9 @@ describe("Subscription", function () {
   it("Withdraw on multiple generations, 9 months no tax", async function () {
     await provider.send("evm_increaseTime", [MONTH * 9]); // wait 9 months
 
-    await subscription.subscribe(0, 6, usdt.address);
-    await subscription.subscribe(1, 0, usdt.address);
-    await subscription.subscribe(1, 1, usdt.address);
+    await subscription.subscribe(0, 6, usdt.address, false);
+    await subscription.subscribe(1, 0, usdt.address, false);
+    await subscription.subscribe(1, 1, usdt.address, false);
     await subscription.withdraw(0, [6]);
     await subscription.withdraw(1, [0]);
     print("owner: ", await stackToken.balanceOf(owner.address));
@@ -272,7 +272,7 @@ describe("Subscription", function () {
     await usdt
       .connect(partner)
       .approve(subscription.address, parseEther("100.0"));
-    await subscription.connect(partner).subscribe(0, 6, usdt.address);
+    await subscription.connect(partner).subscribe(0, 6, usdt.address, false);
 
     await provider.send("evm_increaseTime", [MONTH]);
     await subscription.withdraw(0, [6]);
@@ -285,7 +285,7 @@ describe("Subscription", function () {
 
   it("Using the earned funds to buy new NFT", async function () {
     await provider.send("evm_increaseTime", [MONTH * 1337]);
-    await subscription.subscribe(1, 4, usdt.address);
+    await subscription.subscribe(1, 4, usdt.address, false);
     await provider.send("evm_increaseTime", [MONTH * 3]);
 
     await subscription.purchaseNewNft(1, [4], 1, 5, usdt.address);
@@ -300,7 +300,7 @@ describe("Subscription", function () {
 
     await subscription.withdraw(0, [6]); 
     await provider.send("evm_increaseTime", [MONTH]);
-    await subscription.connect(partner).subscribe(0, 6, usdt.address);
+    await subscription.connect(partner).subscribe(0, 6, usdt.address, false);
 
     await provider.send("evm_increaseTime", [MONTH]); 
 
@@ -342,7 +342,7 @@ describe("Subscription", function () {
   it("subscriptions", async function () {
     await usdt.approve(subscription.address, parseEther("20000.0"));
     for (let i = 0; i < 10; i++) {
-      await subscription.subscribe(1, 1, usdt.address); 
+      await subscription.subscribe(1, 1, usdt.address, false); 
       await provider.send("evm_increaseTime", [MONTH]); 
       await provider.send("evm_mine"); 
     }
@@ -374,6 +374,18 @@ describe("Subscription", function () {
     print("gen 0 token 5 pending reward: ", await subscription.pendingReward(1, 1));
     expect(await subscription.pendingReward(1, 1)).to.be.equal(0);
   })
+
+  it("Subscribe with STACK", async function () {
+    await stackToken.approve(subscription.address, parseEther("20000.0"));
+    print("balance before sub: ", await stackToken.balanceOf(owner.address));
+    await subscription.subscribe(1, 1, stackToken.address, true); 
+    print("balance after sub: ", await stackToken.balanceOf(owner.address));
+  });
+
+  // it("Withdraw", async function () {
+  //   await stackToken.approve(subscription.address, parseEther("20000.0"));
+  //   await subscription.subscribe(1, 1, stackToken.address, true); 
+  // });
 
   it("Revert EVM state", async function () {
     await ethers.provider.send("evm_revert", [snapshotId]);

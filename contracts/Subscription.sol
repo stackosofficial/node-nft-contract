@@ -138,22 +138,29 @@ contract Subscription is Ownable, ReentrancyGuard {
      *  @param StackNFT generation id
      *  @param Token id
      *  @param Address of supported stablecoin
+     *  @param Pay with STACK token
      *  @dev Caller must approve us to spend `price` amount of `_stablecoin`.
      *  @dev Tax resets to maximum if you re-subscribed after `nextPayDate` + `taxResetDeadline`.
      */
     function subscribe(
         uint256 generationId,
         uint256 tokenId,
-        IERC20 _stablecoin
+        IERC20 _stablecoin,
+        bool _payWithStack
     ) public nonReentrant {
-        require(stableAcceptor.supportsCoin(_stablecoin), "Unsupported payment coin");
-        _subscribe(generationId, tokenId, _stablecoin);
+        if(!_payWithStack)
+            require(
+                stableAcceptor.supportsCoin(_stablecoin), 
+                "Unsupported payment coin"
+            );
+        _subscribe(generationId, tokenId, _stablecoin, _payWithStack);
     }
 
     function _subscribe(
         uint256 generationId,
         uint256 tokenId,
-        IERC20 _stablecoin
+        IERC20 _stablecoin,
+        bool _payWithStack
     ) internal {
         require(generationId < generations.count(), "Generation doesn't exist");
         // check token exists
@@ -178,13 +185,30 @@ contract Subscription is Ownable, ReentrancyGuard {
         deposit.nextPayDate += MONTH;
 
         // convert stablecoin to stack token
-        _stablecoin.transferFrom(msg.sender, address(this), price);
-        _stablecoin.approve(address(exchange), price);
-        uint256 amount = exchange.swapExactTokensForTokens(
-            price, 
-            _stablecoin,
-            stackToken
-        );
+        uint256 amount;
+        if(_payWithStack) {
+            // how much stack we need to get `price` amount of usd
+            uint256 stackAmountIn = exchange.getAmountIn(
+                price, 
+                stableAcceptor.stablecoins(0), 
+                stackToken
+            );
+            stackToken.transferFrom(msg.sender, address(this), stackAmountIn);
+            stackToken.approve(address(exchange), stackAmountIn);
+            amount = exchange.swapExactTokensForTokens(
+                stackAmountIn, 
+                stackToken,
+                stableAcceptor.stablecoins(0)
+            );
+        } else {
+            _stablecoin.transferFrom(msg.sender, address(this), price);
+            _stablecoin.approve(address(exchange), price);
+            amount = exchange.swapExactTokensForTokens(
+                price, 
+                _stablecoin,
+                stackToken
+            );
+        }
 
         deposit.balance += amount;
 

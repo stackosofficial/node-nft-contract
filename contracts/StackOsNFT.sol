@@ -435,8 +435,12 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         require(strategicPartner[msg.sender] >= _nftAmount, "Amount Too Big");
 
         uint256 stackAmount = participationFee.mul(_nftAmount);
-        uint256 amountIn = getAmountIn(stackAmount, _stablecoin);
-        // stackAmount = buyStackToken(amountIn, _stablecoin);
+        uint256 amountIn = exchange.getAmountIn(
+            stackAmount, 
+            stackOSToken,
+            _stablecoin
+        );
+
         IERC20(_stablecoin).transferFrom(msg.sender, address(this), amountIn);
         IERC20(_stablecoin).approve(address(exchange), amountIn);
         stackAmount = exchange.swapExactTokensForTokens(
@@ -610,18 +614,4 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         stackOSToken.transfer(msg.sender, adminWithdrawableAmount);
         adminWithdrawableAmount = 0;
     }
-
-    /*
-     * @title Get amount of USD needed to buy `amount` of stack token
-     */
-    function getAmountIn(uint256 amount, IERC20 _stablecoin) private view returns (uint256) {
-        address[] memory path = new address[](3);
-        path[0] = address(_stablecoin);
-        path[1] = address(router.WETH());
-        path[2] = address(stackOSToken);
-        uint256[] memory amountsIn = router.getAmountsIn(amount, path);
-        return amountsIn[0];
-    }
-
-
 }

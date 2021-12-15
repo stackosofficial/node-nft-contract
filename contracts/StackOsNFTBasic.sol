@@ -369,12 +369,7 @@ contract StackOsNFTBasic is
             (participationFee * rewardDiscount) /
             10000;
         uint256 amountOut = discountAmount.mul(_nftAmount);
-        address[] memory path = new address[](3);
-        path[0] = address(stackOSToken);
-        path[1] = address(router.WETH());
-        path[2] = address(_stablecoin);
-        uint256[] memory amountInMin = router.getAmountsIn(amountOut, path);
-        return amountInMin[0];
+        return exchange.getAmountIn(amountOut, IERC20(_stablecoin), stackOSToken);
     }
 
     /*

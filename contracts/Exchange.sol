@@ -63,4 +63,20 @@ contract Exchange {
         );
         return amounts[2];
     }
+
+    /*
+     * @title Get amount of USD needed to buy `amount` of stack token
+     */
+    function getAmountIn(
+        uint256 amountOut, 
+        IERC20 tokenOut, 
+        IERC20 tokenIn
+    ) public view returns (uint256) {
+        address[] memory path = new address[](3);
+        path[0] = address(tokenIn);
+        path[1] = address(router.WETH());
+        path[2] = address(tokenOut);
+        uint256[] memory amountsIn = router.getAmountsIn(amountOut, path);
+        return amountsIn[0];
+    }
 }

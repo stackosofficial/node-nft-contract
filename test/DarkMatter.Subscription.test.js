@@ -100,7 +100,7 @@ describe("DarkMatter integration with Subscription", function () {
 
   it("Unable to subscribe and withdraw on wrong generation id", async function () {
     await expect(
-      subscription.subscribe(1337, 0, usdt.address)
+      subscription.subscribe(1337, 0, usdt.address, false)
     ).to.be.revertedWith("Generation doesn't exist");
     await expect(subscription.withdraw(1337, [0])).to.be.revertedWith(
       "Generation doesn't exist"
@@ -109,14 +109,14 @@ describe("DarkMatter integration with Subscription", function () {
 
   it("Subscribe with usdt token", async function () {
     await usdt.approve(subscription.address, parseEther("5000.0"));
-    await subscription.subscribe(0, 0, usdt.address);
+    await subscription.subscribe(0, 0, usdt.address, false);
   });
   it("Subscribe with dai coin", async function () {
     // await usdt.approve(subscription.address, parseEther("5000.0"));
-    // await subscription.subscribe(0, 1, 4, usdt.address);
+    // await subscription.subscribe(0, 1, 4, usdt.address, false);
 
     await dai.approve(subscription.address, parseEther("5000.0"));
-    await subscription.subscribe(0, 1, dai.address);
+    await subscription.subscribe(0, 1, dai.address, false);
   });
   it("Take TAX for early withdrawal", async function () {
     await darkMatter.whitelist(owner.address);
@@ -137,9 +137,9 @@ describe("DarkMatter integration with Subscription", function () {
   it("Subscribe 3 months in a row", async function () {
     await usdt.approve(subscription.address, parseEther("5000.0"));
     await provider.send("evm_increaseTime", [MONTH]);
-    await subscription.subscribe(0, 1, usdt.address);
+    await subscription.subscribe(0, 1, usdt.address, false);
     await provider.send("evm_increaseTime", [MONTH]);
-    await subscription.subscribe(0, 1, usdt.address);
+    await subscription.subscribe(0, 1, usdt.address, false);
   });
   it("Unable to withdraw when low balance on bonus wallet", async function () {
     await expect(subscription.withdraw(0, [1])).to.be.revertedWith(
