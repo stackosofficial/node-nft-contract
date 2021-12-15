@@ -7,7 +7,8 @@ async function main() {
   const delay = (ms) => new Promise((res) => setTimeout(res, ms));
 
   //vvvvvvvvvvvvvvvvvv SETTINGS vvvvvvvvvvvvvvvvvv
-
+  // TODO: explain that basic nft should be only deployed from manager!
+  // TODO: change setName/Symbol, make these vars internal and move functions to basicNFt contract
   // TODO: change constructor args to accept StableCoinAcceptor
   //       don't forget to do the same in verification section (subscription, stacknft, basic)
   // TODO: deploy StableCoinAcceptor

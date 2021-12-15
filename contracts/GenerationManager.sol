@@ -127,21 +127,20 @@ contract GenerationManager is Ownable, ReentrancyGuard {
             deployment.transferDiscount,
             deployment.timeLock
         );
-        stack.transferOwnership(Ownable(msg.sender).owner());
         add(IStackOsNFT(address(stack)));
         stack.adjustAddressSettings(
-            address(this),
             deployment.router
         );
         stack.whitelist(address(deployment.darkMatter));
         stack.whitelist(address(deployment.market));
+        stack.transferOwnership(Ownable(msg.sender).owner());
         return IStackOsNFTBasic(address(stack));
     }
 
     /*
      * @title Add next generation of StackNFT.
      * @param IStackOsNFT address.
-     * @dev Could only be invoked by the contract owner or StackOsNFTBasic.
+     * @dev Could only be invoked by the contract owner or StackOsNFT contract.
      * @dev Address should be unique.
      */
     function add(IStackOsNFT _stackOS) public onlyOwnerOrStackContract {
@@ -192,8 +191,8 @@ contract GenerationManager is Ownable, ReentrancyGuard {
             _transferDiscount,
             _timeLock
         );
-        stack.transferOwnership(msg.sender);
         add(IStackOsNFT(address(stack)));
+        stack.transferOwnership(msg.sender);
         return IStackOsNFTBasic(address(stack));
     }
 

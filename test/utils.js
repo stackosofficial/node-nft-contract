@@ -18,27 +18,35 @@ async function deployStackOSBasic() {
   // MAX_SUPPLY = 25;
   TRANSFER_DISCOUNT = 2000;
   // TIMELOCK = 6442850;
-  const StackOSBasic = await ethers.getContractFactory("StackOsNFTBasic");
-  let stackOsNFTBasic = await StackOSBasic.deploy();
-  await stackOsNFTBasic.deployed();
-  await stackOsNFTBasic.setName(NAME);
-  await stackOsNFTBasic.setSymbol(SYMBOL);
-  await stackOsNFTBasic.initialize(
+
+  let args = [
+    NAME,
+    SYMBOL,
     STACK_TOKEN_FOR_PAYMENT,
     DARK_MATTER_ADDRESS,
     SUBSCRIPTION,
-    ROYALTY_ADDRESS,
-    stableAcceptor.address,
     PRICE,
     MINT_FEE,
     MAX_SUPPLY,
     TRANSFER_DISCOUNT,
     TIMELOCK,
+    ROYALTY_ADDRESS,
+    stableAcceptor.address,
+  ]
+  // get address with callStatic, the call will not change the state
+  let stackOsNFTBasic = await generationManager.callStatic.deployNextGen(
+    ...args
   );
-  console.log(stackOsNFTBasic.address);
-  await generationManager.add(stackOsNFTBasic.address);
+  // actual deploy
+  await generationManager.deployNextGen(
+    ...args
+  );
+  stackOsNFTBasic = await ethers.getContractAt(
+    "StackOsNFTBasic",
+    stackOsNFTBasic
+  )
+  console.log("stackOsNFTBasic", stackOsNFTBasic.address);
   await stackOsNFTBasic.adjustAddressSettings(
-    generationManager.address,
     router.address
   );
   await stackOsNFTBasic.whitelist(darkMatter.address);

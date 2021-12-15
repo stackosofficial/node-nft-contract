@@ -324,7 +324,6 @@ describe("Royalty", function () {
       await vera.getBalance()
     );
 
-    // await generationManager.add(stackOsNFTgen2.address);
     // print("balance after add generation: ", (await provider.getBalance(royalty.address)));
 
     await royalty.claim(1, [2]);

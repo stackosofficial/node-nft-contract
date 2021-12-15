@@ -48,15 +48,15 @@ contract StackOsNFTBasic is
 
     bool private initialized;
 
-    modifier onlyOwnerOrGenerationManager() {
-        require(
-            owner() == _msgSender() || address(generations) == _msgSender(), 
-            "Caller is not the owner or GenerationManager"
-        );
+    modifier onlyGenerationManager() {
+        // Naive check, this should revert if msg.sender is wallet
+        GenerationManager(_msgSender()).count();
         _;
     }
 
-    constructor() ERC721("", "") {
+    // Must be deployed only by GenerationManager
+    constructor() ERC721("", "") onlyGenerationManager {
+        generations = GenerationManager(msg.sender);
     }
 
     function initialize(
@@ -70,7 +70,8 @@ contract StackOsNFTBasic is
         uint256 _maxSupply,
         uint256 _transferDiscount,
         uint256 _timeLock
-    ) public onlyOwnerOrGenerationManager {
+    ) public onlyOwner {
+        console.log(address(generations), msg.sender);
         require(initialized == false, "Already initialized");
         initialized = true;
         
@@ -85,8 +86,6 @@ contract StackOsNFTBasic is
         maxSupply = _maxSupply;
         transferDiscount = _transferDiscount;
         timeLock = block.timestamp + _timeLock;
-
-        generations = GenerationManager(msg.sender);
     }
 
     /*
@@ -113,16 +112,14 @@ contract StackOsNFTBasic is
 
     /*
      * @title Adjust address settings
-     * @param address of generation manager contract
      * @param address of router contract
      * @dev Could only be invoked by the contract owner or generation manager contract
      */
-
-    function adjustAddressSettings(address _genManager, address _router)
+// TODO: should be called only once?
+    function adjustAddressSettings(address _router)
         public
-        onlyOwnerOrGenerationManager
+        onlyOwner
     {
-        generations = GenerationManager(_genManager);
         router = IUniswapV2Router02(_router);
     }
 
@@ -433,7 +430,7 @@ contract StackOsNFTBasic is
      *  @param Address to whitelist.
      *  @dev Could only be invoked by the contract owner or generation manager contract
      */
-    function whitelist(address _addr) public onlyOwnerOrGenerationManager {
+    function whitelist(address _addr) public onlyOwner {
         _whitelist[_addr] = true;
     }
 
