@@ -169,6 +169,7 @@ async function setup() {
     DARK_MATTER_ADDRESS,
     ROUTER_ADDRESS,
     stableAcceptor.address,
+    exchange.address,
     TAX_ADDRESS,
     TAX_RESET_DEADLINE,
     SUBSCRIPTION_PRICE,

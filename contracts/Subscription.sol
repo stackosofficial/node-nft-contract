@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import "./DarkMatter.sol";
 import "./GenerationManager.sol";
 import "./StableCoinAcceptor.sol";
+import "./Exchange.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "./interfaces/IStackOsNFT.sol";
@@ -19,6 +20,7 @@ contract Subscription is Ownable, ReentrancyGuard {
     DarkMatter private darkMatter;
     IUniswapV2Router02 private router;
     StableCoinAcceptor stableAcceptor;
+    Exchange exchange;
     address private taxAddress;
 
     uint256 private constant HUNDRED_PERCENT = 10000;
@@ -59,6 +61,7 @@ contract Subscription is Ownable, ReentrancyGuard {
         DarkMatter _darkMatter,
         IUniswapV2Router02 _router,
         StableCoinAcceptor _stableAcceptor,
+        Exchange _exchange,
         address _taxAddress,
         uint256 _taxResetDeadline,
         uint256 _price,
@@ -70,6 +73,7 @@ contract Subscription is Ownable, ReentrancyGuard {
         darkMatter = _darkMatter;
         router = _router;
         stableAcceptor = _stableAcceptor;
+        exchange = _exchange;
         taxAddress = _taxAddress;
         taxResetDeadline = _taxResetDeadline;
         price = _price;
@@ -143,14 +147,13 @@ contract Subscription is Ownable, ReentrancyGuard {
         IERC20 _stablecoin
     ) public nonReentrant {
         require(stableAcceptor.supportsCoin(_stablecoin), "Unsupported payment coin");
-        _subscribe(generationId, tokenId, _stablecoin, true);
+        _subscribe(generationId, tokenId, _stablecoin);
     }
 
     function _subscribe(
         uint256 generationId,
         uint256 tokenId,
-        IERC20 _stablecoin,
-        bool externalBuyer
+        IERC20 _stablecoin
     ) internal {
         require(generationId < generations.count(), "Generation doesn't exist");
         // check token exists
@@ -175,7 +178,14 @@ contract Subscription is Ownable, ReentrancyGuard {
         deposit.nextPayDate += MONTH;
 
         // convert stablecoin to stack token
-        uint256 amount = buyStackToken(price, _stablecoin, externalBuyer);
+        _stablecoin.transferFrom(msg.sender, address(this), price);
+        _stablecoin.approve(address(exchange), price);
+        uint256 amount = exchange.swapExactTokensForTokens(
+            price, 
+            _stablecoin,
+            stackToken
+        );
+
         deposit.balance += amount;
 
         // bonuses logic
@@ -338,7 +348,12 @@ contract Subscription is Ownable, ReentrancyGuard {
 
             require(amountWithdraw > amountToConvert, "Not enough earnings");
 
-            uint256 usdForMint = sellStackToken(amountToConvert, _stablecoin);
+            stackToken.approve(address(exchange), amountToConvert);
+            uint256 usdForMint = exchange.swapExactTokensForTokens(
+                amountToConvert, 
+                stackToken,
+                _stablecoin 
+            );
 
             _stablecoin.approve(
                 address(generations.get(purchaseGenerationId)),
@@ -390,67 +405,6 @@ contract Subscription is Ownable, ReentrancyGuard {
 
         return totalPending + overflow[_generationId][_tokenId];
     }
-
-    /*
-     *  @title Buy `stackToken` for `amount` of _stablecoin.
-     *  @param Amount of `_stablecoin` to sell.
-     *  @param Address of supported stablecoin
-     *  @param Called by external wallet or by this contract?
-     */
-    function buyStackToken(
-        uint256 amount,
-        IERC20 _stablecoin,
-        bool externalBuyer
-    ) private returns (uint256) {
-        if (externalBuyer) {
-            _stablecoin.transferFrom(msg.sender, address(this), amount);
-        }
-        _stablecoin.approve(address(router), amount);
-
-        uint256 deadline = block.timestamp + 1200;
-        address[] memory path = new address[](3);
-        path[0] = address(_stablecoin);
-        path[1] = address(router.WETH());
-        path[2] = address(stackToken);
-        uint256[] memory amountOutMin = router.getAmountsOut(amount, path);
-        uint256[] memory amounts = router.swapExactTokensForTokens(
-            amount,
-            amountOutMin[2],
-            path,
-            address(this),
-            deadline
-        );
-
-        return amounts[2];
-    }
-
-    /*
-     *  @title Sell `amount` of `stackToken`.
-     *  @param Amount of `stackToken` to sell.
-     *  @param Address of supported stablecoin
-     */
-    function sellStackToken(uint256 amount, IERC20 _stablecoin)
-        private
-        returns (uint256)
-    {
-        stackToken.approve(address(router), amount);
-
-        uint256 deadline = block.timestamp + 1200;
-        address[] memory path = new address[](3);
-        path[0] = address(stackToken);
-        path[1] = address(router.WETH());
-        path[2] = address(_stablecoin);
-        uint256[] memory amountOutMin = router.getAmountsOut(amount, path);
-        uint256[] memory amounts = router.swapExactTokensForTokens(
-            amount,
-            amountOutMin[2],
-            path,
-            address(this),
-            deadline
-        );
-
-        return amounts[2];
-    }   
     
     /*
      *  @title Subtract function, on underflow returns zero.

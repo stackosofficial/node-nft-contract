@@ -1,12 +1,7 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
-import "@openzeppelin/contracts/utils/Counters.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
-import "./GenerationManager.sol";
-import "./DarkMatter.sol";
-import "./interfaces/IStackOsNFT.sol";
-import "./Subscription.sol";
 
 contract Exchange {
 
@@ -17,17 +12,12 @@ contract Exchange {
     }
 
     /*
-     *  @title Buy `_stablecoin` for `amount` of WETH.
-     *  @param Amount of WETH to swap.
-     *  @param Address of supported stablecoin
+     *  @title Swap exact ETH for tokens
+     *  @param Address of token to receive
      */
     function swapExactETHForTokens(
         IERC20 token
     ) public payable returns (uint256) {
-
-        // tokenA.transferFrom(msg.sender, address(router), amountA);
-        // tokenA.approve(address(router), amountA);
-
         uint256 deadline = block.timestamp + 1200;
         address[] memory path = new address[](2);
         path[0] = address(router.WETH());
@@ -43,9 +33,10 @@ contract Exchange {
     }
 
     /*
-     *  @title Buy `stackToken` for `amount` of _stablecoin.
-     *  @param Amount of `_stablecoin` to sell.
-     *  @param Address of supported stablecoin
+     *  @title Swap exact tokens for tokens
+     *  @param Amount of tokenA to spend
+     *  @param Address of tokenA to spend
+     *  @param Address of tokenB to receive
      */
 
     function swapExactTokensForTokens(
