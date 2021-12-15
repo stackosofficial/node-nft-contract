@@ -179,8 +179,6 @@ async function setup() {
   MAX_SUPPLY = 25;
   PRIZES = 10;
   AUCTIONED_NFTS = 10;
-            // 0xb3dCcb4Cf7a26f6cf6B120Cf5A73875B7BBc655B, 
-            // 0x01BE23585060835E02B77ef475b0Cc51aA1e0709  
   VRF_COORDINATOR = coordinator.address;
   LINK_TOKEN = link.address;
   KEY_HASH =

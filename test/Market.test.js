@@ -102,6 +102,7 @@ describe("Market", function () {
 
     await stackOsNFTgen2.startSales();
     await usdt.approve(stackOsNFTgen2.address, parseEther("100.0"));
+    await provider.send("evm_increaseTime", [60 * 60]); 
     await stackOsNFTgen2.mint(2, usdt.address);
   });
 

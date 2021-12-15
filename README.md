@@ -3,6 +3,7 @@
 2. `fee` variable in stackOsNFT contract 
 3. to use correct addreses in stablecoin acceptor contract
 4. remove console logs
+5. explain that basic nft should be only deployed from manager!
 
 ## TOKEN DEPLOYED
 

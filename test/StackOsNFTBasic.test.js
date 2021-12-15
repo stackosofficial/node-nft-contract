@@ -79,6 +79,8 @@ describe("StackOS NFT Basic", function () {
     await stackOsNFT.startSales();
 
     await usdc.approve(stackOsNFT.address, parseEther("100.0"));
+    // pass some time, so that enough tokens dripped
+    await provider.send("evm_increaseTime", [60 * 60]); 
     await stackOsNFT.mint(4, usdc.address);
   });
 
@@ -158,6 +160,7 @@ describe("StackOS NFT Basic", function () {
     let oldGenerationsCount = (await generationManager.count()).toNumber();
     
     await stackAutoDeployed.startSales();
+    await provider.send("evm_increaseTime", [60 * 60]); 
     await stackAutoDeployed.mint(50, usdt.address);
     expect(await generationManager.count()).to.be.equal(
       oldGenerationsCount + 1
@@ -175,49 +178,9 @@ describe("StackOS NFT Basic", function () {
     );
   });
 
-  it("Deploy stackOsNFT generation 2 from manager", async function () {
-    ROYALTY = royalty.address;
-    await generationManager.deployNextGen(
-      NAME,
-      SYMBOL,
-      STACK_TOKEN_FOR_PAYMENT,
-      DARK_MATTER_ADDRESS,
-      SUBSCRIPTION,
-      PRICE,
-      MINT_FEE,
-      MAX_SUPPLY,
-      TRANSFER_DISCOUNT,
-      TIMELOCK,
-      ROYALTY,
-      stableAcceptor.address
-    );
-    stackOsNFTgen2 = await ethers.getContractAt(
-      "StackOsNFTBasic",
-      await generationManager.get(1)
-    );
-    expect(await stackOsNFTgen2.owner()).to.be.equal(owner.address);
-  });
-
-  it("Deploy stackOsNFT generation 3 from manager", async function () {
+  it("Deploy stackOsNFT generation from manager", async function () {
     PRIZES = 2;
-    await generationManager.deployNextGen(
-      NAME,
-      SYMBOL,
-      STACK_TOKEN_FOR_PAYMENT,
-      DARK_MATTER_ADDRESS,
-      SUBSCRIPTION,
-      PRICE,
-      MINT_FEE,
-      MAX_SUPPLY,
-      TRANSFER_DISCOUNT,
-      TIMELOCK,
-      ROYALTY,
-      stableAcceptor.address
-    );
-    stackOsNFTgen3 = await ethers.getContractAt(
-      "StackOsNFTBasic",
-      await generationManager.get(2)
-    );
+    stackOsNFTgen3 = await deployStackOSBasic();
     expect(await stackOsNFTgen3.owner()).to.be.equal(owner.address);
   });
 
@@ -225,6 +188,19 @@ describe("StackOS NFT Basic", function () {
     await expect(
       stackOsNFTgen3.transferFromLastGen(owner.address, parseEther("10.0"))
     ).to.be.revertedWith("Not Correct Address");
+  });
+
+  it("Dripping tokens", async function () {
+    await usdt.approve(stackOsNFTgen3.address, parseEther("100.0"));
+    await stackOsNFTgen3.startSales();
+    await expect(stackOsNFTgen3.mint(1, usdt.address)).to.be.revertedWith(
+      "Minting too fast"
+    )
+    await provider.send("evm_increaseTime", [60 * 1]); 
+    await expect(stackOsNFTgen3.mint(2, usdt.address)).to.be.revertedWith(
+      "Minting too fast"
+    )
+    await stackOsNFTgen3.mint(1, usdt.address);
   });
 
   it("Unable to transfer when not whitelisted", async function () {

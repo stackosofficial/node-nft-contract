@@ -395,6 +395,8 @@ describe("transferTickets and transferFromLastGen", function () {
       "gen3 balance: " +
         (await stackToken.balanceOf(stackOsNFTBasic.address))
     );
+    // Pass some time to drip some tokens
+    await provider.send("evm_increaseTime", [60 * 60]); 
     await stackOsNFT.transferTicket(notWinning, stackOsNFTBasic.address);
     expect(await stackToken.balanceOf(stackOsNFT.address)).to.be.equal(
       parseEther("1.0")

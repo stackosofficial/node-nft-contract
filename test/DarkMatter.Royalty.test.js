@@ -85,6 +85,7 @@ describe("DarkMatter integration with Royalty", function () {
     stackOsNFTGen2 = await deployStackOSBasic();
     await usdt.approve(stackOsNFTGen2.address, parseEther("100.0"));
     await stackOsNFTGen2.startSales();
+    await provider.send("evm_increaseTime", [60 * 5]); 
     await stackOsNFTGen2.mint(5, usdt.address); 
 
     await stackOsNFTGen2.setApprovalForAll(darkMatter.address, true);

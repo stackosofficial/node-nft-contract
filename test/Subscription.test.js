@@ -219,6 +219,7 @@ describe("Subscription", function () {
 
     await usdt.approve(stackOsNFTGen2.address, parseEther("10000.0"));
     await stackOsNFTGen2.startSales();
+    await provider.send("evm_increaseTime", [60 * 5]); 
     await stackOsNFTGen2.mint(5, usdt.address);
     console.log("GEN 2 NFT ADDRESS", stackOsNFTGen2.address);
 

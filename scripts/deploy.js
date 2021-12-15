@@ -7,22 +7,16 @@ async function main() {
   const delay = (ms) => new Promise((res) => setTimeout(res, ms));
 
   //vvvvvvvvvvvvvvvvvv SETTINGS vvvvvvvvvvvvvvvvvv
-  // TODO: explain that basic nft should be only deployed from manager!
-  // TODO: change setName/Symbol, make these vars internal and move functions to basicNFt contract
-  // TODO: change constructor args to accept StableCoinAcceptor
-  //       don't forget to do the same in verification section (subscription, stacknft, basic)
-  // TODO: deploy StableCoinAcceptor
-  // TODO: change settings functions args (setup1,2 and stackNFT adjustSettings)
-  // TODO: add var for stable, vars for vrf + link (rinkeby USDC see in stables contract)
-  //       (and link\vrf addrs is in utils script)
 
-  // Set USDT, USDC, DAI in StableCoinAcceptor.sol
-  // Set LINK token address in StackOsNFT.sol
-  // Set VRF Coordinator address in StackOsNFT.sol
   // Set fee amount for chainlink in StackOsNFT.sol
 
   // This address will be owner of all contracts plus market proxy owner
   OWNERSHIP = "0xeb2198ba8047B20aC84fBfB78af33f5A9690F674"
+
+  // Stablecoins supported by Subscription, StackOsNFT, StackOsNFTBasic
+  STABLES = [
+    "0xeb8f08a975Ab53E34D8a0330E0D34de942C95926"
+  ]
 
   // Required deposit amount of StackNFTs to be able to mint DarkMatter
   DARK_MATTER_PRICE = 5;
@@ -67,6 +61,8 @@ async function main() {
   TIMELOCK = 6442850;
   // Fee percent for Subscription contract on partner mint
   MINT_FEE = 2000;
+  VRF_COORDINATOR = "0xb3dCcb4Cf7a26f6cf6B120Cf5A73875B7BBc655B";
+  LINK_TOKEN = "0x01BE23585060835E02B77ef475b0Cc51aA1e0709";
 
   /**
    * Set to true if you want partners to be able to mint for themselves (can be started later, after deployment)
@@ -117,6 +113,13 @@ async function main() {
   //^^^^^^^^^^^^^^^^^^ SETTINGS ^^^^^^^^^^^^^^^^^^
 
   //vvvvvvvvvvvvvvvvvvvvv DEPLOYMENT vvvvvvvvvvvvvvvvvvvvv
+  const StableCoinAcceptor = await ethers.getContractFactory("StableCoinAcceptor");
+  let stableAcceptor = await StableCoinAcceptor.deploy(
+    STABLES
+  );
+  await stableAcceptor.deployed();
+  console.log("StableCoinAcceptor", stableAcceptor.address);
+
   const GenerationManager = await ethers.getContractFactory(
     "GenerationManager"
   );
@@ -175,6 +178,7 @@ async function main() {
     generationManager.address,
     darkMatter.address,
     ROUTER_ADDRESS,
+    stableAcceptor.address,
     TAX_ADDRESS,
     TAX_RESET_DEADLINE,
     SUBSCRIPTION_PRICE,
@@ -188,8 +192,8 @@ async function main() {
   let stackOsNFT = await StackOS.deploy(
     NAME,
     SYMBOL,
-    STACK_TOKEN,
-    darkMatter.address,
+    VRF_COORDINATOR,
+    LINK_TOKEN,
     PRICE,
     MAX_SUPPLY,
     PRIZES,
@@ -223,7 +227,10 @@ async function main() {
   await stackOsNFT.adjustAddressSettings(
     generationManager.address,
     ROUTER_ADDRESS,
-    subscription.address
+    subscription.address,
+    stableAcceptor.address,
+    STACK_TOKEN,
+    darkMatter.address
   );
   await stackOsNFT.setMintFee(MINT_FEE);
   // Allow DarkMatter to transfer StackNFT
@@ -265,10 +272,12 @@ async function main() {
   );
   await generationManager.setupDeploy2(
     ROUTER_ADDRESS,
-    marketProxy.address
+    marketProxy.address,
+    stableAcceptor.address
   )
 
   // TRANSFER OWNERSHIP
+  // await stableAcceptor.transferOwnership(OWNERSHIP);
   await generationManager.transferOwnership(OWNERSHIP);
   await darkMatter.transferOwnership(OWNERSHIP);
 
@@ -285,6 +294,15 @@ async function main() {
   // vvvvvvvvvvvvvvvvvvvvvvvvv VERIFICATION vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
   console.log("Verification started, please wait for a minute!");
   await delay(46000);
+
+  try {
+    await hre.run("verify:verify", {
+      address: stableAcceptor.address,
+      constructorArguments: [STABLES],
+    });
+  } catch (error) {
+    console.log(error)
+  }
 
   try {
     await hre.run("verify:verify", {
@@ -321,6 +339,7 @@ async function main() {
         generationManager.address,
         darkMatter.address,
         ROUTER_ADDRESS,
+        stableAcceptor.address,
         TAX_ADDRESS,
         TAX_RESET_DEADLINE,
         SUBSCRIPTION_PRICE,
@@ -337,8 +356,8 @@ async function main() {
       constructorArguments: [
         NAME,
         SYMBOL,
-        STACK_TOKEN,
-        darkMatter.address,
+        VRF_COORDINATOR,
+        LINK_TOKEN,
         PRICE,
         MAX_SUPPLY,
         PRIZES,
