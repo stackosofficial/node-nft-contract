@@ -126,7 +126,8 @@ module.exports = {
                        
           blockNumber: 9808000, // block pinning gives x20 perfromance due to caching as stated on hardhat docs 
           enabled: true
-        }
+        },
+        metadata: {kek: "lol"}
     },
     rinkeby: {
       url: process.env.RINKEBY_URL || "",

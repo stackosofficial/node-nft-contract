@@ -13,11 +13,12 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "hardhat/console.sol";
 
-contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
+contract Subscription is Ownable, ReentrancyGuard {
     IERC20 private stackToken;
-    IUniswapV2Router02 private router;
-    DarkMatter private darkMatter;
     GenerationManager private generations;
+    DarkMatter private darkMatter;
+    IUniswapV2Router02 private router;
+    StableCoinAcceptor stableAcceptor;
     address private taxAddress;
 
     uint256 private constant HUNDRED_PERCENT = 10000;
@@ -57,6 +58,7 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
         GenerationManager _generations,
         DarkMatter _darkMatter,
         IUniswapV2Router02 _router,
+        StableCoinAcceptor _stableAcceptor,
         address _taxAddress,
         uint256 _taxResetDeadline,
         uint256 _price,
@@ -67,6 +69,7 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
         generations = _generations;
         darkMatter = _darkMatter;
         router = _router;
+        stableAcceptor = _stableAcceptor;
         taxAddress = _taxAddress;
         taxResetDeadline = _taxResetDeadline;
         price = _price;
@@ -139,7 +142,7 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
         uint256 tokenId,
         IERC20 _stablecoin
     ) public nonReentrant {
-        require(supportsCoin(_stablecoin), "Unsupported payment coin");
+        require(stableAcceptor.supportsCoin(_stablecoin), "Unsupported payment coin");
         _subscribe(generationId, tokenId, _stablecoin, true);
     }
 
@@ -267,7 +270,7 @@ contract Subscription is StableCoinAcceptor, Ownable, ReentrancyGuard {
         uint256 amountToMint,
         IERC20 _stablecoin
     ) external nonReentrant {
-        require(supportsCoin(_stablecoin), "Unsupported payment coin");
+        require(stableAcceptor.supportsCoin(_stablecoin), "Unsupported payment coin");
         for (uint256 i; i < withdrawTokenIds.length; i++) {
             _withdraw(
                 withdrawGenerationId,

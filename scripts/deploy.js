@@ -8,6 +8,13 @@ async function main() {
 
   //vvvvvvvvvvvvvvvvvv SETTINGS vvvvvvvvvvvvvvvvvv
 
+  // TODO: change constructor args to accept StableCoinAcceptor
+  //       don't forget to do the same in verification section (subscription, stacknft, basic)
+  // TODO: deploy StableCoinAcceptor
+  // TODO: change settings functions args (setup1,2 and stackNFT adjustSettings)
+  // TODO: add var for stable, vars for vrf + link (rinkeby USDC see in stables contract)
+  //       (and link\vrf addrs is in utils script)
+
   // Set USDT, USDC, DAI in StableCoinAcceptor.sol
   // Set LINK token address in StackOsNFT.sol
   // Set VRF Coordinator address in StackOsNFT.sol

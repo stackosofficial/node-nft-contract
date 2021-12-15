@@ -34,6 +34,7 @@ describe("DarkMatter", function () {
       subscription,
       stackOsNFT,
       royalty,
+      stableAcceptor,
     ] = await setup();
 
   });

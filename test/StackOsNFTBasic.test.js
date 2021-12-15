@@ -32,6 +32,7 @@ describe("StackOS NFT Basic", function () {
       subscription,
       stackOsNFT,
       royalty,
+      stableAcceptor,
     ] = await setup();
 
     stackOsNFT = await deployStackOSBasic();
@@ -108,7 +109,6 @@ describe("StackOS NFT Basic", function () {
       SYMBOL,
       STACK_TOKEN_FOR_PAYMENT,
       DARK_MATTER_ADDRESS,
-      // ROUTER,
       SUBSCRIPTION,
       PRICE,
       MINT_FEE,
@@ -119,7 +119,8 @@ describe("StackOS NFT Basic", function () {
     );
     await generationManager.setupDeploy2(
       router.address,
-      owner.address // fake market address
+      owner.address, // fake market address
+      stableAcceptor.address,
     )
   });
 
@@ -181,14 +182,14 @@ describe("StackOS NFT Basic", function () {
       SYMBOL,
       STACK_TOKEN_FOR_PAYMENT,
       DARK_MATTER_ADDRESS,
-      // ROUTER,
       SUBSCRIPTION,
       PRICE,
       MINT_FEE,
       MAX_SUPPLY,
       TRANSFER_DISCOUNT,
       TIMELOCK,
-      ROYALTY
+      ROYALTY,
+      stableAcceptor.address
     );
     stackOsNFTgen2 = await ethers.getContractAt(
       "StackOsNFTBasic",
@@ -204,14 +205,14 @@ describe("StackOS NFT Basic", function () {
       SYMBOL,
       STACK_TOKEN_FOR_PAYMENT,
       DARK_MATTER_ADDRESS,
-      // ROUTER,
       SUBSCRIPTION,
       PRICE,
       MINT_FEE,
       MAX_SUPPLY,
       TRANSFER_DISCOUNT,
       TIMELOCK,
-      ROYALTY
+      ROYALTY,
+      stableAcceptor.address
     );
     stackOsNFTgen3 = await ethers.getContractAt(
       "StackOsNFTBasic",

@@ -34,6 +34,7 @@ describe("Market", function () {
       subscription,
       stackOsNFT,
       royalty,
+      stableAcceptor,
     ] = await setup();
   });
 

@@ -8,10 +8,12 @@ contract StableCoinAcceptor {
     IERC20[] public stablecoins;
 
     constructor(
+        IERC20[] memory _stables
     ) {
-        stablecoins.push(IERC20(0xeb8f08a975Ab53E34D8a0330E0D34de942C95926));
-        stablecoins.push(IERC20(0xeb8f08a975Ab53E34D8a0330E0D34de942C95926));
-        stablecoins.push(IERC20(0xeb8f08a975Ab53E34D8a0330E0D34de942C95926));
+        stablecoins = _stables;
+        // stablecoins.push(IERC20(0xeb8f08a975Ab53E34D8a0330E0D34de942C95926));
+        // stablecoins.push(IERC20(0xeb8f08a975Ab53E34D8a0330E0D34de942C95926));
+        // stablecoins.push(IERC20(0xeb8f08a975Ab53E34D8a0330E0D34de942C95926));
     }
 
     /*

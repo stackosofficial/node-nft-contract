@@ -6,6 +6,7 @@ const { deployStackOSBasic, setup, print } = require("./utils");
 describe("Subscription", function () {
   it("Snapshot EVM", async function () {
     snapshotId = await ethers.provider.send("evm_snapshot");
+    // console.log(hre.network.config.metadata);
   });
 
   it("Defining Generals", async function () {
@@ -33,6 +34,7 @@ describe("Subscription", function () {
       subscription,
       stackOsNFTFull,
       royalty,
+      stableAcceptor,
     ] = await setup();
   });
 

@@ -27,6 +27,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         address royaltyAddress;
         address router;
         address market;
+        address stableAcceptor;
     }
     Deployment deployment;
 
@@ -78,10 +79,12 @@ contract GenerationManager is Ownable, ReentrancyGuard {
      */
     function setupDeploy2(
         address _router,
-        address _market
+        address _market,
+        address _stableAcceptor
     ) public onlyOwner {
         deployment.router = _router;
         deployment.market = _market;
+        deployment.stableAcceptor = _stableAcceptor;
     }
 
     /*
@@ -117,6 +120,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
             deployment.darkMatter,
             deployment.subscription,
             deployment.royaltyAddress,
+            deployment.stableAcceptor,
             deployment.participationFee,
             deployment.mintFee,
             maxSupply,
@@ -166,7 +170,8 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         uint256 _maxSupply,
         uint256 _transferDiscount,
         uint256 _timeLock,
-        address _royaltyAddress
+        address _royaltyAddress,
+        address _stableAcceptor
     ) public onlyOwner returns (IStackOsNFTBasic) {
         StackOsNFTBasic stack = StackOsNFTBasic(
             address(
@@ -180,6 +185,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
             _darkMatter,
             _subscription,
             _royaltyAddress,
+            _stableAcceptor,
             _participationFee,
             _mintFee,
             _maxSupply,

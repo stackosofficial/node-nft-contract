@@ -28,6 +28,7 @@ async function deployStackOSBasic() {
     DARK_MATTER_ADDRESS,
     SUBSCRIPTION,
     ROYALTY_ADDRESS,
+    stableAcceptor.address,
     PRICE,
     MINT_FEE,
     MAX_SUPPLY,
@@ -49,8 +50,8 @@ async function deployStackOS() {
   let stackOsNFT = await StackOS.deploy(
     NAME,
     SYMBOL,
-    STACK_TOKEN_FOR_PAYMENT,
-    DARK_MATTER_ADDRESS,
+    VRF_COORDINATOR,
+    LINK_TOKEN,
     PRICE,
     MAX_SUPPLY,
     PRIZES,
@@ -63,7 +64,10 @@ async function deployStackOS() {
   await stackOsNFT.adjustAddressSettings(
     generationManager.address,
     router.address,
-    subscription.address
+    subscription.address,
+    stableAcceptor.address,
+    STACK_TOKEN_FOR_PAYMENT,
+    DARK_MATTER_ADDRESS,
   );
   await stackOsNFT.setMintFee(MINT_FEE); // usdt
   await stackOsNFT.whitelist(darkMatter.address);
@@ -115,6 +119,18 @@ async function setup() {
   await darkMatter.deployed();
   console.log(darkMatter.address);
 
+  STABLES = [
+    "0x17cec3137787067579F20994C019e993Bb173B4C",
+    "0xCb7F54729c739db4B88C012126caDaF57F3578D3",
+    "0x67d5d249D8526f654899BaFE0dD0B7d7D27B5Aa3",
+  ]
+  const StableCoinAcceptor = await ethers.getContractFactory("StableCoinAcceptor");
+  let stableAcceptor = await StableCoinAcceptor.deploy(
+    STABLES
+  );
+  await stableAcceptor.deployed();
+  console.log(stableAcceptor.address);
+
   STACK_TOKEN_FOR_PAYMENT = stackToken.address;
   GENERATION_MANAGER_ADDRESS = generationManager.address;
   DARK_MATTER_ADDRESS = darkMatter.address;
@@ -132,6 +148,7 @@ async function setup() {
     GENERATION_MANAGER_ADDRESS,
     DARK_MATTER_ADDRESS,
     ROUTER_ADDRESS,
+    stableAcceptor.address,
     TAX_ADDRESS,
     TAX_RESET_DEADLINE,
     SUBSCRIPTION_PRICE,
@@ -154,6 +171,8 @@ async function setup() {
   MAX_SUPPLY = 25;
   PRIZES = 10;
   AUCTIONED_NFTS = 10;
+            // 0xb3dCcb4Cf7a26f6cf6B120Cf5A73875B7BBc655B, 
+            // 0x01BE23585060835E02B77ef475b0Cc51aA1e0709  
   VRF_COORDINATOR = coordinator.address;
   LINK_TOKEN = link.address;
   KEY_HASH =
@@ -165,8 +184,8 @@ async function setup() {
   let stackOsNFT = await StackOS.deploy(
     NAME,
     SYMBOL,
-    STACK_TOKEN_FOR_PAYMENT,
-    DARK_MATTER_ADDRESS,
+    VRF_COORDINATOR,
+    LINK_TOKEN,
     PRICE,
     MAX_SUPPLY,
     PRIZES,
@@ -179,7 +198,10 @@ async function setup() {
   await stackOsNFT.adjustAddressSettings(
     generationManager.address,
     router.address,
-    subscription.address
+    subscription.address,
+    stableAcceptor.address,
+    STACK_TOKEN_FOR_PAYMENT,
+    DARK_MATTER_ADDRESS,
   );
   await stackOsNFT.setMintFee(MINT_FEE);
   await stackOsNFT.whitelist(darkMatter.address);
@@ -221,6 +243,7 @@ async function setup() {
     subscription,
     stackOsNFT,
     royalty,
+    stableAcceptor,
   ];
 }
 

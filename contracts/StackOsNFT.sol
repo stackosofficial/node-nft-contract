@@ -12,7 +12,7 @@ import "./GenerationManager.sol";
 import "./StableCoinAcceptor.sol";
 import "hardhat/console.sol";
 
-contract StackOsNFT is StableCoinAcceptor, VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
+contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
     using Counters for Counters.Counter;
     using SafeMath for uint256;
 
@@ -29,6 +29,7 @@ contract StackOsNFT is StableCoinAcceptor, VRFConsumerBase, ERC721, ERC721URISto
     GenerationManager private generations;
     IUniswapV2Router02 private router;
     Subscription private subscription;
+    StableCoinAcceptor stableAcceptor;
 
     uint256[] public winningTickets;
     uint256 public timeLock;
@@ -66,8 +67,8 @@ contract StackOsNFT is StableCoinAcceptor, VRFConsumerBase, ERC721, ERC721URISto
     constructor(
         string memory _name,
         string memory _symbol,
-        IERC20 _stackOSTokenToken,
-        DarkMatter _darkMatter,
+        address _vrfCoordinator,
+        address _link,
         uint256 _participationFee,
         uint256 _maxSupply,
         uint256 _prizes,
@@ -77,12 +78,10 @@ contract StackOsNFT is StableCoinAcceptor, VRFConsumerBase, ERC721, ERC721URISto
     )
         ERC721(_name, _symbol)
         VRFConsumerBase(
-            0xb3dCcb4Cf7a26f6cf6B120Cf5A73875B7BBc655B, // VRF Coordinator
-            0x01BE23585060835E02B77ef475b0Cc51aA1e0709  // LINK Token
+            _vrfCoordinator,
+            _link
         )
     {
-        stackOSToken = _stackOSTokenToken;
-        darkMatter = _darkMatter;
         participationFee = _participationFee;
         maxSupply = _maxSupply;
         prizes = _prizes;
@@ -115,13 +114,24 @@ contract StackOsNFT is StableCoinAcceptor, VRFConsumerBase, ERC721, ERC721URISto
      * @dev Could only be invoked by the contract owner.
      */
 
-    function adjustAddressSettings(address _genManager, address _router, address _subscription)
+    function adjustAddressSettings(
+        address _genManager, 
+        address _router, 
+        address _subscription,
+        address _stableAcceptor,
+        address _stackOSTokenToken,
+        address _darkMatter
+    )
         public
         onlyOwner
     {
+        // TODO: should allow to call this func only once? as these addresses supposed to be in constructor
         generations = GenerationManager(_genManager);
         router = IUniswapV2Router02(_router);
         subscription = Subscription(_subscription);
+        stableAcceptor = StableCoinAcceptor(_stableAcceptor);
+        stackOSToken = IERC20(_stackOSTokenToken);
+        darkMatter = DarkMatter(_darkMatter);
     }
 
     /*
@@ -417,7 +427,7 @@ contract StackOsNFT is StableCoinAcceptor, VRFConsumerBase, ERC721, ERC721URISto
 
     function partnerMint(uint256 _nftAmount, IERC20 _stablecoin) public {
         require(salesStarted, "Sales not started");
-        require(supportsCoin(_stablecoin), "Unsupported payment coin");
+        require(stableAcceptor.supportsCoin(_stablecoin), "Unsupported payment coin");
         require(strategicPartner[msg.sender] >= _nftAmount, "Amount Too Big");
 
         uint256 stackAmount = participationFee.mul(_nftAmount);

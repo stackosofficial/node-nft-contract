@@ -14,7 +14,6 @@ import "hardhat/console.sol";
 
 contract StackOsNFTBasic is
     ERC721,
-    StableCoinAcceptor,
     ERC721URIStorage,
     Ownable
 {
@@ -24,11 +23,11 @@ contract StackOsNFTBasic is
     Counters.Counter private _tokenIdCounter;
     IERC20 private stackOSToken;
     DarkMatter private darkMatter;
+    Subscription private subscription;
+    address private royaltyAddress;
+    StableCoinAcceptor stableAcceptor;
     GenerationManager private generations;
     IUniswapV2Router02 private router;
-    Subscription private subscription;
-
-    address private royaltyAddress;
 
     uint256 public timeLock;
     uint256 public adminWithdrawableAmount;
@@ -65,6 +64,7 @@ contract StackOsNFTBasic is
         address _darkMatter,
         address _subscription,
         address _royaltyAddress,
+        address _stableAcceptor,
         uint256 _participationFee,
         uint256 _mintFee,
         uint256 _maxSupply,
@@ -78,6 +78,7 @@ contract StackOsNFTBasic is
         darkMatter = DarkMatter(_darkMatter);
         subscription = Subscription(_subscription);
         royaltyAddress = _royaltyAddress;
+        stableAcceptor = StableCoinAcceptor(_stableAcceptor);
 
         participationFee = _participationFee;
         mintFee = _mintFee;
@@ -205,7 +206,7 @@ contract StackOsNFTBasic is
         );
 
         stackOSToken.transferFrom(msg.sender, address(this), _amount);
-        uint256 usdAmount = sellStackToken(_amount, stablecoins[0]);
+        uint256 usdAmount = sellStackToken(_amount, stableAcceptor.stablecoins(0));
 
         uint256 participationFeeDiscount = participationFee
             .mul(10000 - transferDiscount)
@@ -214,10 +215,13 @@ contract StackOsNFTBasic is
         uint256 ticketAmount = usdAmount.div(participationFeeDiscount);
         uint256 depositAmount = participationFeeDiscount.mul(ticketAmount);
 
-        uint256 stackDepositAmount = buyStackToken(depositAmount, stablecoins[0]);
+        uint256 stackDepositAmount = buyStackToken(
+            depositAmount, 
+            stableAcceptor.stablecoins(0)
+        );
         uint256 stackLeftOverAmount = buyStackToken(
             usdAmount - depositAmount,
-            stablecoins[0]
+            stableAcceptor.stablecoins(0)
         );
 
         stackOSToken.transfer(
@@ -253,7 +257,7 @@ contract StackOsNFTBasic is
 
     function mint(uint256 _nftAmount, IERC20 _stablecoin) public {
         require(salesStarted, "Sales not started");
-        require(supportsCoin(_stablecoin), "Unsupported payment coin");
+        require(stableAcceptor.supportsCoin(_stablecoin), "Unsupported payment coin");
 
         uint256 amountIn = participationFee.mul(_nftAmount);
         _stablecoin.transferFrom(msg.sender, address(this), amountIn);
