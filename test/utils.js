@@ -31,7 +31,6 @@ async function deployStackOSBasic() {
     TRANSFER_DISCOUNT,
     TIMELOCK,
     ROYALTY_ADDRESS,
-    stableAcceptor.address,
   ]
   // get address with callStatic, the call will not change the state
   let stackOsNFTBasic = await generationManager.callStatic.deployNextGen(
@@ -76,6 +75,7 @@ async function deployStackOS() {
     stableAcceptor.address,
     STACK_TOKEN_FOR_PAYMENT,
     DARK_MATTER_ADDRESS,
+    exchange.address
   );
   await stackOsNFT.setMintFee(MINT_FEE); // usdt
   await stackOsNFT.whitelist(darkMatter.address);
@@ -138,6 +138,18 @@ async function setup() {
   );
   await stableAcceptor.deployed();
   console.log(stableAcceptor.address);
+
+  const Exchange = await ethers.getContractFactory("Exchange");
+  let exchange = await Exchange.deploy(
+    router.address,
+  );
+  await exchange.deployed();
+  console.log(exchange.address);
+
+  await generationManager.adjustAddressSettings(
+    stableAcceptor.address,
+    exchange.address,
+  )
 
   STACK_TOKEN_FOR_PAYMENT = stackToken.address;
   GENERATION_MANAGER_ADDRESS = generationManager.address;
@@ -208,6 +220,7 @@ async function setup() {
     stableAcceptor.address,
     STACK_TOKEN_FOR_PAYMENT,
     DARK_MATTER_ADDRESS,
+    exchange.address
   );
   await stackOsNFT.setMintFee(MINT_FEE);
   await stackOsNFT.whitelist(darkMatter.address);
@@ -228,6 +241,7 @@ async function setup() {
     GENERATION_MANAGER_ADDRESS,
     DARK_MATTER_ADDRESS,
     subscription.address,
+    exchange.address,
     DEPOSIT_FEE_ADDRESS,
     MIN_CYCLE_ETHER
   );
@@ -250,6 +264,7 @@ async function setup() {
     stackOsNFT,
     royalty,
     stableAcceptor,
+    exchange
   ];
 }
 

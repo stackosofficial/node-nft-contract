@@ -32,6 +32,7 @@ describe("StackOS NFT", function () {
       stackOsNFT,
       royalty,
       stableAcceptor,
+      exchange,
     ] = await setup();
   });
 

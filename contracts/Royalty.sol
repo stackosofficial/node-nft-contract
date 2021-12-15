@@ -7,6 +7,7 @@ import "./GenerationManager.sol";
 import "./DarkMatter.sol";
 import "./interfaces/IStackOsNFT.sol";
 import "./Subscription.sol";
+import "./Exchange.sol";
 
 contract Royalty is Ownable {
     using Counters for Counters.Counter;
@@ -18,6 +19,7 @@ contract Royalty is Ownable {
     GenerationManager private generations;
     DarkMatter private darkMatter;
     Subscription private subscription;
+    Exchange private exchange;
     IERC20 private WETH; // for Matic network
     address payable private feeAddress; // fee from deposits will be transferred here
     uint256 private feePercent;
@@ -41,14 +43,16 @@ contract Royalty is Ownable {
         GenerationManager _generations,
         DarkMatter _darkMatter,
         Subscription _subscription,
+        Exchange _exchange,
         address payable _feeAddress,
         uint256 _minEthToStartCycle
     ) {
         router = _router;
         generations = _generations;
         darkMatter = _darkMatter;
-        feeAddress = _feeAddress;
         subscription = _subscription;
+        exchange = _exchange;
+        feeAddress = _feeAddress;
         minEthToStartCycle = _minEthToStartCycle;
     }
 
@@ -208,7 +212,7 @@ contract Royalty is Ownable {
     function claim(uint256 _generationId, uint256[] calldata _tokenIds)
         external
     {
-        _claim(_generationId, _tokenIds, 0, false, IERC20(address(0)));
+        _claim(_generationId, _tokenIds, 0, false, IERC20(address(0)), false);
     }
 
     /*
@@ -220,7 +224,7 @@ contract Royalty is Ownable {
         external
     {
         require(address(WETH) != address(0), "Wrong WETH address");
-        _claim(_generationId, _tokenIds, 0, false, WETH);
+        _claim(_generationId, _tokenIds, 0, false, IERC20(address(0)), true);
     }
 
     /*
@@ -238,7 +242,7 @@ contract Royalty is Ownable {
         IERC20 _stablecoin 
     ) external {
         require(_generationId > 0, "Must be not first generation");
-        _claim(_generationId, _tokenIds, _mintNum, true, _stablecoin);
+        _claim(_generationId, _tokenIds, _mintNum, true, _stablecoin, false);
     }
 
     function _claim(
@@ -246,7 +250,8 @@ contract Royalty is Ownable {
         uint256[] calldata tokenIds,
         uint256 _mintNum,
         bool _mint,
-        IERC20 _stablecoin
+        IERC20 _stablecoin,
+        bool _claimWETH
     ) internal {
         require(address(this).balance > 0, "No royalty");
         IStackOsNFT stack = generations.get(generationId);
@@ -316,8 +321,8 @@ contract Royalty is Ownable {
 
             if (reward > 0) {
                 if (_mint == false) {
-                    if(_stablecoin == WETH && address(WETH) != address(0)) {
-                        uint256 wethReceived = buyWETH(reward);
+                    if(_claimWETH) {
+                        uint256 wethReceived = exchange.swapExactETHForTokens{value: reward}(WETH);
                         WETH.transfer(msg.sender, wethReceived);
                     } else {
                         (bool success, ) = payable(msg.sender).call{value: reward}(
@@ -327,7 +332,7 @@ contract Royalty is Ownable {
                     }
                 } else {
                     IStackOsNFTBasic stackNFT = IStackOsNFTBasic(address(generations.get(generationId)));
-                    uint256 usdReceived = buyStable(reward, _stablecoin);
+                    uint256 usdReceived = exchange.swapExactETHForTokens{value: reward}(_stablecoin);
                     _stablecoin.approve(address(stackNFT), usdReceived);
 
                     uint256 spendAmount = stackNFT.mintFromRoyaltyRewards(
@@ -339,44 +344,5 @@ contract Royalty is Ownable {
                 }
             }
         }
-    }
-
-    /*
-     *  @title Buy `_stablecoin` for `amount` of WETH.
-     *  @param Amount of WETH to swap.
-     *  @param Address of supported stablecoin
-     */
-    function buyStable(uint256 amount, IERC20 _stablecoin) private returns (uint256) {
-        uint256 deadline = block.timestamp + 1200;
-        address[] memory path = new address[](2);
-        path[0] = address(router.WETH());
-        path[1] = address(_stablecoin);
-        uint256[] memory amountOutMin = router.getAmountsOut(amount, path);
-        uint256[] memory amounts = router.swapExactETHForTokens{value: amount}(
-            amountOutMin[1],
-            path,
-            address(this),
-            deadline
-        );
-        return amounts[1];
-    }
-
-    /*
-     *  @title Buy WETH.
-     *  @param Amount of MATIC.
-     */
-    function buyWETH(uint256 amount) private returns (uint256) {
-        uint256 deadline = block.timestamp + 1200;
-        address[] memory path = new address[](2);
-        path[0] = address(router.WETH()); // on matic network this should return W-MATIC
-        path[1] = address(WETH);
-        uint256[] memory amountOutMin = router.getAmountsOut(amount, path);
-        uint256[] memory amounts = router.swapExactETHForTokens{value: amount}(
-            amountOutMin[1],
-            path,
-            address(this),
-            deadline
-        );
-        return amounts[1];
     }
 }

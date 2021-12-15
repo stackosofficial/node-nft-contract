@@ -34,6 +34,7 @@ describe("DarkMatter integration with Subscription", function () {
       stackOsNFT,
       royalty,
       stableAcceptor,
+      exchange,
     ] = await setup();
   
   });

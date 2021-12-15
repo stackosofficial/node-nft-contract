@@ -38,6 +38,7 @@ describe("Royalty", function () {
       stackOsNFT,
       royalty,
       stableAcceptor,
+      exchange
     ] = await setup();
   });
 

@@ -11,6 +11,7 @@ import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "./interfaces/IStackOsNFT.sol";
 import "./Subscription.sol";
 import "./StableCoinAcceptor.sol";
+import "./Exchange.sol";
 import "hardhat/console.sol";
 
 contract StackOsNFTBasic is
@@ -29,6 +30,7 @@ contract StackOsNFTBasic is
     StableCoinAcceptor stableAcceptor;
     GenerationManager private generations;
     IUniswapV2Router02 private router;
+    Exchange private exchange;
 
     uint256 public timeLock;
     uint256 public adminWithdrawableAmount;
@@ -71,13 +73,13 @@ contract StackOsNFTBasic is
         address _subscription,
         address _royaltyAddress,
         address _stableAcceptor,
+        address _exchange,
         uint256 _participationFee,
         uint256 _mintFee,
         uint256 _maxSupply,
         uint256 _transferDiscount,
         uint256 _timeLock
     ) public onlyOwner {
-        console.log(address(generations), msg.sender);
         require(initialized == false, "Already initialized");
         initialized = true;
         
@@ -86,6 +88,7 @@ contract StackOsNFTBasic is
         subscription = Subscription(_subscription);
         royaltyAddress = _royaltyAddress;
         stableAcceptor = StableCoinAcceptor(_stableAcceptor);
+        exchange = Exchange(_exchange);
 
         participationFee = _participationFee;
         mintFee = _mintFee;
@@ -223,9 +226,14 @@ contract StackOsNFTBasic is
             address(generations.get(0)) == msg.sender, 
             "Not Correct Address"
         );
-
+        IERC20 stablecoin = stableAcceptor.stablecoins(0);
         stackOSToken.transferFrom(msg.sender, address(this), _amount);
-        uint256 usdAmount = sellStackToken(_amount, stableAcceptor.stablecoins(0));
+        stackOSToken.approve(address(exchange), _amount);
+        uint256 usdAmount = exchange.swapExactTokensForTokens(
+            _amount, 
+            stackOSToken, 
+            stablecoin
+        );
 
         uint256 participationFeeDiscount = participationFee
             .mul(10000 - transferDiscount)
@@ -234,13 +242,17 @@ contract StackOsNFTBasic is
         uint256 ticketAmount = usdAmount.div(participationFeeDiscount);
         uint256 depositAmount = participationFeeDiscount.mul(ticketAmount);
 
-        uint256 stackDepositAmount = buyStackToken(
+        // stablecoin.transferFrom(msg.sender, address(this), amount);
+        stablecoin.approve(address(exchange), usdAmount);
+        uint256 stackDepositAmount = exchange.swapExactTokensForTokens(
             depositAmount, 
-            stableAcceptor.stablecoins(0)
+            stablecoin,
+            stackOSToken
         );
-        uint256 stackLeftOverAmount = buyStackToken(
+        uint256 stackLeftOverAmount = exchange.swapExactTokensForTokens(
             usdAmount - depositAmount,
-            stableAcceptor.stablecoins(0)
+            stablecoin,
+            stackOSToken
         );
 
         stackOSToken.transfer(
@@ -280,7 +292,12 @@ contract StackOsNFTBasic is
 
         uint256 amountIn = participationFee.mul(_nftAmount);
         _stablecoin.transferFrom(msg.sender, address(this), amountIn);
-        uint256 stackAmount = buyStackToken(amountIn, _stablecoin);
+        _stablecoin.approve(address(exchange), amountIn);
+        uint256 stackAmount = exchange.swapExactTokensForTokens(
+            amountIn, 
+            _stablecoin,
+            stackOSToken
+        );
 
         uint256 subscriptionPart = (stackAmount * mintFee) / 10000;
         stackAmount -= subscriptionPart;
@@ -317,10 +334,14 @@ contract StackOsNFTBasic is
             10000;
 
         uint256 amountIn = discountAmount.mul(_nftAmount);
-        console.log("mintFromSub amountIn:", amountIn);
 
         IERC20(_stablecoin).transferFrom(msg.sender, address(this), amountIn);
-        uint256 stackAmount = buyStackToken(amountIn, IERC20(_stablecoin));
+        IERC20(_stablecoin).approve(address(exchange), amountIn);
+        uint256 stackAmount = exchange.swapExactTokensForTokens(
+            amountIn, 
+            IERC20(_stablecoin),
+            stackOSToken
+        );
 
         uint256 subscriptionPart = (stackAmount * mintFee) / 10000;
         stackAmount -= subscriptionPart;
@@ -353,7 +374,6 @@ contract StackOsNFTBasic is
         path[1] = address(router.WETH());
         path[2] = address(_stablecoin);
         uint256[] memory amountInMin = router.getAmountsIn(amountOut, path);
-        console.log("getAmountsIn: want usd & got stack: ", amountOut, amountInMin[0]);
         return amountInMin[0];
     }
 
@@ -379,7 +399,12 @@ contract StackOsNFTBasic is
         // uint256 _nftAmount = _usdAmount / discountAmount;
         uint256 amountIn = discountAmount.mul(_mintNum);
         IERC20(_stablecoin).transferFrom(msg.sender, address(this), amountIn);
-        uint256 stackAmount = buyStackToken(amountIn, IERC20(_stablecoin));
+        IERC20(_stablecoin).approve(address(exchange), amountIn);
+        uint256 stackAmount = exchange.swapExactTokensForTokens(
+            amountIn, 
+            IERC20(_stablecoin),
+            stackOSToken
+        );
 
         uint256 subscriptionPart = (stackAmount * mintFee) / 10000;
         stackAmount -= subscriptionPart;
@@ -501,60 +526,4 @@ contract StackOsNFTBasic is
         adminWithdrawableAmount = 0;
     }
 
-    /*
-     *  @title Buy `stackToken` for `amount` of _stablecoin.
-     *  @param Amount of `_stablecoin` to sell.
-     *  @param Address of supported stablecoin
-     */
-    function buyStackToken(uint256 amount, IERC20 _stablecoin)
-        private
-        returns (uint256)
-    {
-        _stablecoin.approve(address(router), amount);
-
-        uint256 deadline = block.timestamp + 1200;
-        address[] memory path = new address[](3);
-        path[0] = address(_stablecoin);
-        path[1] = address(router.WETH());
-        path[2] = address(stackOSToken);
-        uint256[] memory amountOutMin = router.getAmountsOut(amount, path);
-        uint256[] memory amounts = router.swapExactTokensForTokens(
-            amount,
-            amountOutMin[2],
-            path,
-            address(this),
-            deadline
-        );
-
-        return amounts[2];
-    }
-
-    /*
-     *  @title Sell `amount` of `stackToken`.
-     *  @param Amount of `stackToken` to sell.
-     *  @param Address of supported stablecoin
-     */
-
-    function sellStackToken(uint256 amount, IERC20 _stablecoin)
-        private
-        returns (uint256)
-    {
-        stackOSToken.approve(address(router), amount);
-
-        uint256 deadline = block.timestamp + 1200;
-        address[] memory path = new address[](3);
-        path[0] = address(stackOSToken);
-        path[1] = address(router.WETH());
-        path[2] = address(_stablecoin);
-        uint256[] memory amountOutMin = router.getAmountsOut(amount, path);
-        uint256[] memory amounts = router.swapExactTokensForTokens(
-            amount,
-            amountOutMin[2],
-            path,
-            address(this),
-            deadline
-        );
-
-        return amounts[2];
-    }
 }

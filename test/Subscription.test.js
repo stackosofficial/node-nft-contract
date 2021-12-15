@@ -35,6 +35,7 @@ describe("Subscription", function () {
       stackOsNFTFull,
       royalty,
       stableAcceptor,
+      exchange,
     ] = await setup();
   });
 

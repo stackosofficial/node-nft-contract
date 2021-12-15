@@ -11,6 +11,7 @@ import "./interfaces/IStackOsNFT.sol";
 import "./GenerationManager.sol";
 import "./StableCoinAcceptor.sol";
 import "hardhat/console.sol";
+import "./Exchange.sol";
 
 contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
     using Counters for Counters.Counter;
@@ -26,6 +27,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
     Counters.Counter private _tokenIdCounter;
     IERC20 private stackOSToken;
     DarkMatter private darkMatter;
+    Exchange exchange;
     GenerationManager private generations;
     IUniswapV2Router02 private router;
     Subscription private subscription;
@@ -120,7 +122,8 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         address _subscription,
         address _stableAcceptor,
         address _stackOSTokenToken,
-        address _darkMatter
+        address _darkMatter,
+        address _exchange
     )
         public
         onlyOwner
@@ -132,6 +135,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         stableAcceptor = StableCoinAcceptor(_stableAcceptor);
         stackOSToken = IERC20(_stackOSTokenToken);
         darkMatter = DarkMatter(_darkMatter);
+        exchange = Exchange(_exchange);
     }
 
     /*
@@ -432,7 +436,14 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
 
         uint256 stackAmount = participationFee.mul(_nftAmount);
         uint256 amountIn = getAmountIn(stackAmount, _stablecoin);
-        stackAmount = buyStackToken(amountIn, _stablecoin);
+        // stackAmount = buyStackToken(amountIn, _stablecoin);
+        IERC20(_stablecoin).transferFrom(msg.sender, address(this), amountIn);
+        IERC20(_stablecoin).approve(address(exchange), amountIn);
+        stackAmount = exchange.swapExactTokensForTokens(
+            amountIn, 
+            IERC20(_stablecoin),
+            stackOSToken
+        );
 
         uint256 subscriptionPart = stackAmount * mintFee / 10000;
         stackAmount -= subscriptionPart;
@@ -612,31 +623,5 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         return amountsIn[0];
     }
 
-    /*
-     *  @title Buy `stackToken` for `amount` of _stablecoin.
-     *  @param Amount of `_stablecoin` to sell.
-     *  @param Address of supported stablecoin
-     */
-
-    function buyStackToken(uint256 amount, IERC20 _stablecoin) private returns (uint256) {
-        _stablecoin.transferFrom(msg.sender, address(this), amount);
-        _stablecoin.approve(address(router), amount);
-
-        uint256 deadline = block.timestamp + 1200;
-        address[] memory path = new address[](3);
-        path[0] = address(_stablecoin);
-        path[1] = address(router.WETH());
-        path[2] = address(stackOSToken);
-        uint256[] memory amountOutMin = router.getAmountsOut(amount, path);
-        uint256[] memory amounts = router.swapExactTokensForTokens(
-            amount,
-            amountOutMin[2],
-            path,
-            address(this),
-            deadline
-        );
-
-        return amounts[2];
-    }
 
 }

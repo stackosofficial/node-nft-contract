@@ -9,6 +9,9 @@ import "./StackOsNFTBasic.sol";
 contract GenerationManager is Ownable, ReentrancyGuard {
     using Strings for uint256;
 
+    address stableAcceptor;
+    address exchange;
+
     IStackOsNFT[] private generations;
     mapping(address => uint256) private ids;
     uint256[] private generationAddedTimestamp; // time when generation was added
@@ -27,7 +30,6 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         address royaltyAddress;
         address router;
         address market;
-        address stableAcceptor;
     }
     Deployment deployment;
 
@@ -37,6 +39,17 @@ contract GenerationManager is Ownable, ReentrancyGuard {
     }
 
     constructor() {}
+
+    function adjustAddressSettings(
+        address _stableAcceptor,
+        address _exchange
+    )
+        public
+        onlyOwner
+    {
+        stableAcceptor = _stableAcceptor;
+        exchange = _exchange;
+    }
 
     /*
      * @title Save settings for auto deployment.
@@ -79,12 +92,10 @@ contract GenerationManager is Ownable, ReentrancyGuard {
      */
     function setupDeploy2(
         address _router,
-        address _market,
-        address _stableAcceptor
+        address _market
     ) public onlyOwner {
         deployment.router = _router;
         deployment.market = _market;
-        deployment.stableAcceptor = _stableAcceptor;
     }
 
     /*
@@ -120,7 +131,8 @@ contract GenerationManager is Ownable, ReentrancyGuard {
             deployment.darkMatter,
             deployment.subscription,
             deployment.royaltyAddress,
-            deployment.stableAcceptor,
+            stableAcceptor,
+            exchange,
             deployment.participationFee,
             deployment.mintFee,
             maxSupply,
@@ -169,8 +181,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         uint256 _maxSupply,
         uint256 _transferDiscount,
         uint256 _timeLock,
-        address _royaltyAddress,
-        address _stableAcceptor
+        address _royaltyAddress
     ) public onlyOwner returns (IStackOsNFTBasic) {
         StackOsNFTBasic stack = StackOsNFTBasic(
             address(
@@ -184,7 +195,8 @@ contract GenerationManager is Ownable, ReentrancyGuard {
             _darkMatter,
             _subscription,
             _royaltyAddress,
-            _stableAcceptor,
+            stableAcceptor,
+            exchange,
             _participationFee,
             _mintFee,
             _maxSupply,
