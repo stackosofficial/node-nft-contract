@@ -55,7 +55,9 @@ contract StackOsNFTBasic is
         _;
     }
 
-    // Must be deployed only by GenerationManager
+    /*
+     * @title Must be deployed only by GenerationManager
+     */
     constructor() onlyGenerationManager {
         generations = GenerationManager(msg.sender);
     }
@@ -87,6 +89,22 @@ contract StackOsNFTBasic is
         maxSupply = _maxSupply;
         transferDiscount = _transferDiscount;
         timeLock = block.timestamp + _timeLock;
+    }
+
+    /*
+     * @title Set token name.
+     * @dev Could only be invoked by the contract owner.
+     */
+    function setName(string memory name_) public onlyOwner {
+        _name = name_;
+    }
+
+    /*
+     * @title Set token symbol.
+     * @dev Could only be invoked by the contract owner.
+     */
+    function setSymbol(string memory symbol_) public onlyOwner {
+        _symbol = symbol_;
     }
 
     /*

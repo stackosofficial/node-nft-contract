@@ -21,10 +21,10 @@ contract CustomERC721 is Context, ERC165, IERC721, IERC721Metadata {
     using Strings for uint256;
 
     // Token name
-    string private _name;
+    string internal _name;
 
     // Token symbol
-    string private _symbol;
+    string internal _symbol;
 
     // Mapping from token ID to owner address
     mapping(uint256 => address) private _owners;
@@ -76,24 +76,10 @@ contract CustomERC721 is Context, ERC165, IERC721, IERC721Metadata {
     }
 
     /**
-     * @dev Custom function to change token name.
-     */
-    function setName(string memory name_) public virtual {
-        _name = name_;
-    }
-
-    /**
      * @dev See {IERC721Metadata-symbol}.
      */
     function symbol() public view virtual override returns (string memory) {
         return _symbol;
-    }
-
-    /**
-     * @dev Custom function to change token symbol.
-     */
-    function setSymbol(string memory symbol_) public virtual {
-        _symbol = symbol_;
     }
 
     /**
