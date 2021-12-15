@@ -187,18 +187,25 @@ contract Subscription is Ownable, ReentrancyGuard {
         // convert stablecoin to stack token
         uint256 amount;
         if(_payWithStack) {
+            _stablecoin = stableAcceptor.stablecoins(0);
             // how much stack we need to get `price` amount of usd
             uint256 stackAmountIn = exchange.getAmountIn(
                 price, 
-                stableAcceptor.stablecoins(0), 
+                _stablecoin, 
                 stackToken
             );
             stackToken.transferFrom(msg.sender, address(this), stackAmountIn);
             stackToken.approve(address(exchange), stackAmountIn);
-            amount = exchange.swapExactTokensForTokens(
+            uint256 usdAmount = exchange.swapExactTokensForTokens(
                 stackAmountIn, 
                 stackToken,
-                stableAcceptor.stablecoins(0)
+                _stablecoin
+            );
+            _stablecoin.approve(address(exchange), usdAmount);
+            amount = exchange.swapExactTokensForTokens(
+                usdAmount, 
+                _stablecoin,
+                stackToken
             );
         } else {
             _stablecoin.transferFrom(msg.sender, address(this), price);

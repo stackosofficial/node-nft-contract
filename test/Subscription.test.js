@@ -376,10 +376,13 @@ describe("Subscription", function () {
   })
 
   it("Subscribe with STACK", async function () {
+    // await stackToken.transferFrom(subscription.address, bank.address, await stackToken.balanceOf(subscription.address));
     await stackToken.approve(subscription.address, parseEther("20000.0"));
-    print("balance before sub: ", await stackToken.balanceOf(owner.address));
+    print("owner balance before sub: ", await stackToken.balanceOf(owner.address));
+    print("sub balance before sub: ", await stackToken.balanceOf(subscription.address));
     await subscription.subscribe(1, 1, stackToken.address, true); 
-    print("balance after sub: ", await stackToken.balanceOf(owner.address));
+    print("owner balance after sub: ", await stackToken.balanceOf(owner.address));
+    print("sub balance after sub: ", await stackToken.balanceOf(subscription.address));
   });
 
   // it("Withdraw", async function () {
