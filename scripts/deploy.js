@@ -21,7 +21,7 @@ async function main() {
   // Required deposit amount of StackNFTs to be able to mint DarkMatter
   DARK_MATTER_PRICE = 5;
 
-  // Router for Subscription, Royalty, StackNFT, StackNFTBasic
+  // Uniswap router
   ROUTER_ADDRESS = "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D";
   // Address to receive early Subscription withdraw TAX
   TAX_ADDRESS = "0xF90fF6d484331399f4eAa13f73D03b8B18eA1373";
@@ -120,6 +120,13 @@ async function main() {
   await stableAcceptor.deployed();
   console.log("StableCoinAcceptor", stableAcceptor.address);
 
+  const Exchange = await ethers.getContractFactory("Exchange");
+  let exchange = await Exchange.deploy(
+    ROUTER_ADDRESS,
+  );
+  await exchange.deployed();
+  console.log("Exchange", exchange.address);
+
   const GenerationManager = await ethers.getContractFactory(
     "GenerationManager"
   );
@@ -210,6 +217,7 @@ async function main() {
     generationManager.address,
     darkMatter.address,
     subscription.address,
+    exchange.address,
     DEPOSIT_FEE_ADDRESS,
     MIN_CYCLE_ETHER
   );
@@ -218,11 +226,17 @@ async function main() {
 
   //vvvvvvvvvvvvvvvvvv CONTRACT SETTINGS vvvvvvvvvvvvvvvvvv
   
+  await generationManager.adjustAddressSettings(
+    stableAcceptor.address,
+    exchange.address,
+  )
+
   // Allow Market to transfer DarkMatter
   await darkMatter.whitelist(marketProxy.address);
 
   // Add 1st generation in GenerationManager
   await generationManager.add(stackOsNFT.address);
+
   // Additional settings for StackNFT
   await stackOsNFT.adjustAddressSettings(
     generationManager.address,
@@ -230,7 +244,8 @@ async function main() {
     subscription.address,
     stableAcceptor.address,
     STACK_TOKEN,
-    darkMatter.address
+    darkMatter.address,
+    exchange.address,
   );
   await stackOsNFT.setMintFee(MINT_FEE);
   // Allow DarkMatter to transfer StackNFT
@@ -273,7 +288,6 @@ async function main() {
   await generationManager.setupDeploy2(
     ROUTER_ADDRESS,
     marketProxy.address,
-    stableAcceptor.address
   )
 
   // TRANSFER OWNERSHIP
@@ -303,7 +317,14 @@ async function main() {
   } catch (error) {
     console.log(error)
   }
-
+  try {
+    await hre.run("verify:verify", {
+      address: exchange.address,
+      constructorArguments: [ROUTER_ADDRESS],
+    });
+  } catch (error) {
+    console.log(error)
+  }
   try {
     await hre.run("verify:verify", {
       address: generationManager.address,

@@ -72,38 +72,4 @@ contract Exchange {
         );
         return amounts[2];
     }
-
-    /*
-     *  @title Sell `amount` of `stackToken`.
-     *  @param Amount of `stackToken` to sell.
-     *  @param Address of supported stablecoin
-     */
-
-    // function sellStackToken(
-    //     uint256 amount, 
-    //     IERC20 _stablecoin, 
-    //     IERC20 stackOSToken, 
-    //     IUniswapV2Router02 router
-    // )
-    //     private
-    //     returns (uint256)
-    // {
-    //     stackOSToken.approve(address(router), amount);
-
-    //     uint256 deadline = block.timestamp + 1200;
-    //     address[] memory path = new address[](3);
-    //     path[0] = address(stackOSToken);
-    //     path[1] = address(router.WETH());
-    //     path[2] = address(_stablecoin);
-    //     uint256[] memory amountOutMin = router.getAmountsOut(amount, path);
-    //     uint256[] memory amounts = router.swapExactTokensForTokens(
-    //         amount,
-    //         amountOutMin[2],
-    //         path,
-    //         address(this),
-    //         deadline
-    //     );
-
-    //     return amounts[2];
-    // }
 }
