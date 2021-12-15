@@ -1,8 +1,9 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
+// import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "./ERC721/CustomERC721.sol";
+import "./ERC721/extensions/ERC721URIStorage2.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
@@ -13,8 +14,8 @@ import "./StableCoinAcceptor.sol";
 import "hardhat/console.sol";
 
 contract StackOsNFTBasic is
-    ERC721,
-    ERC721URIStorage,
+    CustomERC721,
+    ERC721URIStorage2,
     Ownable
 {
     using Counters for Counters.Counter;
@@ -55,7 +56,7 @@ contract StackOsNFTBasic is
     }
 
     // Must be deployed only by GenerationManager
-    constructor() ERC721("", "") onlyGenerationManager {
+    constructor() onlyGenerationManager {
         generations = GenerationManager(msg.sender);
     }
 
@@ -420,7 +421,7 @@ contract StackOsNFTBasic is
         address from,
         address to,
         uint256 tokenId
-    ) internal override(ERC721) {
+    ) internal override(CustomERC721) {
         require(isWhitelisted(msg.sender), "Not whitelisted for transfers");
         super._transfer(from, to, tokenId);
     }
@@ -448,7 +449,7 @@ contract StackOsNFTBasic is
 
     function _burn(uint256 tokenId)
         internal
-        override(ERC721, ERC721URIStorage)
+        override(CustomERC721, ERC721URIStorage2)
     {
         super._burn(tokenId);
     }
@@ -456,7 +457,7 @@ contract StackOsNFTBasic is
     function tokenURI(uint256 tokenId)
         public
         view
-        override(ERC721, ERC721URIStorage)
+        override(CustomERC721, ERC721URIStorage2)
         returns (string memory)
     {
         return super.tokenURI(tokenId);
