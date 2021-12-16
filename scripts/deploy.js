@@ -8,6 +8,8 @@ async function main() {
 
   //vvvvvvvvvvvvvvvvvv SETTINGS vvvvvvvvvvvvvvvvvv
 
+  // TODO: maybe we can remove router from some contracts since we moved out swap function 
+
   // Set fee amount for chainlink in StackOsNFT.sol
 
   // This address will be owner of all contracts plus market proxy owner

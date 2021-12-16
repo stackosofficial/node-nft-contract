@@ -124,17 +124,14 @@ contract DarkMatter is ERC721, Ownable, ReentrancyGuard {
             deposits[msg.sender] += 1;
             if (deposits[msg.sender] == mintPrice) {
                 deposits[msg.sender] -= mintPrice;
-                stackToDarkMatter[generationId][tokenId] = lastUserDarkMatter[
-                    msg.sender
-                ];
                 darkMatterToStack[lastUserDarkMatter[msg.sender]][generationId].push(tokenId);
                 toBeMinted[msg.sender].push(lastUserDarkMatter[msg.sender]);
             } else {
-                stackToDarkMatter[generationId][tokenId] = lastUserDarkMatter[
-                    msg.sender
-                ];
                 darkMatterToStack[lastUserDarkMatter[msg.sender]][generationId].push(tokenId);
             }
+            stackToDarkMatter[generationId][tokenId] = lastUserDarkMatter[
+                msg.sender
+            ];
         }
     }
 

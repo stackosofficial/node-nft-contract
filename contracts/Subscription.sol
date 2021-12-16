@@ -48,7 +48,6 @@ contract Subscription is Ownable, ReentrancyGuard {
         uint256 balance; // amount without bonus
         Bonus[] reward; // bonuses
         uint256 tax; // tax percent on withdraw
-        uint256 withdrawableNum; // number of months that you able to withdraw
         uint256 nextPayDate; // you can subscribe after this date, but before deadline to reduce tax
     }
 
@@ -181,7 +180,6 @@ contract Subscription is Ownable, ReentrancyGuard {
         }
 
         deposit.tax = subOrZero(deposit.tax, taxReductionAmount);
-        deposit.withdrawableNum += 1;
         deposit.nextPayDate += MONTH;
 
         // convert stablecoin to stack token
@@ -359,7 +357,6 @@ contract Subscription is Ownable, ReentrancyGuard {
             "Not enough balance on bonus wallet"
         );
 
-        deposit.withdrawableNum = 0;
         deposit.balance = 0;
 
         // early withdraw tax
