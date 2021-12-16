@@ -194,6 +194,7 @@ contract Subscription is Ownable, ReentrancyGuard {
                 _stablecoin, 
                 stackToken
             );
+            // TODO: all these swaps probably excessive, the same applies to purchaseNFTs logic in withdraw function
             stackToken.transferFrom(msg.sender, address(this), stackAmountIn);
             stackToken.approve(address(exchange), stackAmountIn);
             uint256 usdAmount = exchange.swapExactTokensForTokens(
@@ -381,9 +382,9 @@ contract Subscription is Ownable, ReentrancyGuard {
 
             stackToken.approve(address(exchange), amountToConvert);
             uint256 usdForMint = exchange.swapExactTokensForTokens(
-                amountToConvert, 
+                amountToConvert,
                 stackToken,
-                _stablecoin 
+                _stablecoin
             );
 
             _stablecoin.approve(

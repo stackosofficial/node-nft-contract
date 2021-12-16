@@ -130,7 +130,11 @@ describe("StackOS NFT Basic", function () {
     await usdt.approve(stackOsNFT.address, parseEther("100.0"));
     let oldGenerationsCount = (await generationManager.count()).toNumber();
 
-    await stackOsNFT.mint(20, usdt.address);
+    await provider.send("evm_increaseTime", [60 * 60]); 
+    await stackOsNFT.mint(10, usdt.address);
+    await provider.send("evm_increaseTime", [60 * 60]); 
+    await stackOsNFT.mint(10, usdt.address);
+
     expect(await generationManager.count()).to.be.equal(
       oldGenerationsCount + 1
     );
@@ -161,22 +165,31 @@ describe("StackOS NFT Basic", function () {
     
     await stackAutoDeployed.startSales();
     await provider.send("evm_increaseTime", [60 * 60]); 
-    await stackAutoDeployed.mint(20, usdt.address);
-    // await stackAutoDeployed.mint(50, usdt.address);
-    // expect(await generationManager.count()).to.be.equal(
-    //   oldGenerationsCount + 1
-    // );
+    await stackAutoDeployed.mint(10, usdt.address);
+    await provider.send("evm_increaseTime", [60 * 60]); 
+    await stackAutoDeployed.mint(10, usdt.address);
+    await provider.send("evm_increaseTime", [60 * 60]); 
+    await stackAutoDeployed.mint(10, usdt.address);
+    await provider.send("evm_increaseTime", [60 * 60]); 
+    await stackAutoDeployed.mint(10, usdt.address);
+    await provider.send("evm_increaseTime", [60 * 60]); 
+    await stackAutoDeployed.mint(10, usdt.address);
 
-    // stackAutoDeployed2 = await ethers.getContractAt(
-    //   "StackOsNFTBasic",
-    //   await generationManager.get(oldGenerationsCount)
-    // );
+    // await stackAutoDeployed.mint(50, usdt.address);
+    expect(await generationManager.count()).to.be.equal(
+      oldGenerationsCount + 1
+    );
+
+    stackAutoDeployed2 = await ethers.getContractAt(
+      "StackOsNFTBasic",
+      await generationManager.get(oldGenerationsCount)
+    );
     
-    // expect(await stackAutoDeployed2.name()).to.be.equal("STACK OS NFT 4");
-    // expect(await stackAutoDeployed2.owner()).to.be.equal(owner.address);
-    // expect(await stackAutoDeployed2.getMaxSupply()).to.be.equal(
-    //   100
-    // );
+    expect(await stackAutoDeployed2.name()).to.be.equal("STACK OS NFT 4");
+    expect(await stackAutoDeployed2.owner()).to.be.equal(owner.address);
+    expect(await stackAutoDeployed2.getMaxSupply()).to.be.equal(
+      100
+    );
   });
 
   it("Deploy stackOsNFT generation from manager", async function () {
@@ -194,14 +207,20 @@ describe("StackOS NFT Basic", function () {
   it("Dripping tokens", async function () {
     await usdt.approve(stackOsNFTgen3.address, parseEther("100.0"));
     await stackOsNFTgen3.startSales();
-    await expect(stackOsNFTgen3.mint(1, usdt.address)).to.be.revertedWith(
+    await expect(stackOsNFTgen3.mint(11, usdt.address)).to.be.revertedWith(
       "Minting too fast"
     )
+    await stackOsNFTgen3.mint(10, usdt.address)
     await provider.send("evm_increaseTime", [60 * 1]); 
     await expect(stackOsNFTgen3.mint(2, usdt.address)).to.be.revertedWith(
       "Minting too fast"
     )
     await stackOsNFTgen3.mint(1, usdt.address);
+    await expect(stackOsNFTgen3.mint(9, usdt.address)).to.be.revertedWith(
+      "Minting too fast"
+    )
+    await provider.send("evm_increaseTime", [60 * 9]); 
+    await stackOsNFTgen3.mint(9, usdt.address);
   });
 
   it("Unable to transfer when not whitelisted", async function () {

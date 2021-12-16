@@ -41,12 +41,13 @@ contract StackOsNFTBasic is
     uint256 private transferDiscount;
     uint256 private totalDelegated;
     uint256 internal mintFee;
-    uint256 immutable deployedAt;
+    uint256 constant maxMintRate = 10;
 
     mapping(uint256 => uint256) private delegationTimestamp;
     mapping(uint256 => address) private delegates;
     mapping(address => bool) private _whitelist;
     mapping(address => uint256) private totalMinted;
+    mapping(address => uint256) private lastMintAt;
 
     bool private salesStarted;
     string private URI = "https://google.com/";
@@ -64,7 +65,6 @@ contract StackOsNFTBasic is
      */
     constructor() onlyGenerationManager {
         generations = GenerationManager(msg.sender);
-        deployedAt = block.timestamp;
     }
 
     function initialize(
@@ -444,8 +444,17 @@ contract StackOsNFTBasic is
     // is reentrancy attack possible?
     function _mint(address _address) internal {
         require(totalSupply < maxSupply, "Max supply reached");
+
+        uint256 timeSinceLastMint = block.timestamp - lastMintAt[_address];
+        uint256 unlocked = timeSinceLastMint / 1 minutes;
+        if (unlocked > totalMinted[_address])
+            unlocked = totalMinted[_address];
+        totalMinted[_address] -= unlocked;
+
+        lastMintAt[_address] = block.timestamp;
+
         require(
-            block.timestamp - (deployedAt + (totalMinted[_address] * 1 minutes)) > 1 minutes,
+            totalMinted[_address] < maxMintRate,
             "Minting too fast"
         );
 
