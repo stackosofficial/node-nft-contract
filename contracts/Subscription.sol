@@ -261,8 +261,7 @@ contract Subscription is Ownable, ReentrancyGuard {
         }
 
         for (uint256 i = deposit.reward.length; i > 0; i--) {
-            Bonus memory bonus = deposit.reward[i - 1];
-            if(bonus.lockedAmount > 0) break;
+            if(deposit.reward[i - 1].lockedAmount > 0) break;
             deposit.reward.pop();
         }
     }
