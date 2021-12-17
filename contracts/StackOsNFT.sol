@@ -13,7 +13,7 @@ import "./StableCoinAcceptor.sol";
 import "hardhat/console.sol";
 import "./Exchange.sol";
 
-contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
+contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
     using Counters for Counters.Counter;
     using SafeMath for uint256;
 
@@ -56,7 +56,6 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
     mapping(uint256 => uint256) private delegationTimestamp;
     mapping(uint256 => address) private delegates;
     mapping(address => uint256) private strategicPartner;
-    mapping(address => bool) _whitelist;
 
     bool private auctionFinalized;
     bool private ticketStatusAssigned;
@@ -547,9 +546,6 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
         }
     }
 
-    /*
-     *  @title Override to make use of whitelist.
-     */
     function _transfer(
         address from,
         address to,
@@ -557,27 +553,9 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
     ) 
         internal
         override(ERC721)
+        onlyWhitelisted
     {
-        require(isWhitelisted(msg.sender), "Not whitelisted for transfers");
         super._transfer(from, to, tokenId);
-    }
-
-    /*
-     *  @title Whitelist address to transfer tokens.
-     *  @param Address to whitelist.
-     *  @dev Caller must be owner of the contract.
-     */
-    function whitelist(address _addr) public onlyOwner {
-        _whitelist[_addr] = true;
-    }
-
-    /*
-     *  @title Whether or not an address is allowed to transfer tokens. 
-     *  @param Address to check.
-     *  @dev Caller must be owner of the contract.
-     */
-    function isWhitelisted(address _addr) public view returns (bool) {
-        return _whitelist[_addr];
     }
 
 

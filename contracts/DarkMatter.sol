@@ -7,23 +7,30 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "./interfaces/IStackOsNFT.sol";
 import "./GenerationManager.sol";
+import "./Whitelist.sol";
 
-contract DarkMatter is ERC721, Ownable, ReentrancyGuard {
+contract DarkMatter is Whitelist, ERC721, ReentrancyGuard {
     using Counters for Counters.Counter;
 
     Counters.Counter private _tokenIdCounter;
-
-    mapping(address => uint256) private deposits; // total tokens deposited from any generation
-    mapping(address => uint256) private lastUserDarkMatter; // owner => current incomplete darkmatter id
-    mapping(address => uint256[]) private toBeMinted; // owner => DarkMatterNFT ids to be minted
-    mapping(uint256 => mapping(uint256 => uint256)) private stackToDarkMatter; // generation => stackNFT id => darkmatter id
-
-    mapping(uint256 => mapping(uint256 => uint256[])) private darkMatterToStack; // darkmatter id => generation => stackNFT ids 
-    mapping(address => bool) _whitelist;
-
+    
     GenerationManager private generations;
 
-    uint256 immutable mintPrice; // number of StackNFTs that must be deposited in order to be able to mint a DarkMatter.
+    // total amount of NFT deposited from any generation
+    mapping(address => uint256) private deposits; 
+    // owner => current incomplete DarkMatter id
+    mapping(address => uint256) private lastUserDarkMatter; 
+    // owner => DarkMatter ids
+    mapping(address => uint256[]) private toBeMinted; 
+    // generation => StackNFT id => DarkMatter id
+    mapping(uint256 => mapping(uint256 => uint256)) private stackToDarkMatter; 
+
+    // DarkMatter id => generation => StackNFT ids 
+    mapping(uint256 => mapping(uint256 => uint256[])) private darkMatterToStack; 
+    // mapping(address => bool) _whitelist;
+    
+    // number of StackNFTs that must be deposited in order to be able to mint a DarkMatter.
+    uint256 immutable mintPrice; 
 
     constructor(GenerationManager _generations, uint256 _mintPrice)
         ERC721("DarkMatter", "MN")
@@ -157,29 +164,12 @@ contract DarkMatter is ERC721, Ownable, ReentrancyGuard {
         address from,
         address to,
         uint256 tokenId
-    ) 
+    )
         internal
         override(ERC721)
+        onlyWhitelisted
     {
-        require(isWhitelisted(msg.sender), "Not whitelisted for transfers");
         super._transfer(from, to, tokenId);
     }
 
-    /*
-     *  @title Whitelist address to transfer tokens.
-     *  @param Address to whitelist.
-     *  @dev Caller must be owner of the contract.
-     */
-    function whitelist(address _addr) public onlyOwner {
-        _whitelist[_addr] = true;
-    }
-
-    /*
-     *  @title Whether or not an address is allowed to transfer tokens. 
-     *  @param Address to check.
-     *  @dev Caller must be owner of the contract.
-     */
-    function isWhitelisted(address _addr) public view returns (bool) {
-        return _whitelist[_addr];
-    }
 }

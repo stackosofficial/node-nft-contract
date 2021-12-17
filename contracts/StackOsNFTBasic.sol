@@ -12,11 +12,12 @@ import "./Subscription.sol";
 import "./StableCoinAcceptor.sol";
 import "./Exchange.sol";
 import "hardhat/console.sol";
+import "./Whitelist.sol";
 
 contract StackOsNFTBasic is
+    Whitelist,
     CustomERC721,
-    ERC721URIStorage2,
-    Ownable
+    ERC721URIStorage2
 {
     using Counters for Counters.Counter;
     using SafeMath for uint256;
@@ -43,7 +44,6 @@ contract StackOsNFTBasic is
 
     mapping(uint256 => uint256) private delegationTimestamp;
     mapping(uint256 => address) private delegates;
-    mapping(address => bool) private _whitelist;
     mapping(address => uint256) private totalMinted;
     mapping(address => uint256) private lastMintAt;
 
@@ -456,36 +456,17 @@ contract StackOsNFTBasic is
         }
     }
 
-    /*
-     *  @title Override to make use of whitelist.
-     */
     function _transfer(
         address from,
         address to,
         uint256 tokenId
-    ) internal override(CustomERC721) {
-        require(isWhitelisted(msg.sender), "Not whitelisted for transfers");
+    ) 
+        internal 
+        override(CustomERC721) 
+        onlyWhitelisted 
+    {
         super._transfer(from, to, tokenId);
     }
-
-    /*
-     *  @title Whitelist address to transfer tokens.
-     *  @param Address to whitelist.
-     *  @dev Could only be invoked by the contract owner or generation manager contract
-     */
-    function whitelist(address _addr) public onlyOwner {
-        _whitelist[_addr] = true;
-    }
-
-    /*
-     *  @title Whether or not an address is allowed to transfer tokens. 
-     *  @param Address to check.
-     *  @dev Caller must be owner of the contract.
-     */
-    function isWhitelisted(address _addr) public view returns (bool) {
-        return _whitelist[_addr];
-    }
-
 
     // The following functions are overrides required by Solidity.
 
