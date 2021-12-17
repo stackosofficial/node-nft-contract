@@ -45,9 +45,6 @@ async function deployStackOSBasic() {
     stackOsNFTBasic
   )
   console.log("stackOsNFTBasic", stackOsNFTBasic.address);
-  await stackOsNFTBasic.adjustAddressSettings(
-    router.address
-  );
   await stackOsNFTBasic.whitelist(darkMatter.address);
   return stackOsNFTBasic;
 }
@@ -70,7 +67,6 @@ async function deployStackOS() {
   await generationManager.add(stackOsNFT.address);
   await stackOsNFT.adjustAddressSettings(
     generationManager.address,
-    router.address,
     subscription.address,
     stableAcceptor.address,
     STACK_TOKEN_FOR_PAYMENT,
@@ -167,7 +163,6 @@ async function setup() {
     STACK_TOKEN_FOR_PAYMENT,
     GENERATION_MANAGER_ADDRESS,
     DARK_MATTER_ADDRESS,
-    ROUTER_ADDRESS,
     stableAcceptor.address,
     exchange.address,
     TAX_ADDRESS,
@@ -216,7 +211,6 @@ async function setup() {
   await generationManager.add(stackOsNFT.address);
   await stackOsNFT.adjustAddressSettings(
     generationManager.address,
-    router.address,
     subscription.address,
     stableAcceptor.address,
     STACK_TOKEN_FOR_PAYMENT,
@@ -238,7 +232,6 @@ async function setup() {
 
   const Royalty = await ethers.getContractFactory("Royalty");
   royalty = await Royalty.deploy(
-    ROUTER_ADDRESS,
     GENERATION_MANAGER_ADDRESS,
     DARK_MATTER_ADDRESS,
     subscription.address,

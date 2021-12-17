@@ -11,14 +11,12 @@ import "./interfaces/IStackOsNFT.sol";
 import "./interfaces/IStackOsNftBasic.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "hardhat/console.sol";
 
 contract Subscription is Ownable, ReentrancyGuard {
     IERC20 private stackToken;
     GenerationManager private generations;
     DarkMatter private darkMatter;
-    IUniswapV2Router02 private router;
     StableCoinAcceptor stableAcceptor;
     Exchange exchange;
     address private taxAddress;
@@ -58,7 +56,6 @@ contract Subscription is Ownable, ReentrancyGuard {
         IERC20 _stackToken,
         GenerationManager _generations,
         DarkMatter _darkMatter,
-        IUniswapV2Router02 _router,
         StableCoinAcceptor _stableAcceptor,
         Exchange _exchange,
         address _taxAddress,
@@ -70,7 +67,6 @@ contract Subscription is Ownable, ReentrancyGuard {
         stackToken = _stackToken;
         generations = _generations;
         darkMatter = _darkMatter;
-        router = _router;
         stableAcceptor = _stableAcceptor;
         exchange = _exchange;
         taxAddress = _taxAddress;

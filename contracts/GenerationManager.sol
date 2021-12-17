@@ -28,7 +28,6 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         uint256 transferDiscount;
         uint256 timeLock;
         address royaltyAddress;
-        address router;
         address market;
     }
     Deployment deployment;
@@ -86,15 +85,13 @@ contract GenerationManager is Ownable, ReentrancyGuard {
 
     /*
      * @title Save additional settings for auto deployment.
-     * @param Address of router.
+     * @param Address of market.
      * @dev Could only be invoked by the contract owner.
      * @dev Must be called along with first setup function.
      */
     function setupDeploy2(
-        address _router,
         address _market
     ) public onlyOwner {
-        deployment.router = _router;
         deployment.market = _market;
     }
 
@@ -140,9 +137,6 @@ contract GenerationManager is Ownable, ReentrancyGuard {
             deployment.timeLock
         );
         add(IStackOsNFT(address(stack)));
-        stack.adjustAddressSettings(
-            deployment.router
-        );
         stack.whitelist(address(deployment.darkMatter));
         stack.whitelist(address(deployment.market));
         stack.transferOwnership(Ownable(msg.sender).owner());

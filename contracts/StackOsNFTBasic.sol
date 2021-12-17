@@ -7,7 +7,6 @@ import "./ERC721/extensions/ERC721URIStorage2.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "./interfaces/IStackOsNFT.sol";
 import "./Subscription.sol";
 import "./StableCoinAcceptor.sol";
@@ -29,7 +28,6 @@ contract StackOsNFTBasic is
     address private royaltyAddress;
     StableCoinAcceptor stableAcceptor;
     GenerationManager private generations;
-    IUniswapV2Router02 private router;
     Exchange private exchange;
 
     uint256 public timeLock;
@@ -133,19 +131,6 @@ contract StackOsNFTBasic is
     function setMintFee(uint256 _fee) public onlyOwner {
         require(_fee <= 10000, "invalid fee basis points");
         mintFee = _fee;
-    }
-
-    /*
-     * @title Adjust address settings
-     * @param address of router contract
-     * @dev Could only be invoked by the contract owner or generation manager contract
-     */
-// TODO: should be called only once?
-    function adjustAddressSettings(address _router)
-        public
-        onlyOwner
-    {
-        router = IUniswapV2Router02(_router);
     }
 
     /*

@@ -29,7 +29,6 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
     DarkMatter private darkMatter;
     Exchange exchange;
     GenerationManager private generations;
-    IUniswapV2Router02 private router;
     Subscription private subscription;
     StableCoinAcceptor stableAcceptor;
 
@@ -111,14 +110,12 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
     /*
      * @title Adjust address settings
      * @param address of generation manager contract
-     * @param address of router contract, such as uniswap
      * @param address of subscription contract
      * @dev Could only be invoked by the contract owner.
      */
 
     function adjustAddressSettings(
         address _genManager, 
-        address _router, 
         address _subscription,
         address _stableAcceptor,
         address _stackOSTokenToken,
@@ -130,7 +127,6 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
     {
         // TODO: should allow to call this func only once? as these addresses supposed to be in constructor
         generations = GenerationManager(_genManager);
-        router = IUniswapV2Router02(_router);
         subscription = Subscription(_subscription);
         stableAcceptor = StableCoinAcceptor(_stableAcceptor);
         stackOSToken = IERC20(_stackOSTokenToken);

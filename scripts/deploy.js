@@ -8,8 +8,6 @@ async function main() {
 
   //vvvvvvvvvvvvvvvvvv SETTINGS vvvvvvvvvvvvvvvvvv
 
-  // TODO: maybe we can remove router from some contracts since we moved out swap function 
-
   // Set fee amount for chainlink in StackOsNFT.sol
 
   // This address will be owner of all contracts plus market proxy owner
@@ -186,7 +184,6 @@ async function main() {
     STACK_TOKEN,
     generationManager.address,
     darkMatter.address,
-    ROUTER_ADDRESS,
     stableAcceptor.address,
     exchange.address,
     TAX_ADDRESS,
@@ -216,7 +213,6 @@ async function main() {
 
   const Royalty = await ethers.getContractFactory("Royalty");
   royalty = await Royalty.deploy(
-    ROUTER_ADDRESS,
     generationManager.address,
     darkMatter.address,
     subscription.address,
@@ -243,7 +239,6 @@ async function main() {
   // Additional settings for StackNFT
   await stackOsNFT.adjustAddressSettings(
     generationManager.address,
-    ROUTER_ADDRESS,
     subscription.address,
     stableAcceptor.address,
     STACK_TOKEN,
@@ -289,7 +284,6 @@ async function main() {
     royalty.address
   );
   await generationManager.setupDeploy2(
-    ROUTER_ADDRESS,
     marketProxy.address,
   )
 
@@ -362,7 +356,6 @@ async function main() {
         STACK_TOKEN,
         generationManager.address,
         darkMatter.address,
-        ROUTER_ADDRESS,
         stableAcceptor.address,
         exchange.address,
         TAX_ADDRESS,
@@ -398,7 +391,6 @@ async function main() {
     await hre.run("verify:verify", {
       address: royalty.address,
       constructorArguments: [
-        ROUTER_ADDRESS,
         generationManager.address,
         darkMatter.address,
         subscription.address,

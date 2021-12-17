@@ -13,11 +13,6 @@ interface IStackOsNFTBasic is IStackOsNFT {
     function setSymbol(
         string memory symbol_
     ) external;
-    
-    function adjustAddressSettings(
-        address _genManager, 
-        address _router
-    ) external;
 
     function mintFromSubscriptionRewards(
         uint256 _nftAmount,

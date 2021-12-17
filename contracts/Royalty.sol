@@ -2,7 +2,6 @@
 pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "./GenerationManager.sol";
 import "./DarkMatter.sol";
 import "./interfaces/IStackOsNFT.sol";
@@ -15,7 +14,6 @@ contract Royalty is Ownable {
     Counters.Counter private counter; // counting cycles
 
     uint256 private constant HUNDRED_PERCENT = 10000;
-    IUniswapV2Router02 private router;
     GenerationManager private generations;
     DarkMatter private darkMatter;
     Subscription private subscription;
@@ -39,7 +37,6 @@ contract Royalty is Ownable {
     mapping(uint256 => Cycle) private cycles; 
 
     constructor(
-        IUniswapV2Router02 _router,
         GenerationManager _generations,
         DarkMatter _darkMatter,
         Subscription _subscription,
@@ -47,7 +44,6 @@ contract Royalty is Ownable {
         address payable _feeAddress,
         uint256 _minEthToStartCycle
     ) {
-        router = _router;
         generations = _generations;
         darkMatter = _darkMatter;
         subscription = _subscription;
