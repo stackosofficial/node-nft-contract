@@ -12,33 +12,17 @@ describe("DarkMatter integration with Subscription", function () {
   it("Defining Generals", async function () {
     // General
     provider = ethers.provider;
-    [owner, partner, joe, bank, bob, vera, tax, homer, van]= await hre.ethers.getSigners();
+    [owner, partner, joe, bank, bob, vera, tax, homer, van] = await hre.ethers.getSigners();
     router = await ethers.getContractAt(
-      "IUniswapV2Router02", 
+      "IUniswapV2Router02",
       "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D"
     );
   });
 
   it("Deploy full SETUP", async function () {
-    [
-      stackToken,
-      usdt,
-      usdc,
-      dai,
-      link,
-      weth,
-      coordinator,
-      generationManager,
-      darkMatter,
-      subscription,
-      stackOsNFT,
-      royalty,
-      stableAcceptor,
-      exchange,
-    ] = await setup();
-  
+    await setup();
   });
- it("Add liquidity", async function () {
+  it("Add liquidity", async function () {
     await stackToken.approve(router.address, parseEther("100000000.0"));
     await usdt.approve(router.address, parseEther("100000000.0"));
     await dai.approve(router.address, parseEther("100000000.0"));
@@ -122,7 +106,7 @@ describe("DarkMatter integration with Subscription", function () {
     await darkMatter.whitelist(owner.address);
     await darkMatter.transferFrom(owner.address, bob.address, 0);
     expect(await stackToken.balanceOf(bob.address)).to.equal(0);
-    await subscription.connect(bob).withdraw(0, [0]); 
+    await subscription.connect(bob).withdraw(0, [0]);
     print("bob: ", await stackToken.balanceOf(bob.address));
     print("tax: ", await stackToken.balanceOf(tax.address));
     // 599 Deposit. Withdraw 150 first month tax 75%
@@ -146,17 +130,17 @@ describe("DarkMatter integration with Subscription", function () {
       "Not enough balance on bonus wallet"
     );
   });
- it("Withdraw", async function () {
+  it("Withdraw", async function () {
     await stackToken.transfer(subscription.address, parseEther("5000.0"));
 
     await darkMatter.transferFrom(owner.address, bank.address, 0);
-  
+
     expect(await stackToken.balanceOf(bank.address)).to.equal(0);
     print("bank: ", await stackToken.balanceOf(bank.address));
 
     await subscription.connect(bank).withdraw(0, [1]);
     expect(await stackToken.balanceOf(bank.address)).closeTo(
-      parseEther("1324.710361"), 
+      parseEther("1324.710361"),
       parseEther("0.000009")
     );
 
@@ -165,7 +149,7 @@ describe("DarkMatter integration with Subscription", function () {
       await stackToken.balanceOf(bank.address)
     );
     expect(await stackToken.balanceOf(bank.address)).closeTo(
-      parseEther("1324.710367"), 
+      parseEther("1324.710367"),
       parseEther("0.000009")
     );
     print(

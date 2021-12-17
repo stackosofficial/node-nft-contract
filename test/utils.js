@@ -7,22 +7,14 @@ const { parseEther, formatEther } = require("@ethersproject/units");
 module.exports = { setup, setupLiquidity, deployStackOS, deployStackOSBasic, print };
 
 async function deployStackOSBasic() {
-  // NAME = "STACK OS NFT";
-  // SYMBOL = "SON";
-  // STACK_TOKEN_FOR_PAYMENT = stackToken.address;
-  // DARK_MATTER_ADDRESS = darkMatter.address;
-  // ROUTER = router.address;
+
   SUBSCRIPTION = subscription.address;
-  // PRICE = parseEther("5");
-  // MINT_FEE = 2000;
-  // MAX_SUPPLY = 25;
   TRANSFER_DISCOUNT = 2000;
-  // TIMELOCK = 6442850;
 
   let args = [
     NAME,
     SYMBOL,
-    STACK_TOKEN_FOR_PAYMENT,
+    STACK_TOKEN,
     DARK_MATTER_ADDRESS,
     SUBSCRIPTION,
     PRICE,
@@ -69,7 +61,7 @@ async function deployStackOS() {
     generationManager.address,
     subscription.address,
     stableAcceptor.address,
-    STACK_TOKEN_FOR_PAYMENT,
+    STACK_TOKEN,
     DARK_MATTER_ADDRESS,
     exchange.address
   );
@@ -80,43 +72,43 @@ async function deployStackOS() {
 
 async function setup() {
   ERC20 = await ethers.getContractFactory("TestCurrency");
-  let stackToken = await ERC20.deploy(parseEther("100000000.0"));
+  stackToken = await ERC20.deploy(parseEther("100000000.0"));
   await stackToken.deployed();
   console.log("stackToken", stackToken.address);
 
-  let usdt = await ERC20.deploy(parseEther("100000000.0"));
+  usdt = await ERC20.deploy(parseEther("100000000.0"));
   await usdt.deployed();
   console.log("usdt", usdt.address);
 
-  let usdc = await ERC20.deploy(parseEther("100000000.0"));
+  usdc = await ERC20.deploy(parseEther("100000000.0"));
   await usdc.deployed();
   console.log("usdc", usdc.address);
 
-  let dai = await ERC20.deploy(parseEther("100000000.0"));
+  dai = await ERC20.deploy(parseEther("100000000.0"));
   await dai.deployed();
   console.log("dai", dai.address);
 
   const LinkToken = await ethers.getContractFactory("LinkToken");
-  let link = await LinkToken.deploy();
+  link = await LinkToken.deploy();
   await link.deployed();
   console.log("link", link.address);
 
   const Coordinator = await ethers.getContractFactory("VRFCoordinatorMock");
-  let coordinator = await Coordinator.deploy(link.address);
+  coordinator = await Coordinator.deploy(link.address);
   await coordinator.deployed();
   console.log("coordinator", coordinator.address);
 
   const GenerationManager = await ethers.getContractFactory(
     "GenerationManager"
   );
-  let generationManager = await GenerationManager.deploy();
+  generationManager = await GenerationManager.deploy();
   await generationManager.deployed();
   console.log("Gen manager", generationManager.address);
 
   GENERATION_MANAGER_ADDRESS = generationManager.address;
   DARK_MATTER_PRICE = 5;
   const DarkMatter = await ethers.getContractFactory("DarkMatter");
-  let darkMatter = await DarkMatter.deploy(
+  darkMatter = await DarkMatter.deploy(
     GENERATION_MANAGER_ADDRESS,
     DARK_MATTER_PRICE
   );
@@ -129,14 +121,14 @@ async function setup() {
     "0x67d5d249D8526f654899BaFE0dD0B7d7D27B5Aa3",
   ]
   const StableCoinAcceptor = await ethers.getContractFactory("StableCoinAcceptor");
-  let stableAcceptor = await StableCoinAcceptor.deploy(
+  stableAcceptor = await StableCoinAcceptor.deploy(
     STABLES
   );
   await stableAcceptor.deployed();
   console.log(stableAcceptor.address);
 
   const Exchange = await ethers.getContractFactory("Exchange");
-  let exchange = await Exchange.deploy(
+  exchange = await Exchange.deploy(
     router.address,
   );
   await exchange.deployed();
@@ -147,7 +139,7 @@ async function setup() {
     exchange.address,
   )
 
-  STACK_TOKEN_FOR_PAYMENT = stackToken.address;
+  STACK_TOKEN = stackToken.address;
   GENERATION_MANAGER_ADDRESS = generationManager.address;
   DARK_MATTER_ADDRESS = darkMatter.address;
   ROUTER_ADDRESS = router.address;
@@ -159,8 +151,8 @@ async function setup() {
   TAX_RESET_DEADLINE = 60 * 60 * 24 * 7; // 1 week
 
   const Subscription = await ethers.getContractFactory("Subscription");
-  let subscription = await Subscription.deploy(
-    STACK_TOKEN_FOR_PAYMENT,
+  subscription = await Subscription.deploy(
+    STACK_TOKEN,
     GENERATION_MANAGER_ADDRESS,
     DARK_MATTER_ADDRESS,
     stableAcceptor.address,
@@ -181,7 +173,7 @@ async function setup() {
 
   NAME = "STACK OS NFT";
   SYMBOL = "SON";
-  STACK_TOKEN_FOR_PAYMENT = stackToken.address;
+  STACK_TOKEN = stackToken.address;
   DARK_MATTER_ADDRESS = darkMatter.address;
   PRICE = parseEther("0.1");
   MAX_SUPPLY = 25;
@@ -195,30 +187,7 @@ async function setup() {
   MINT_FEE = 2000;
   TIMELOCK = 6442850;
   let StackOS = await ethers.getContractFactory("StackOsNFT");
-  let stackOsNFT = await StackOS.deploy(
-    NAME,
-    SYMBOL,
-    VRF_COORDINATOR,
-    LINK_TOKEN,
-    PRICE,
-    MAX_SUPPLY,
-    PRIZES,
-    AUCTIONED_NFTS,
-    KEY_HASH,
-    TIMELOCK
-  );
-  await stackOsNFT.deployed();
-  await generationManager.add(stackOsNFT.address);
-  await stackOsNFT.adjustAddressSettings(
-    generationManager.address,
-    subscription.address,
-    stableAcceptor.address,
-    STACK_TOKEN_FOR_PAYMENT,
-    DARK_MATTER_ADDRESS,
-    exchange.address
-  );
-  await stackOsNFT.setMintFee(MINT_FEE);
-  await stackOsNFT.whitelist(darkMatter.address);
+  stackOsNFT = await deployStackOS();
 
   weth = await ERC20.deploy(parseEther("100000000.0"));
   await weth.deployed();
@@ -243,23 +212,7 @@ async function setup() {
   ROYALTY_ADDRESS = royalty.address;
   await royalty.setFeePercent(DEPOSIT_FEE_PERCENT);
   await royalty.setWETH(weth.address);
-
-  return [
-    stackToken,
-    usdt,
-    usdc,
-    dai,
-    link,
-    weth,
-    coordinator,
-    generationManager,
-    darkMatter,
-    subscription,
-    stackOsNFT,
-    royalty,
-    stableAcceptor,
-    exchange
-  ];
+  
 }
 
 async function setupLiquidity() {

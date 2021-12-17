@@ -21,22 +21,8 @@ describe("DarkMatter integration with Royalty", function () {
   });
  
   it("Deploy full SETUP", async function () {
-    [
-      stackToken,
-      usdt,
-      usdc,
-      dai,
-      link,
-      weth,
-      coordinator,
-      generationManager,
-      darkMatter,
-      subscription,
-      stackOsNFT,
-      royalty,
-      stableAcceptor,
-      exchange,
-    ] = await setup();
+
+    await setup();
 
     await setupLiquidity()
 

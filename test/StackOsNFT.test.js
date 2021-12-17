@@ -18,22 +18,7 @@ describe("StackOS NFT", function () {
   });
 
   it("Deploy full SETUP", async function () {
-    [
-      stackToken,
-      usdt,
-      usdc,
-      dai,
-      link,
-      weth,
-      coordinator,
-      generationManager,
-      darkMatter,
-      subscription,
-      stackOsNFT,
-      royalty,
-      stableAcceptor,
-      exchange,
-    ] = await setup();
+    await setup()
   });
 
   it("Stake for tickets", async function () {
@@ -281,20 +266,7 @@ describe("transferTickets and transferFromLastGen", function () {
   });
 
   it("Setup 2", async function () {
-    [
-      stackToken,
-      usdt,
-      usdc,
-      dai,
-      link,
-      weth,
-      coordinator,
-      generationManager,
-      darkMatter,
-      subscription,
-      stackOsNFT,
-      royalty,
-    ] = await setup();
+    await setup();
   });
   it("Add liquidity", async function () {
     await stackToken.approve(router.address, parseEther("100.0"));

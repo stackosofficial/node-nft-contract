@@ -21,22 +21,7 @@ describe("Market", function () {
   });
 
   it("Deploy full SETUP", async function () {
-    [
-      stackToken,
-      usdt,
-      usdc,
-      dai,
-      link,
-      weth,
-      coordinator,
-      generationManager,
-      darkMatter,
-      subscription,
-      stackOsNFT,
-      royalty,
-      stableAcceptor,
-      exchange,
-    ] = await setup();
+    await setup();
   });
 
   it("Deploy Market", async function () {

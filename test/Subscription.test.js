@@ -6,7 +6,6 @@ const { deployStackOSBasic, setup, print } = require("./utils");
 describe("Subscription", function () {
   it("Snapshot EVM", async function () {
     snapshotId = await ethers.provider.send("evm_snapshot");
-    // console.log(hre.network.config.metadata);
   });
 
   it("Defining Generals", async function () {
@@ -21,22 +20,7 @@ describe("Subscription", function () {
   });
 
   it("Deploy full SETUP", async function () {
-    [
-      stackToken,
-      usdt,
-      usdc,
-      dai,
-      link,
-      weth,
-      coordinator,
-      generationManager,
-      darkMatter,
-      subscription,
-      stackOsNFTFull,
-      royalty,
-      stableAcceptor,
-      exchange,
-    ] = await setup();
+    await setup();
   });
 
   it("Add liquidity", async function () {
@@ -78,17 +62,17 @@ describe("Subscription", function () {
 
   it("Mint some NFTs", async function () {
     await usdt.transfer(partner.address, parseEther("100.0"));
-    await stackOsNFTFull.startPartnerSales();
+    await stackOsNFT.startPartnerSales();
 
-    await stackOsNFTFull.whitelistPartner(owner.address, 4);
-    await usdt.approve(stackOsNFTFull.address, parseEther("10.0"));
-    await stackOsNFTFull.partnerMint(4, usdt.address);
+    await stackOsNFT.whitelistPartner(owner.address, 4);
+    await usdt.approve(stackOsNFT.address, parseEther("10.0"));
+    await stackOsNFT.partnerMint(4, usdt.address);
 
-    await stackOsNFTFull.whitelistPartner(partner.address, 1);
+    await stackOsNFT.whitelistPartner(partner.address, 1);
     await usdt
       .connect(partner)
-      .approve(stackOsNFTFull.address, parseEther("10.0"));
-    await stackOsNFTFull.connect(partner).partnerMint(1, usdt.address);
+      .approve(stackOsNFT.address, parseEther("10.0"));
+    await stackOsNFT.connect(partner).partnerMint(1, usdt.address);
   });
 
   it("Unable to withdraw without subs and foreign ids", async function () {
@@ -116,8 +100,8 @@ describe("Subscription", function () {
     await subscription.subscribe(0, 1, dai.address, false);
   });
   it("Take TAX for early withdrawal", async function () {
-    await stackOsNFTFull.whitelist(owner.address);
-    await stackOsNFTFull.transferFrom(owner.address, bob.address, 0);
+    await stackOsNFT.whitelist(owner.address);
+    await stackOsNFT.transferFrom(owner.address, bob.address, 0);
     expect(await stackToken.balanceOf(bob.address)).to.equal(0);
     await subscription.connect(bob).withdraw(0, [0]); // 1st month 75% tax (so its 0-1 month, like 1st day of the 1st month)
     print("bob: ", await stackToken.balanceOf(bob.address));
@@ -142,7 +126,7 @@ describe("Subscription", function () {
   it("Withdraw", async function () {
     await stackToken.transfer(subscription.address, parseEther("5000.0"));
 
-    await stackOsNFTFull.transferFrom(owner.address, bank.address, 1);
+    await stackOsNFT.transferFrom(owner.address, bank.address, 1);
     // 3 months = 1800, bonus = 360
     expect(await stackToken.balanceOf(bank.address)).to.equal(0);
     print("bank: ", await stackToken.balanceOf(bank.address));
@@ -175,9 +159,9 @@ describe("Subscription", function () {
     await dai
       .connect(tax)
       .transfer(owner.address, await dai.balanceOf(tax.address));
-    await stackOsNFTFull.whitelistPartner(owner.address, 4);
-    await dai.approve(stackOsNFTFull.address, parseEther("5000.0"));
-    await stackOsNFTFull.partnerMint(4, dai.address); // 5-9
+    await stackOsNFT.whitelistPartner(owner.address, 4);
+    await dai.approve(stackOsNFT.address, parseEther("5000.0"));
+    await stackOsNFT.partnerMint(4, dai.address); // 5-9
 
     await dai.approve(subscription.address, parseEther("5000.0"));
     await subscription.subscribe(0, 5, dai.address, false); // 600, bonus 120

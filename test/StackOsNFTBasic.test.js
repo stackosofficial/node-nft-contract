@@ -19,22 +19,7 @@ describe("StackOS NFT Basic", function () {
   });
 
   it("Deploy full SETUP", async function () {
-    [
-      stackToken,
-      usdt,
-      usdc,
-      dai,
-      link,
-      weth,
-      coordinator,
-      generationManager,
-      darkMatter,
-      subscription,
-      stackOsNFT,
-      royalty,
-      stableAcceptor,
-      exchange,
-    ] = await setup();
+    await setup();
 
     stackOsNFT = await deployStackOSBasic();
   });
@@ -110,7 +95,7 @@ describe("StackOS NFT Basic", function () {
     await generationManager.setupDeploy(
       NAME,
       SYMBOL,
-      STACK_TOKEN_FOR_PAYMENT,
+      STACK_TOKEN,
       DARK_MATTER_ADDRESS,
       SUBSCRIPTION,
       PRICE,
