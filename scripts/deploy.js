@@ -11,7 +11,8 @@ async function main() {
   // Set fee amount for chainlink in StackOsNFT.sol
 
   // This address will be owner of all contracts plus market proxy owner
-  OWNERSHIP = "0xeb2198ba8047B20aC84fBfB78af33f5A9690F674"
+  // Leave empty if you wan't the deployer to be owner
+  OWNERSHIP = ""; // "0xeb2198ba8047B20aC84fBfB78af33f5A9690F674"
 
   // Stablecoins supported by Subscription, StackOsNFT, StackOsNFTBasic
   STABLES = [
@@ -157,20 +158,22 @@ async function main() {
   );
   await marketProxy.deployed();
   const marketImplementaionAddress = await getImplementationAddress(ethers.provider, marketProxy.address);
+  const marketImplementaion = await hre.ethers.getContractAt(
+    "Market",
+    marketImplementaionAddress
+  );
   try {
-    const marketImplementaion = await hre.ethers.getContractAt(
-      "Market",
-      marketImplementaionAddress
-    );
     // params here doesn't matter, as we only wan't to set the owner
     await marketImplementaion.initialize(
-      generationManager.address,
-      darkMatter.address,
-      DAO_ADDRESS,
-      ROYALTY_DISTRIBUTION_ADDRESS,
-      DAO_FEE,
-      ROYALTY_FEE
+      ethers.constants.AddressZero,
+      ethers.constants.AddressZero,
+      ethers.constants.AddressZero,
+      ethers.constants.AddressZero,
+      666,
+      666 
     );
+    if(OWNERSHIP)
+      await marketImplementaion.transferOwnership(OWNERSHIP);
   } catch (error) {
     console.log(error);
   }
@@ -288,15 +291,17 @@ async function main() {
   )
 
   // TRANSFER OWNERSHIP
-  // await stableAcceptor.transferOwnership(OWNERSHIP);
-  await generationManager.transferOwnership(OWNERSHIP);
-  await darkMatter.transferOwnership(OWNERSHIP);
-
-  await marketProxy.transferOwnership(OWNERSHIP);
-
-  await subscription.transferOwnership(OWNERSHIP);
-  await stackOsNFT.transferOwnership(OWNERSHIP);
-  await royalty.transferOwnership(OWNERSHIP);
+  if(OWNERSHIP) {
+    // await stableAcceptor.transferOwnership(OWNERSHIP);
+    await generationManager.transferOwnership(OWNERSHIP);
+    await darkMatter.transferOwnership(OWNERSHIP);
+    
+    await marketProxy.transferOwnership(OWNERSHIP);
+    
+    await subscription.transferOwnership(OWNERSHIP);
+    await stackOsNFT.transferOwnership(OWNERSHIP);
+    await royalty.transferOwnership(OWNERSHIP);
+  }
   
   //^^^^^^^^^^^^^^^^^^ CONTRACT SETTINGS ^^^^^^^^^^^^^^^^^^
 

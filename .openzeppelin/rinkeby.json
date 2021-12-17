@@ -2,28 +2,28 @@
   "manifestVersion": "3.2",
   "proxies": [
     {
-      "address": "0x8B003408D67E5D815bbD90EA52aB288e87725c32",
-      "txHash": "0x6779ab0fdb0f84301b2029fa927b53c94c318e4bcb2ee4834c96e246540b41c3",
+      "address": "0x0701E5905bB7D3F7467d71500a0f580ae01Da527",
+      "txHash": "0xde0fa80503b736ce94b2374518364ee24bd357a1ecf1c6e7a202468ead0c30d6",
       "kind": "uups"
     }
   ],
   "impls": {
-    "5b158986c7d8ccd0de980b0ea60bbd46996d1e1e1338e3fa710d8ff8ffa47df0": {
-      "address": "0xd742D938de16d3C68943A53562D89589BDfD5e01",
-      "txHash": "0xacffaebc4be3ad2649cbd84f0ec0f5b7bb3be078fb2abdd9819c651e81b2d815",
+    "9dc6d888e04f93b88a1929cdc25e247c5bf56edcfc167dd170dfbef47cf6ead5": {
+      "address": "0x569d3D00a7A4C9bb8A402189c2c97A46c435F766",
+      "txHash": "0xd01874dcdc2d474b74d19fbb1e9779e151dc9fe132f2a067b6b114b8f3f3659a",
       "layout": {
         "storage": [
           {
             "contract": "Initializable",
             "label": "_initialized",
             "type": "t_bool",
-            "src": "@openzeppelin\\contracts-upgradeable\\proxy\\utils\\Initializable.sol:36"
+            "src": "@openzeppelin\\contracts-upgradeable\\proxy\\utils\\Initializable.sol:37"
           },
           {
             "contract": "Initializable",
             "label": "_initializing",
             "type": "t_bool",
-            "src": "@openzeppelin\\contracts-upgradeable\\proxy\\utils\\Initializable.sol:41"
+            "src": "@openzeppelin\\contracts-upgradeable\\proxy\\utils\\Initializable.sol:42"
           },
           {
             "contract": "ContextUpgradeable",
@@ -70,13 +70,13 @@
           {
             "contract": "Market",
             "label": "darkMatter",
-            "type": "t_contract(DarkMatter)5113",
+            "type": "t_contract(DarkMatter)4115",
             "src": "contracts\\Market.sol:41"
           },
           {
             "contract": "Market",
             "label": "generations",
-            "type": "t_contract(GenerationManager)5739",
+            "type": "t_contract(GenerationManager)5970",
             "src": "contracts\\Market.sol:42"
           },
           {
@@ -106,21 +106,21 @@
           {
             "contract": "Market",
             "label": "stackToLot",
-            "type": "t_mapping(t_uint256,t_mapping(t_uint256,t_struct(StackLot)5819_storage))",
+            "type": "t_mapping(t_uint256,t_mapping(t_uint256,t_struct(StackLot)6050_storage))",
             "src": "contracts\\Market.sol:65"
           },
           {
             "contract": "Market",
             "label": "darkMatterToLot",
-            "type": "t_mapping(t_uint256,t_struct(DarkMatterLot)5826_storage)",
+            "type": "t_mapping(t_uint256,t_struct(DarkMatterLot)6057_storage)",
             "src": "contracts\\Market.sol:66"
           }
         ],
         "types": {
-          "t_contract(DarkMatter)5113": {
+          "t_contract(DarkMatter)4115": {
             "label": "contract DarkMatter"
           },
-          "t_contract(GenerationManager)5739": {
+          "t_contract(GenerationManager)5970": {
             "label": "contract GenerationManager"
           },
           "t_address": {
@@ -129,13 +129,13 @@
           "t_uint256": {
             "label": "uint256"
           },
-          "t_mapping(t_uint256,t_mapping(t_uint256,t_struct(StackLot)5819_storage))": {
+          "t_mapping(t_uint256,t_mapping(t_uint256,t_struct(StackLot)6050_storage))": {
             "label": "mapping(uint256 => mapping(uint256 => struct Market.StackLot))"
           },
-          "t_mapping(t_uint256,t_struct(StackLot)5819_storage)": {
+          "t_mapping(t_uint256,t_struct(StackLot)6050_storage)": {
             "label": "mapping(uint256 => struct Market.StackLot)"
           },
-          "t_struct(StackLot)5819_storage": {
+          "t_struct(StackLot)6050_storage": {
             "label": "struct Market.StackLot",
             "members": [
               {
@@ -156,10 +156,10 @@
               }
             ]
           },
-          "t_mapping(t_uint256,t_struct(DarkMatterLot)5826_storage)": {
+          "t_mapping(t_uint256,t_struct(DarkMatterLot)6057_storage)": {
             "label": "mapping(uint256 => struct Market.DarkMatterLot)"
           },
-          "t_struct(DarkMatterLot)5826_storage": {
+          "t_struct(DarkMatterLot)6057_storage": {
             "label": "struct Market.DarkMatterLot",
             "members": [
               {

@@ -232,8 +232,8 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Ownable {
     /*
      * @title Chainlink callback set's random number.
      */
-
-    function fulfillRandomness(bytes32 requestId, uint256 randomness)
+     
+    function fulfillRandomness(bytes32 , uint256 randomness)
         internal
         override
     {
