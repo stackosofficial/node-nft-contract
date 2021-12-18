@@ -2,20 +2,15 @@
   "manifestVersion": "3.2",
   "proxies": [
     {
-      "address": "0x0701E5905bB7D3F7467d71500a0f580ae01Da527",
-      "txHash": "0xde0fa80503b736ce94b2374518364ee24bd357a1ecf1c6e7a202468ead0c30d6",
-      "kind": "uups"
-    },
-    {
-      "address": "0x35EB6B0E6b654cE2d24a1C6A2A241303C178Ab1B",
-      "txHash": "0x4e14503bf92768c3bc80c336232f1af0da03e9734608c694781a0f481e9072c6",
+      "address": "0xa5459A6de963265aA298213C413175893A33Ebd5",
+      "txHash": "0xa5130b98e4a0c220bba411bff956160a63ce26e0534b5cba77cbdb6a2a269e59",
       "kind": "uups"
     }
   ],
   "impls": {
     "9dc6d888e04f93b88a1929cdc25e247c5bf56edcfc167dd170dfbef47cf6ead5": {
-      "address": "0x569d3D00a7A4C9bb8A402189c2c97A46c435F766",
-      "txHash": "0xd01874dcdc2d474b74d19fbb1e9779e151dc9fe132f2a067b6b114b8f3f3659a",
+      "address": "0x0B8401305AdB75F0Ab3b7daA8f4dA15Ff231C5d1",
+      "txHash": "0x938cdfd15496e1c75cb1c75b803528b91441ddcb0df5c7d8c291c39c034a19d0",
       "layout": {
         "storage": [
           {
@@ -75,13 +70,13 @@
           {
             "contract": "Market",
             "label": "darkMatter",
-            "type": "t_contract(DarkMatter)4115",
+            "type": "t_contract(DarkMatter)5045",
             "src": "contracts\\Market.sol:41"
           },
           {
             "contract": "Market",
             "label": "generations",
-            "type": "t_contract(GenerationManager)5970",
+            "type": "t_contract(GenerationManager)6900",
             "src": "contracts\\Market.sol:42"
           },
           {
@@ -111,21 +106,21 @@
           {
             "contract": "Market",
             "label": "stackToLot",
-            "type": "t_mapping(t_uint256,t_mapping(t_uint256,t_struct(StackLot)6050_storage))",
+            "type": "t_mapping(t_uint256,t_mapping(t_uint256,t_struct(StackLot)6980_storage))",
             "src": "contracts\\Market.sol:65"
           },
           {
             "contract": "Market",
             "label": "darkMatterToLot",
-            "type": "t_mapping(t_uint256,t_struct(DarkMatterLot)6057_storage)",
+            "type": "t_mapping(t_uint256,t_struct(DarkMatterLot)6987_storage)",
             "src": "contracts\\Market.sol:66"
           }
         ],
         "types": {
-          "t_contract(DarkMatter)4115": {
+          "t_contract(DarkMatter)5045": {
             "label": "contract DarkMatter"
           },
-          "t_contract(GenerationManager)5970": {
+          "t_contract(GenerationManager)6900": {
             "label": "contract GenerationManager"
           },
           "t_address": {
@@ -134,13 +129,13 @@
           "t_uint256": {
             "label": "uint256"
           },
-          "t_mapping(t_uint256,t_mapping(t_uint256,t_struct(StackLot)6050_storage))": {
+          "t_mapping(t_uint256,t_mapping(t_uint256,t_struct(StackLot)6980_storage))": {
             "label": "mapping(uint256 => mapping(uint256 => struct Market.StackLot))"
           },
-          "t_mapping(t_uint256,t_struct(StackLot)6050_storage)": {
+          "t_mapping(t_uint256,t_struct(StackLot)6980_storage)": {
             "label": "mapping(uint256 => struct Market.StackLot)"
           },
-          "t_struct(StackLot)6050_storage": {
+          "t_struct(StackLot)6980_storage": {
             "label": "struct Market.StackLot",
             "members": [
               {
@@ -161,10 +156,10 @@
               }
             ]
           },
-          "t_mapping(t_uint256,t_struct(DarkMatterLot)6057_storage)": {
+          "t_mapping(t_uint256,t_struct(DarkMatterLot)6987_storage)": {
             "label": "mapping(uint256 => struct Market.DarkMatterLot)"
           },
-          "t_struct(DarkMatterLot)6057_storage": {
+          "t_struct(DarkMatterLot)6987_storage": {
             "label": "struct Market.DarkMatterLot",
             "members": [
               {

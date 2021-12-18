@@ -175,7 +175,7 @@ async function main() {
     if(OWNERSHIP)
       await marketImplementaion.transferOwnership(OWNERSHIP);
   } catch (error) {
-    console.log(error);
+    // console.log(error);
   }
   // const marketProxyAdminAddress = await getAdminAddress(ethers.provider, marketProxy.address);
   console.log("Market Proxy", marketProxy.address);
