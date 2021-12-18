@@ -367,6 +367,12 @@ describe("Subscription", function () {
     await subscription.subscribe(1, 1, stackToken.address, true); 
     print("owner balance after sub: ", await stackToken.balanceOf(owner.address));
     print("sub balance after sub: ", await stackToken.balanceOf(subscription.address));
+    expect(await stackToken.balanceOf(subscription.address)).to.be.closeTo(
+      parseEther("99902877"), parseEther("1")
+    )
+    expect(await stackToken.balanceOf(owner.address)).to.be.closeTo(
+      parseEther("1831"), parseEther("1")
+    )
   });
 
   // it("Withdraw", async function () {

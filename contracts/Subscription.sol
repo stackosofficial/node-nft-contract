@@ -134,7 +134,7 @@ contract Subscription is Ownable, ReentrancyGuard {
      *  @param Token id
      *  @param Address of supported stablecoin
      *  @param Pay with STACK token
-     *  @dev Caller must approve us to spend `price` amount of `_stablecoin`.
+     *  @dev Caller must approve us to spend `price` amount of `_stablecoin` or stack token.
      *  @dev Tax resets to maximum if you re-subscribed after `nextPayDate` + `taxResetDeadline`.
      */
     function subscribe(
@@ -183,25 +183,12 @@ contract Subscription is Ownable, ReentrancyGuard {
         if(_payWithStack) {
             _stablecoin = stableAcceptor.stablecoins(0);
             // how much stack we need to get `price` amount of usd
-            uint256 stackAmountIn = exchange.getAmountIn(
+            amount = exchange.getAmountIn(
                 price, 
                 _stablecoin, 
                 stackToken
             );
-            // TODO: all these swaps probably excessive, the same applies to purchaseNFTs logic in withdraw function
-            stackToken.transferFrom(msg.sender, address(this), stackAmountIn);
-            stackToken.approve(address(exchange), stackAmountIn);
-            uint256 usdAmount = exchange.swapExactTokensForTokens(
-                stackAmountIn, 
-                stackToken,
-                _stablecoin
-            );
-            _stablecoin.approve(address(exchange), usdAmount);
-            amount = exchange.swapExactTokensForTokens(
-                usdAmount, 
-                _stablecoin,
-                stackToken
-            );
+            stackToken.transferFrom(msg.sender, address(this), amount);
         } else {
             _stablecoin.transferFrom(msg.sender, address(this), price);
             _stablecoin.approve(address(exchange), price);
@@ -306,6 +293,7 @@ contract Subscription is Ownable, ReentrancyGuard {
         IERC20 _stablecoin
     ) external nonReentrant {
         require(stableAcceptor.supportsCoin(_stablecoin), "Unsupported payment coin");
+        require(purchaseGenerationId > 0, "Generation must be >0");
         for (uint256 i; i < withdrawTokenIds.length; i++) {
             _withdraw(
                 withdrawGenerationId,
@@ -347,6 +335,7 @@ contract Subscription is Ownable, ReentrancyGuard {
         updateBonuses(generationId, tokenId);
         uint256 bonusAmount = overflow[generationId][tokenId];
         overflow[generationId][tokenId] = 0;
+
         require(
             amountWithdraw + bonusAmount <= stackToken.balanceOf(address(this)),
             "Not enough balance on bonus wallet"
@@ -372,24 +361,18 @@ contract Subscription is Ownable, ReentrancyGuard {
 
             require(amountWithdraw > amountToConvert, "Not enough earnings");
 
-            stackToken.approve(address(exchange), amountToConvert);
-            uint256 usdForMint = exchange.swapExactTokensForTokens(
-                amountToConvert,
-                stackToken,
-                _stablecoin
+            stackToken.approve(
+                address(generations.get(purchaseGenerationId)), 
+                amountToConvert
             );
 
-            _stablecoin.approve(
-                address(generations.get(purchaseGenerationId)),
-                usdForMint
-            );
-
-            uint256 usdUsed = IStackOsNFTBasic(
+            IStackOsNFTBasic(
                 address(generations.get(purchaseGenerationId))
-            ).mintFromSubscriptionRewards(amountToMint, address(_stablecoin), msg.sender);
-
-            // send left over USD back to user
-            _stablecoin.transfer(msg.sender, usdForMint - usdUsed);
+            ).mintFromSubscriptionRewards(
+                amountToMint, 
+                amountToConvert, 
+                msg.sender
+            );
 
             // Add rest back to pending rewards
             amountWithdraw -= amountToConvert;

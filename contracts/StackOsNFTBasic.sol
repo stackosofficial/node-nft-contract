@@ -305,39 +305,26 @@ contract StackOsNFTBasic is
 
     function mintFromSubscriptionRewards(
         uint256 _nftAmount,
-        address _stablecoin,
+        uint256 _stackAmount,
         address _to
-    ) external returns (uint256) {
+    ) external {
         require(salesStarted, "Sales not started");
         require(
             msg.sender == address(subscription),
             "Not Subscription Address"
         );
 
-        uint256 discountAmount = participationFee -
-            (participationFee * rewardDiscount) /
-            10000;
+        stackOSToken.transferFrom(msg.sender, address(this), _stackAmount);
 
-        uint256 amountIn = discountAmount.mul(_nftAmount);
+        uint256 subscriptionPart = (_stackAmount * mintFee) / 10000;
+        _stackAmount -= subscriptionPart;
 
-        IERC20(_stablecoin).transferFrom(msg.sender, address(this), amountIn);
-        IERC20(_stablecoin).approve(address(exchange), amountIn);
-        uint256 stackAmount = exchange.swapExactTokensForTokens(
-            amountIn, 
-            IERC20(_stablecoin),
-            stackOSToken
-        );
-
-        uint256 subscriptionPart = (stackAmount * mintFee) / 10000;
-        stackAmount -= subscriptionPart;
-
-        stackOSToken.transfer(address(subscription), subscriptionPart);
-
-        adminWithdrawableAmount += stackAmount;
+        adminWithdrawableAmount += _stackAmount;
         for (uint256 i; i < _nftAmount; i++) {
             _mint(_to);
         }
-        return amountIn;
+
+        stackOSToken.transfer(address(subscription), subscriptionPart);
     }
 
     /*

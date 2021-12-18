@@ -16,9 +16,9 @@ interface IStackOsNFTBasic is IStackOsNFT {
 
     function mintFromSubscriptionRewards(
         uint256 _nftAmount,
-        address _stablecoin,
+        uint256 _stackAmount,
         address _to
-    ) external returns (uint256);
+    ) external;
 
     function mintFromRoyaltyRewards(
         uint256 _mintNum,
