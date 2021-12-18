@@ -60,7 +60,7 @@ async function main() {
     "0x2ed0feb3e7fd2022120aa84fab1945545a9f2ffc9076fd6156fa96eaff4c1311";
   // Timelock for admin withdraw. Counting from current block's timestamp.
   TIMELOCK = 6442850;
-  // Fee percent for Subscription contract on partner mint
+  // Fee percent sent to Subscription contract on partner mint
   MINT_FEE = 2000;
   VRF_COORDINATOR = "0xb3dCcb4Cf7a26f6cf6B120Cf5A73875B7BBc655B";
   LINK_TOKEN = "0x01BE23585060835E02B77ef475b0Cc51aA1e0709";
@@ -94,22 +94,22 @@ async function main() {
   // Set weth address to be able to claim royalty in WETH on matic network.
   WETH_ADDRESS = "0xc778417E063141139Fce010982780140Aa0cD5Ab";
 
-  // Settings for auto deploy StackNFTBasic
+  // Settings for auto deploy StackNFTBasic (generations after 1)
   // On auto deploy we append " N" where N is generation number
-  NAME = "STACK OS NFT";
-  SYMBOL = "STACK NFT";
+  NAME_2 = "STACK OS NFT";
+  SYMBOL_2 = "STACK NFT";
   // Mint price in USD
-  PRICE = parseEther("0.001626");
+  PRICE_2 = parseEther("0.001626");
   // Fee percent for Subscription contract on mint
-  MINT_FEE = 2000;
+  MINT_FEE_2 = 2000;
   // How much to grow max supply on auto deployed StackNFTBasic
   // We get max supply from current generation, and add this percent
   // So if we have 25, then 10000 will give us 50
   MAX_SUPPLY_GROWTH = 10000;
   // Discount applied to mint NFTs when you transfer tickets from 1st generation to the next
-  TRANSFER_DISCOUNT = 2000;
+  TRANSFER_DISCOUNT_2 = 2000;
   // Timelock for admin withdraw. Counting from current block's timestamp.
-  TIMELOCK = 6442850;
+  TIMELOCK_2 = 6442850;
 
   //^^^^^^^^^^^^^^^^^^ SETTINGS ^^^^^^^^^^^^^^^^^^
 
@@ -274,16 +274,16 @@ async function main() {
 
   // Settings for auto deploy
   await generationManager.setupDeploy(
-    NAME,
-    SYMBOL,
+    NAME_2,
+    SYMBOL_2,
     STACK_TOKEN,
     darkMatter.address,
     subscription.address,
-    PRICE,
-    MINT_FEE,
+    PRICE_2,
+    MINT_FEE_2,
     MAX_SUPPLY_GROWTH,
-    TRANSFER_DISCOUNT,
-    TIMELOCK,
+    TRANSFER_DISCOUNT_2,
+    TIMELOCK_2,
     royalty.address
   );
   await generationManager.setupDeploy2(

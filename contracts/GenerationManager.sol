@@ -162,7 +162,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
     /*
      * @title Deploy new StackOsNFT manually.
      * @dev All params should be the same as in StackOsNFTBasic constructor.
-     * @dev Additional setup is required on newly deployed contract, such as adjustAddressSettings and whitelist DarkMatter and Market.
+     * @dev Additional setup is required after deploy such as whitelist DarkMatter and Market.
      */
     function deployNextGen(
         string memory _name,
