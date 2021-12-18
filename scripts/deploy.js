@@ -399,6 +399,7 @@ async function main() {
         generationManager.address,
         darkMatter.address,
         subscription.address,
+        exchange.address,
         DEPOSIT_FEE_ADDRESS,
         MIN_CYCLE_ETHER
       ],
