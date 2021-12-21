@@ -61,7 +61,9 @@ async function main() {
   // Timelock for admin withdraw. Counting from current block's timestamp.
   TIMELOCK = 6442850;
   // Fee percent sent to Subscription contract on partner mint
-  MINT_FEE = 2000;
+  SUBS_FEE = 1000;
+  DAO_FEE = 500;
+  DISTR_FEE = 500;
   VRF_COORDINATOR = "0xb3dCcb4Cf7a26f6cf6B120Cf5A73875B7BBc655B";
   LINK_TOKEN = "0x01BE23585060835E02B77ef475b0Cc51aA1e0709";
 
@@ -101,7 +103,9 @@ async function main() {
   // Mint price in USD
   PRICE_2 = parseEther("0.001626");
   // Fee percent for Subscription contract on mint
-  MINT_FEE_2 = 2000;
+  SUBS_FEE_2 = 2000;
+  DAO_FEE_2 = 500;
+  DISTR_FEE_2 = 500;
   // How much to grow max supply on auto deployed StackNFTBasic
   // We get max supply from current generation, and add this percent
   // So if we have 25, then 10000 will give us 50
@@ -231,6 +235,8 @@ async function main() {
   await generationManager.adjustAddressSettings(
     stableAcceptor.address,
     exchange.address,
+    DAO_ADDRESS,
+    ROYALTY_DISTRIBUTION_ADDRESS
   )
 
   // Allow Market to transfer DarkMatter
@@ -248,7 +254,7 @@ async function main() {
     darkMatter.address,
     exchange.address,
   );
-  await stackOsNFT.setMintFee(MINT_FEE);
+  await stackOsNFT.setFees(SUBS_FEE, DAO_FEE, DISTR_FEE);
   // Allow DarkMatter to transfer StackNFT
   await stackOsNFT.whitelist(darkMatter.address);
   // Allow Market to transfer StackNFT
@@ -280,7 +286,7 @@ async function main() {
     darkMatter.address,
     subscription.address,
     PRICE_2,
-    MINT_FEE_2,
+    SUBS_FEE_2,
     MAX_SUPPLY_GROWTH,
     TRANSFER_DISCOUNT_2,
     TIMELOCK_2,
@@ -288,6 +294,8 @@ async function main() {
   );
   await generationManager.setupDeploy2(
     marketProxy.address,
+    DAO_FEE_2,
+    DISTR_FEE_2
   )
 
   // TRANSFER OWNERSHIP

@@ -11,6 +11,8 @@ contract GenerationManager is Ownable, ReentrancyGuard {
 
     address stableAcceptor;
     address exchange;
+    address dao;
+    address distr;
 
     IStackOsNFT[] private generations;
     mapping(address => uint256) private ids;
@@ -23,7 +25,9 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         address darkMatter;
         address subscription;
         uint256 participationFee;
-        uint256 mintFee;
+        uint256 subsFee;
+        uint256 daoFee;
+        uint256 distrFee;
         uint256 maxSupplyGrowthPercent;
         uint256 transferDiscount;
         uint256 timeLock;
@@ -41,13 +45,17 @@ contract GenerationManager is Ownable, ReentrancyGuard {
 
     function adjustAddressSettings(
         address _stableAcceptor,
-        address _exchange
+        address _exchange,
+        address _dao,
+        address _distr
     )
         public
         onlyOwner
     {
         stableAcceptor = _stableAcceptor;
         exchange = _exchange;
+        dao = _dao;
+        distr = _distr;
     }
 
     /*
@@ -63,7 +71,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         address _darkMatter,
         address _subscription,
         uint256 _participationFee,
-        uint256 _mintFee,
+        uint256 _subsFee,
         uint256 _maxSupplyGrowthPercent,
         uint256 _transferDiscount,
         uint256 _timeLock,
@@ -76,7 +84,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         deployment.darkMatter = _darkMatter;
         deployment.subscription = _subscription;
         deployment.participationFee = _participationFee;
-        deployment.mintFee = _mintFee;
+        deployment.subsFee = _subsFee;
         deployment.maxSupplyGrowthPercent = _maxSupplyGrowthPercent;
         deployment.transferDiscount = _transferDiscount;
         deployment.timeLock = _timeLock;
@@ -90,9 +98,13 @@ contract GenerationManager is Ownable, ReentrancyGuard {
      * @dev Must be called along with first setup function.
      */
     function setupDeploy2(
-        address _market
+        address _market,
+        uint256 _daoFee,
+        uint256 _distrFee
     ) public onlyOwner {
         deployment.market = _market;
+        deployment.daoFee = _daoFee;
+        deployment.distrFee = _distrFee;
     }
 
     /*
@@ -131,12 +143,13 @@ contract GenerationManager is Ownable, ReentrancyGuard {
             stableAcceptor,
             exchange,
             deployment.participationFee,
-            deployment.mintFee,
             maxSupply,
             deployment.transferDiscount,
             deployment.timeLock
         );
         add(IStackOsNFT(address(stack)));
+        stack.setFees(deployment.subsFee, deployment.daoFee, deployment.distrFee);
+        stack.adjustAddressSettings(dao, distr);
         stack.whitelist(address(deployment.darkMatter));
         stack.whitelist(address(deployment.market));
         stack.transferOwnership(Ownable(msg.sender).owner());
@@ -162,7 +175,11 @@ contract GenerationManager is Ownable, ReentrancyGuard {
     /*
      * @title Deploy new StackOsNFT manually.
      * @dev All params should be the same as in StackOsNFTBasic constructor.
-     * @dev Additional setup is required after deploy such as whitelist DarkMatter and Market.
+     * @dev Additional setup is required after deploy: 
+     * @dev Whitelist DarkMatter and Market.
+     * @dev Call to setFees.
+     * @dev Adjust address settings.
+     * @dev Example of full setup can be seen in deployNextGenPreset.
      */
     function deployNextGen(
         string memory _name,
@@ -171,7 +188,6 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         address _darkMatter,
         address _subscription,
         uint256 _participationFee,
-        uint256 _mintFee,
         uint256 _maxSupply,
         uint256 _transferDiscount,
         uint256 _timeLock,
@@ -192,7 +208,6 @@ contract GenerationManager is Ownable, ReentrancyGuard {
             stableAcceptor,
             exchange,
             _participationFee,
-            _mintFee,
             _maxSupply,
             _transferDiscount,
             _timeLock

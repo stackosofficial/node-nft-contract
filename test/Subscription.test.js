@@ -368,7 +368,7 @@ describe("Subscription", function () {
     print("owner balance after sub: ", await stackToken.balanceOf(owner.address));
     print("sub balance after sub: ", await stackToken.balanceOf(subscription.address));
     expect(await stackToken.balanceOf(subscription.address)).to.be.closeTo(
-      parseEther("99902877"), parseEther("1")
+      parseEther("99902876"), parseEther("1")
     )
     expect(await stackToken.balanceOf(owner.address)).to.be.closeTo(
       parseEther("1831"), parseEther("1")

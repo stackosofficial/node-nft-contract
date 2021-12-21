@@ -30,6 +30,8 @@ contract StackOsNFTBasic is
     StableCoinAcceptor stableAcceptor;
     GenerationManager private generations;
     Exchange private exchange;
+    address private daoAddress;
+    address private royaltyDistrAddress;
 
     uint256 public timeLock;
     uint256 public adminWithdrawableAmount;
@@ -39,7 +41,9 @@ contract StackOsNFTBasic is
     uint256 private participationFee;
     uint256 private transferDiscount;
     uint256 private totalDelegated;
-    uint256 internal mintFee;
+    uint256 internal subsFee;
+    uint256 internal daoFee;
+    uint256 internal distrFee;
     uint256 constant maxMintRate = 10;
 
     mapping(uint256 => uint256) private delegationTimestamp;
@@ -73,7 +77,6 @@ contract StackOsNFTBasic is
         address _stableAcceptor,
         address _exchange,
         uint256 _participationFee,
-        uint256 _mintFee,
         uint256 _maxSupply,
         uint256 _transferDiscount,
         uint256 _timeLock
@@ -89,7 +92,6 @@ contract StackOsNFTBasic is
         exchange = Exchange(_exchange);
 
         participationFee = _participationFee;
-        mintFee = _mintFee;
         maxSupply = _maxSupply;
         transferDiscount = _transferDiscount;
         timeLock = block.timestamp + _timeLock;
@@ -112,6 +114,22 @@ contract StackOsNFTBasic is
     }
 
     /*
+     * @title Adjust address settings
+     * @dev Could only be invoked by the contract owner.
+     */
+
+    function adjustAddressSettings(
+        address _dao, 
+        address _distr
+    )
+        public
+        onlyOwner
+    {
+        daoAddress = _dao;
+        royaltyDistrAddress = _distr;
+    }
+
+    /*
      * @title Set discont appliend on mint from subscription or royalty rewards
      * @param percent
      * @dev Could only be invoked by the contract owner.
@@ -123,14 +141,21 @@ contract StackOsNFTBasic is
     }
 
     /*
-     * @title Set % that is sended to Subscription contract on mint
-     * @param percent
+     * @title Set amounts taken from mint
+     * @param % that is sended to Subscription contract 
+     * @param % that is sended to dao
+     * @param % that is sended to royalty distribution
      * @dev Could only be invoked by the contract owner.
      */
 
-    function setMintFee(uint256 _fee) public onlyOwner {
-        require(_fee <= 10000, "invalid fee basis points");
-        mintFee = _fee;
+    function setFees(uint256 _subs, uint256 _dao, uint256 _distr)
+        public
+        onlyOwner
+    {
+        require(_subs <= 10000 && _dao <= 10000 && _distr <= 10000, "invalid fee basis points");
+        subsFee = _subs;
+        daoFee = _dao;
+        distrFee = _distr;
     }
 
     /*
@@ -245,9 +270,7 @@ contract StackOsNFTBasic is
             stackLeftOverAmount
         );
 
-        uint256 subscriptionPart = (stackDepositAmount * mintFee) / 10000;
-        stackDepositAmount -= subscriptionPart;
-        stackOSToken.transfer(address(subscription), subscriptionPart);
+        stackDepositAmount = sendFees(stackDepositAmount);
 
         adminWithdrawableAmount += stackDepositAmount;
         for (uint256 i; i < ticketAmount; i++) {
@@ -284,9 +307,7 @@ contract StackOsNFTBasic is
             stackOSToken
         );
 
-        uint256 subscriptionPart = (stackAmount * mintFee) / 10000;
-        stackAmount -= subscriptionPart;
-        stackOSToken.transfer(address(subscription), subscriptionPart);
+        stackAmount = sendFees(stackAmount);
 
         adminWithdrawableAmount += stackAmount;
         for (uint256 i; i < _nftAmount; i++) {
@@ -316,15 +337,13 @@ contract StackOsNFTBasic is
 
         stackOSToken.transferFrom(msg.sender, address(this), _stackAmount);
 
-        uint256 subscriptionPart = (_stackAmount * mintFee) / 10000;
-        _stackAmount -= subscriptionPart;
+        _stackAmount = sendFees(_stackAmount);
 
         adminWithdrawableAmount += _stackAmount;
         for (uint256 i; i < _nftAmount; i++) {
             _mint(_to);
         }
 
-        stackOSToken.transfer(address(subscription), subscriptionPart);
     }
 
     /*
@@ -373,15 +392,28 @@ contract StackOsNFTBasic is
             stackOSToken
         );
 
-        uint256 subscriptionPart = (stackAmount * mintFee) / 10000;
-        stackAmount -= subscriptionPart;
-        stackOSToken.transfer(address(subscription), subscriptionPart);
+        stackAmount = sendFees(stackAmount);
 
         adminWithdrawableAmount += stackAmount;
         for (uint256 i; i < _mintNum; i++) {
             _mint(_to);
         }
         return amountIn;
+    }
+
+    function sendFees(uint256 _amount) internal returns (uint256) {
+        
+        uint256 subsPart = _amount * subsFee / 10000;
+        uint256 daoPart = _amount * daoFee / 10000;
+        uint256 distrPart = _amount * distrFee / 10000;
+        _amount = _amount - subsPart - daoPart - distrPart;
+
+        // TODO: send to appropriate subs address
+        stackOSToken.transfer(address(subscription), subsPart);
+        stackOSToken.transfer(address(daoAddress), daoPart);
+        stackOSToken.transfer(address(royaltyDistrAddress), distrPart);
+
+        return _amount;
     }
 
     function _delegate(address _delegatee, uint256 tokenId) private {

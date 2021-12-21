@@ -46,7 +46,10 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
     uint256 private totalDelegated;
     uint256 private iterationCount;
     uint256 internal fee = 1e14; // 0.0001 (1e14) on MATIC, 0.1 (1e17) on eth
-    uint256 internal mintFee;
+    uint256 internal subsFee;
+    // TODO: remove these if they don't have to be in gen0
+    uint256 internal daoFee;
+    uint256 internal distrFee;
 
     mapping(uint256 => bool) public randomUniqueNumbers;
     mapping(uint256 => address) public ticketOwner;
@@ -93,17 +96,21 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
 
 
     /*
-     * @title Set % that is sended to Subscription contract on mint
-     * @param percent
+     * @title Set amounts taken from mint
+     * @param % that is sended to Subscription contract 
+     * @param % that is sended to dao
+     * @param % that is sended to royalty distribution
      * @dev Could only be invoked by the contract owner.
      */
 
-    function setMintFee(uint256 _fee)
+    function setFees(uint256 _subs, uint256 _dao, uint256 _distr)
         public
         onlyOwner
     {
-        require(_fee <= 10000, "invalid fee basis points");
-        mintFee = _fee;
+        require(_subs <= 10000 && _dao <= 10000 && _distr <= 10000, "invalid fee basis points");
+        subsFee = _subs;
+        daoFee = _dao;
+        distrFee = _distr;
     }
 
     /*
@@ -444,9 +451,9 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
             stackOSToken
         );
 
-        uint256 subscriptionPart = stackAmount * mintFee / 10000;
-        stackAmount -= subscriptionPart;
-        stackOSToken.transfer(address(subscription), subscriptionPart);
+        uint256 subsPart = stackAmount * subsFee / 10000;
+        stackAmount -= subsPart;
+        stackOSToken.transfer(address(subscription), subsPart);
         
         adminWithdrawableAmount += stackAmount;
         for (uint256 i; i < _nftAmount; i++) {

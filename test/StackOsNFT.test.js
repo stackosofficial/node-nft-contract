@@ -167,7 +167,7 @@ describe("StackOS NFT", function () {
     await stackOsNFT.connect(joe).partnerMint(2, usdc.address);
     expect(await stackOsNFT.balanceOf(joe.address)).to.be.equal(2);
     expect(await stackToken.balanceOf(stackOsNFT.address)).to.be.equal(
-      parseEther("1.160000000000000007")
+      parseEther("1.180000000000000008")
     );
   });
 
@@ -375,7 +375,7 @@ describe("transferTickets and transferFromLastGen", function () {
       parseEther("1.0")
     );
     expect(await stackToken.balanceOf(stackOsNFTBasic.address)).to.be.equal(
-      parseEther("0.316130265511108281")
+      parseEther("0.316130265511108282")
     );
     print("Tickets transfered!");
     print(

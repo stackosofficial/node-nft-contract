@@ -18,7 +18,6 @@ async function deployStackOSBasic() {
     DARK_MATTER_ADDRESS,
     SUBSCRIPTION,
     PRICE,
-    MINT_FEE,
     MAX_SUPPLY,
     TRANSFER_DISCOUNT,
     TIMELOCK,
@@ -37,6 +36,11 @@ async function deployStackOSBasic() {
     stackOsNFTBasic
   )
   console.log("stackOsNFTBasic", stackOsNFTBasic.address);
+  await stackOsNFTBasic.setFees(SUBS_FEE, DAO_FEE, DISTR_FEE);
+  await stackOsNFTBasic.adjustAddressSettings(
+    bank.address, //fake dao & distr addresses
+    bank.address
+  );
   await stackOsNFTBasic.whitelist(darkMatter.address);
   return stackOsNFTBasic;
 }
@@ -65,7 +69,7 @@ async function deployStackOS() {
     DARK_MATTER_ADDRESS,
     exchange.address
   );
-  await stackOsNFT.setMintFee(MINT_FEE); // usdt
+  await stackOsNFT.setFees(SUBS_FEE, DAO_FEE, DISTR_FEE);
   await stackOsNFT.whitelist(darkMatter.address);
   return stackOsNFT;
 }
@@ -137,6 +141,8 @@ async function setup() {
   await generationManager.adjustAddressSettings(
     stableAcceptor.address,
     exchange.address,
+    bank.address, // fake dao & royalty distr addresses
+    bank.address,
   )
 
   STACK_TOKEN = stackToken.address;
@@ -184,7 +190,9 @@ async function setup() {
   KEY_HASH =
     "0x2ed0feb3e7fd2022120aa84fab1945545a9f2ffc9076fd6156fa96eaff4c1311";
   FEE = parseEther("0.1");
-  MINT_FEE = 2000;
+  SUBS_FEE = 1000;
+  DAO_FEE = 500;
+  DISTR_FEE = 500;
   TIMELOCK = 6442850;
   let StackOS = await ethers.getContractFactory("StackOsNFT");
   stackOsNFT = await deployStackOS();

@@ -21,7 +21,7 @@ describe("StackOS NFT Basic", function () {
   it("Deploy full SETUP", async function () {
     await setup();
 
-    stackOsNFT = await deployStackOSBasic();
+    stackOsNFTBasic = await deployStackOSBasic();
   });
 
   it("Add liquidity", async function () {
@@ -62,31 +62,31 @@ describe("StackOS NFT Basic", function () {
   });
 
   it("Mint for usdc", async function () {
-    await stackOsNFT.startSales();
+    await stackOsNFTBasic.startSales();
 
-    await usdc.approve(stackOsNFT.address, parseEther("100.0"));
+    await usdc.approve(stackOsNFTBasic.address, parseEther("100.0"));
     // pass some time, so that enough tokens dripped
     await provider.send("evm_increaseTime", [60 * 60]); 
-    await stackOsNFT.mint(4, usdc.address);
+    await stackOsNFTBasic.mint(4, usdc.address);
   });
 
   it("Mint for usdt", async function () {
-    await usdt.approve(stackOsNFT.address, parseEther("100.0"));
-    await stackOsNFT.mint(1, usdt.address);
+    await usdt.approve(stackOsNFTBasic.address, parseEther("100.0"));
+    await stackOsNFTBasic.mint(1, usdt.address);
   });
 
   it("Unable to mint for unsupported coin", async function () {
-    await expect(stackOsNFT.mint(1, stackToken.address)).to.be.revertedWith(
+    await expect(stackOsNFTBasic.mint(1, stackToken.address)).to.be.revertedWith(
       "Unsupported payment coin"
     );
   });
 
   it("Owners can delegate their NFTs", async function () {
-    expect(await stackOsNFT.getDelegatee(0)).to.equal(
+    expect(await stackOsNFTBasic.getDelegatee(0)).to.equal(
       ethers.constants.AddressZero
     );
-    await stackOsNFT.delegate(joe.address, [0]);
-    expect(await stackOsNFT.getDelegatee(0)).to.equal(joe.address);
+    await stackOsNFTBasic.delegate(joe.address, [0]);
+    expect(await stackOsNFTBasic.getDelegatee(0)).to.equal(joe.address);
   });
 
   it("Setup auto deploy", async function () {
@@ -99,7 +99,7 @@ describe("StackOS NFT Basic", function () {
       DARK_MATTER_ADDRESS,
       SUBSCRIPTION,
       PRICE,
-      MINT_FEE,
+      SUBS_FEE,
       MAX_SUPPLY_GROWTH,
       TRANSFER_DISCOUNT,
       TIMELOCK,
@@ -107,17 +107,19 @@ describe("StackOS NFT Basic", function () {
     );
     await generationManager.setupDeploy2(
       owner.address, // fake market address
+      DAO_FEE,
+      DISTR_FEE
     )
   });
 
   it("Trigger auto deploy of the next generation", async function () {
-    await usdt.approve(stackOsNFT.address, parseEther("100.0"));
+    await usdt.approve(stackOsNFTBasic.address, parseEther("100.0"));
     let oldGenerationsCount = (await generationManager.count()).toNumber();
 
     await provider.send("evm_increaseTime", [60 * 60]); 
-    await stackOsNFT.mint(10, usdt.address);
+    await stackOsNFTBasic.mint(10, usdt.address);
     await provider.send("evm_increaseTime", [60 * 60]); 
-    await stackOsNFT.mint(10, usdt.address);
+    await stackOsNFTBasic.mint(10, usdt.address);
 
     expect(await generationManager.count()).to.be.equal(
       oldGenerationsCount + 1
@@ -176,52 +178,52 @@ describe("StackOS NFT Basic", function () {
     );
   });
 
-  it("Deploy stackOsNFT generation from manager", async function () {
+  it("Deploy stackOsNFTBasic generation from manager", async function () {
     PRIZES = 2;
-    stackOsNFTgen3 = await deployStackOSBasic();
-    expect(await stackOsNFTgen3.owner()).to.be.equal(owner.address);
+    stackOsNFTBasicgen3 = await deployStackOSBasic();
+    expect(await stackOsNFTBasicgen3.owner()).to.be.equal(owner.address);
   });
 
   it("Try to buy directly using transferFromLastGen", async function () {
     await expect(
-      stackOsNFTgen3.transferFromLastGen(owner.address, parseEther("10.0"))
+      stackOsNFTBasicgen3.transferFromLastGen(owner.address, parseEther("10.0"))
     ).to.be.revertedWith("Not Correct Address");
   });
 
   it("Dripping tokens", async function () {
-    await usdt.approve(stackOsNFTgen3.address, parseEther("100.0"));
-    await stackOsNFTgen3.startSales();
-    await expect(stackOsNFTgen3.mint(11, usdt.address)).to.be.revertedWith(
+    await usdt.approve(stackOsNFTBasicgen3.address, parseEther("100.0"));
+    await stackOsNFTBasicgen3.startSales();
+    await expect(stackOsNFTBasicgen3.mint(11, usdt.address)).to.be.revertedWith(
       "Minting too fast"
     )
-    await stackOsNFTgen3.mint(10, usdt.address)
+    await stackOsNFTBasicgen3.mint(10, usdt.address)
     await provider.send("evm_increaseTime", [60 * 1]); 
-    await expect(stackOsNFTgen3.mint(2, usdt.address)).to.be.revertedWith(
+    await expect(stackOsNFTBasicgen3.mint(2, usdt.address)).to.be.revertedWith(
       "Minting too fast"
     )
-    await stackOsNFTgen3.mint(1, usdt.address);
-    await expect(stackOsNFTgen3.mint(9, usdt.address)).to.be.revertedWith(
+    await stackOsNFTBasicgen3.mint(1, usdt.address);
+    await expect(stackOsNFTBasicgen3.mint(9, usdt.address)).to.be.revertedWith(
       "Minting too fast"
     )
     await provider.send("evm_increaseTime", [60 * 9]); 
-    await stackOsNFTgen3.mint(9, usdt.address);
+    await stackOsNFTBasicgen3.mint(9, usdt.address);
   });
 
   it("Unable to transfer when not whitelisted", async function () {
     await expect(
-      stackOsNFT.transferFrom(owner.address, joe.address, 0)
+      stackOsNFTBasic.transferFrom(owner.address, joe.address, 0)
     ).to.be.revertedWith("Not whitelisted for transfers");
   });
 
   it("Whitelist address and transfer from it", async function () {
-    await stackOsNFT.whitelist(owner.address);
-    await stackOsNFT.transferFrom(owner.address, joe.address, 0);
+    await stackOsNFTBasic.whitelist(owner.address);
+    await stackOsNFTBasic.transferFrom(owner.address, joe.address, 0);
   });
 
   it("Admin tried to withdraw before time lock expires.", async function () {
-    var adminWithdrawableAmount = await stackOsNFT.adminWithdrawableAmount();
+    var adminWithdrawableAmount = await stackOsNFTBasic.adminWithdrawableAmount();
     print(adminWithdrawableAmount);
-    await expect(stackOsNFT.adminWithdraw()).to.be.revertedWith("Locked!");
+    await expect(stackOsNFTBasic.adminWithdraw()).to.be.revertedWith("Locked!");
   });
 
   it("Admin withdraws after time lock.", async function () {
@@ -229,11 +231,11 @@ describe("StackOS NFT Basic", function () {
     await ethers.provider.send("evm_setNextBlockTimestamp", [
       deadline + TIMELOCK,
     ]);
-    await stackOsNFT.adminWithdraw();
+    await stackOsNFTBasic.adminWithdraw();
   });
 
   it("Verify function getFromRewardsPrice()", async function () {
-    var price = await stackOsNFT.getFromRewardsPrice(2, usdt.address);
+    var price = await stackOsNFTBasic.getFromRewardsPrice(2, usdt.address);
     console.log(price.toString());
   });
 
