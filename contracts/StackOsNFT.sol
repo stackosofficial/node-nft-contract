@@ -25,7 +25,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
     }
 
     Counters.Counter private _tokenIdCounter;
-    IERC20 private stackOSToken;
+    IERC20 private stackToken;
     DarkMatter private darkMatter;
     Exchange exchange;
     GenerationManager private generations;
@@ -124,7 +124,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
         address _genManager, 
         address _subscription,
         address _stableAcceptor,
-        address _stackOSTokenToken,
+        address _stackToken,
         address _darkMatter,
         address _exchange
     )
@@ -135,7 +135,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
         generations = GenerationManager(_genManager);
         subscription = Subscription(_subscription);
         stableAcceptor = StableCoinAcceptor(_stableAcceptor);
-        stackOSToken = IERC20(_stackOSTokenToken);
+        stackToken = IERC20(_stackToken);
         darkMatter = DarkMatter(_darkMatter);
         exchange = Exchange(_exchange);
     }
@@ -209,7 +209,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
         require(lotteryActive, "Lottery inactive");
         require(randomNumber == 0, "Random Number already assigned!");
         uint256 depositAmount = participationFee.mul(_ticketAmount);
-        stackOSToken.transferFrom(msg.sender, address(this), depositAmount);
+        stackToken.transferFrom(msg.sender, address(this), depositAmount);
         uint256 nextTicketID = participationTickets;
         for (uint256 i; i < _ticketAmount; i++) {
             ticketOwner[nextTicketID] = msg.sender;
@@ -344,7 +344,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
                 ticketStatus[_ticketID[i]] = TicketStatus.Withdrawn;
             }
         }
-        stackOSToken.transfer(
+        stackToken.transfer(
             msg.sender,
             _ticketID.length.mul(participationFee)
         );
@@ -377,7 +377,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
             }
         }
         uint256 amount = _ticketID.length.mul(participationFee);
-        stackOSToken.approve(_address, stackOSToken.balanceOf(address(this)));
+        stackToken.approve(_address, stackToken.balanceOf(address(this)));
         IStackOsNFTBasic(_address).transferFromLastGen(msg.sender, amount);
     }
 
@@ -439,7 +439,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
         uint256 stackAmount = participationFee.mul(_nftAmount);
         uint256 amountIn = exchange.getAmountIn(
             stackAmount, 
-            stackOSToken,
+            stackToken,
             _stablecoin
         );
 
@@ -448,12 +448,12 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
         stackAmount = exchange.swapExactTokensForTokens(
             amountIn, 
             IERC20(_stablecoin),
-            stackOSToken
+            stackToken
         );
 
         uint256 subsPart = stackAmount * subsFee / 10000;
         stackAmount -= subsPart;
-        stackOSToken.transfer(address(subscription), subsPart);
+        stackToken.transfer(address(subscription), subsPart);
         
         adminWithdrawableAmount += stackAmount;
         for (uint256 i; i < _nftAmount; i++) {
@@ -471,13 +471,13 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
     function placeBid(uint256 _amount) public returns (uint256 i) {
         require(block.timestamp < auctionCloseTime, "Auction closed!");
         require(topBids[1] < _amount, "Bid too small");
-        stackOSToken.transferFrom(msg.sender, address(this), _amount);
+        stackToken.transferFrom(msg.sender, address(this), _amount);
         for (i = auctionedNFTs; i != 0; i--) {
             if (topBids[i] < _amount) {
                 if (i > 1) {
                     for (uint256 b; b < i; b++) {
                         if (b == 0 && topBids[b + 1] != 0) {
-                            stackOSToken.transfer(
+                            stackToken.transfer(
                                 topBiders[b + 1],
                                 topBids[b + 1]
                             );
@@ -592,7 +592,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
     function adminWithdraw() public onlyOwner {
         require(block.timestamp > timeLock, "Locked!");
         require(ticketStatusAssigned == true, "Not Assigned.");
-        stackOSToken.transfer(msg.sender, adminWithdrawableAmount);
+        stackToken.transfer(msg.sender, adminWithdrawableAmount);
         adminWithdrawableAmount = 0;
     }
 }

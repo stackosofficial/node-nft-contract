@@ -24,7 +24,7 @@ contract StackOsNFTBasic is
     using SafeMath for uint256;
 
     Counters.Counter private _tokenIdCounter;
-    IERC20 private stackOSToken;
+    IERC20 private stackToken;
     DarkMatter private darkMatter;
     Subscription private subscription;
     Sub0 private sub0;
@@ -72,7 +72,7 @@ contract StackOsNFTBasic is
     }
 
     function initialize(
-        address _stackOSTokenToken,
+        address _stackToken,
         address _darkMatter,
         address _subscription,
         address _sub0,
@@ -87,7 +87,7 @@ contract StackOsNFTBasic is
         require(initialized == false, "Already initialized");
         initialized = true;
         
-        stackOSToken = IERC20(_stackOSTokenToken);
+        stackToken = IERC20(_stackToken);
         darkMatter = DarkMatter(_darkMatter);
         subscription = Subscription(_subscription);
         sub0 = Sub0(_sub0);
@@ -241,11 +241,11 @@ contract StackOsNFTBasic is
             "Not Correct Address"
         );
         IERC20 stablecoin = stableAcceptor.stablecoins(0);
-        stackOSToken.transferFrom(msg.sender, address(this), _amount);
-        stackOSToken.approve(address(exchange), _amount);
+        stackToken.transferFrom(msg.sender, address(this), _amount);
+        stackToken.approve(address(exchange), _amount);
         uint256 usdAmount = exchange.swapExactTokensForTokens(
             _amount, 
-            stackOSToken, 
+            stackToken, 
             stablecoin
         );
 
@@ -261,15 +261,15 @@ contract StackOsNFTBasic is
         uint256 stackDepositAmount = exchange.swapExactTokensForTokens(
             depositAmount, 
             stablecoin,
-            stackOSToken
+            stackToken
         );
         uint256 stackLeftOverAmount = exchange.swapExactTokensForTokens(
             usdAmount - depositAmount,
             stablecoin,
-            stackOSToken
+            stackToken
         );
 
-        stackOSToken.transfer(
+        stackToken.transfer(
             _ticketOwner,
             stackLeftOverAmount
         );
@@ -308,7 +308,7 @@ contract StackOsNFTBasic is
         uint256 stackAmount = exchange.swapExactTokensForTokens(
             amountIn, 
             _stablecoin,
-            stackOSToken
+            stackToken
         );
 
         stackAmount = sendFees(stackAmount);
@@ -339,7 +339,7 @@ contract StackOsNFTBasic is
             "Not Subscription Address"
         );
 
-        stackOSToken.transferFrom(msg.sender, address(this), _stackAmount);
+        stackToken.transferFrom(msg.sender, address(this), _stackAmount);
 
         _stackAmount = sendFees(_stackAmount);
 
@@ -364,7 +364,7 @@ contract StackOsNFTBasic is
             (participationFee * rewardDiscount) /
             10000;
         uint256 amountOut = discountAmount.mul(_nftAmount);
-        return exchange.getAmountIn(amountOut, IERC20(_stablecoin), stackOSToken);
+        return exchange.getAmountIn(amountOut, IERC20(_stablecoin), stackToken);
     }
 
     /*
@@ -393,7 +393,7 @@ contract StackOsNFTBasic is
         uint256 stackAmount = exchange.swapExactTokensForTokens(
             amountIn, 
             IERC20(_stablecoin),
-            stackOSToken
+            stackToken
         );
 
         stackAmount = sendFees(stackAmount);
@@ -412,14 +412,14 @@ contract StackOsNFTBasic is
         uint256 distrPart = _amount * distrFee / 10000;
         _amount = _amount - subsPart - daoPart - distrPart;
 
-        stackOSToken.approve(address(sub0), subsPart / 2);
+        stackToken.approve(address(sub0), subsPart / 2);
         // if subs contract don't take it, send to dao 
         if(sub0.onReceiveStack(subsPart / 2) == false) {
-            stackOSToken.transfer(address(daoAddress), subsPart / 2);
+            stackToken.transfer(address(daoAddress), subsPart / 2);
         }
-        stackOSToken.transfer(address(subscription), subsPart / 2);
-        stackOSToken.transfer(address(daoAddress), daoPart);
-        stackOSToken.transfer(address(royaltyDistrAddress), distrPart);
+        stackToken.transfer(address(subscription), subsPart / 2);
+        stackToken.transfer(address(daoAddress), daoPart);
+        stackToken.transfer(address(royaltyDistrAddress), distrPart);
 
         return _amount;
     }
@@ -519,7 +519,7 @@ contract StackOsNFTBasic is
      */
     function adminWithdraw() public onlyOwner {
         require(block.timestamp > timeLock, "Locked!");
-        stackOSToken.transfer(msg.sender, adminWithdrawableAmount);
+        stackToken.transfer(msg.sender, adminWithdrawableAmount);
         adminWithdrawableAmount = 0;
     }
 

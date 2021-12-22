@@ -21,7 +21,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
     struct Deployment {
         string name;
         string symbol;
-        address stackOSTokenToken;
+        address stackToken;
         address darkMatter;
         address subscription;
         address sub0;
@@ -68,7 +68,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
     function setupDeploy(
         string memory _name,
         string memory _symbol,
-        address _stackOSTokenToken,
+        address _stackToken,
         address _darkMatter,
         address _subscription,
         address _sub0,
@@ -82,7 +82,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         require(_maxSupplyGrowthPercent <= 10000, "invalid basis points");
         deployment.name = _name;
         deployment.symbol = _symbol;
-        deployment.stackOSTokenToken = _stackOSTokenToken;
+        deployment.stackToken = _stackToken;
         deployment.darkMatter = _darkMatter;
         deployment.subscription = _subscription;
         deployment.sub0 = _sub0;
@@ -139,7 +139,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         stack.setName(name);
         stack.setSymbol(deployment.symbol);
         stack.initialize(
-            deployment.stackOSTokenToken,
+            deployment.stackToken,
             deployment.darkMatter,
             deployment.subscription,
             deployment.sub0,
@@ -188,7 +188,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
     function deployNextGen(
         string memory _name,
         string memory _symbol,
-        address _stackOSTokenToken,
+        address _stackToken,
         address _darkMatter,
         address _subscription,
         address _sub0,
@@ -206,7 +206,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         stack.setName(_name);
         stack.setSymbol(_symbol);
         stack.initialize(
-            _stackOSTokenToken,
+            _stackToken,
             _darkMatter,
             _subscription,
             _sub0,

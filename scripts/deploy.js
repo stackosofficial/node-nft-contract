@@ -202,6 +202,22 @@ async function main() {
   await subscription.deployed();
   console.log("Subscription", subscription.address);
 
+    // TODO: need deploy sub0?
+  // const Sub0 = await ethers.getContractFactory("Sub0");
+  // sub0 = await Sub0.deploy(
+  //   STACK_TOKEN,
+  //   GENERATION_MANAGER_ADDRESS,
+  //   DARK_MATTER_ADDRESS,
+  //   stableAcceptor.address,
+  //   exchange.address,
+  //   TAX_ADDRESS,
+  //   TAX_RESET_DEADLINE,
+  //   SUBSCRIPTION_PRICE,
+  //   BONUS_PECENT,
+  //   TAX_REDUCTION_AMOUNT
+  // );
+  // await sub0.deployed();
+
   let StackOS = await ethers.getContractFactory("StackOsNFT");
   let stackOsNFT = await StackOS.deploy(
     NAME,

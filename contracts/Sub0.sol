@@ -62,7 +62,6 @@ contract Sub0 is Subscription {
         updatePeriod();
 
         p[period].subsNum += 1;
-        // TODO: try check gas when there is check for true and without check (when always assigning)
         p[period].pd[generationId][tokenId].isSub = true;
     }
 
