@@ -14,14 +14,14 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "hardhat/console.sol";
 
 contract Subscription is Ownable, ReentrancyGuard {
-    IERC20 private stackToken;
-    GenerationManager private generations;
-    DarkMatter private darkMatter;
-    StableCoinAcceptor stableAcceptor;
-    Exchange exchange;
-    address private taxAddress;
+    IERC20 internal stackToken;
+    GenerationManager internal generations;
+    DarkMatter internal darkMatter;
+    StableCoinAcceptor internal stableAcceptor;
+    Exchange internal exchange;
+    address internal taxAddress;
 
-    uint256 private constant HUNDRED_PERCENT = 10000;
+    uint256 internal constant HUNDRED_PERCENT = 10000;
     uint256 public constant MONTH = 28 days;
 
     uint256 public dripPeriod = 700 days;
@@ -142,7 +142,7 @@ contract Subscription is Ownable, ReentrancyGuard {
         uint256 tokenId,
         IERC20 _stablecoin,
         bool _payWithStack
-    ) public nonReentrant {
+    ) public virtual nonReentrant {
         if(!_payWithStack)
             require(
                 stableAcceptor.supportsCoin(_stablecoin), 
@@ -263,6 +263,7 @@ contract Subscription is Ownable, ReentrancyGuard {
      */
     function withdraw(uint256 generationId, uint256[] calldata tokenIds)
         external
+        virtual
         nonReentrant
     {
         for (uint256 i; i < tokenIds.length; i++) {
@@ -291,7 +292,7 @@ contract Subscription is Ownable, ReentrancyGuard {
         uint256 purchaseGenerationId,
         uint256 amountToMint,
         IERC20 _stablecoin
-    ) external nonReentrant {
+    ) external virtual nonReentrant {
         require(stableAcceptor.supportsCoin(_stablecoin), "Unsupported payment coin");
         require(purchaseGenerationId > 0, "Generation must be >0");
         for (uint256 i; i < withdrawTokenIds.length; i++) {
@@ -313,7 +314,7 @@ contract Subscription is Ownable, ReentrancyGuard {
         uint256 purchaseGenerationId,
         uint256 amountToMint,
         IERC20 _stablecoin
-    ) private {
+    ) internal {
         require(generationId < generations.count(), "Generation doesn't exist");
         require(
             darkMatter.isOwnStackOrDarkMatter(
