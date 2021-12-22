@@ -15,8 +15,8 @@ async function deployStackOSBasic() {
     NAME,
     SYMBOL,
     STACK_TOKEN,
-    DARK_MATTER_ADDRESS,
-    SUBSCRIPTION,
+    darkMatter.address,
+    subscription.address,
     sub0.address,
     PRICE,
     MAX_SUPPLY,
@@ -64,7 +64,7 @@ async function deployStackOS() {
   await generationManager.add(stackOsNFT.address);
   await stackOsNFT.adjustAddressSettings(
     generationManager.address,
-    subscription.address,
+    sub0.address,
     stableAcceptor.address,
     STACK_TOKEN,
     DARK_MATTER_ADDRESS,
