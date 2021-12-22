@@ -9,6 +9,7 @@ import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "./interfaces/IStackOsNFT.sol";
 import "./Subscription.sol";
+import "./Sub0.sol";
 import "./StableCoinAcceptor.sol";
 import "./Exchange.sol";
 import "hardhat/console.sol";
@@ -26,6 +27,7 @@ contract StackOsNFTBasic is
     IERC20 private stackOSToken;
     DarkMatter private darkMatter;
     Subscription private subscription;
+    Sub0 private sub0;
     address private royaltyAddress;
     StableCoinAcceptor stableAcceptor;
     GenerationManager private generations;
@@ -73,6 +75,7 @@ contract StackOsNFTBasic is
         address _stackOSTokenToken,
         address _darkMatter,
         address _subscription,
+        address _sub0,
         address _royaltyAddress,
         address _stableAcceptor,
         address _exchange,
@@ -87,6 +90,7 @@ contract StackOsNFTBasic is
         stackOSToken = IERC20(_stackOSTokenToken);
         darkMatter = DarkMatter(_darkMatter);
         subscription = Subscription(_subscription);
+        sub0 = Sub0(_sub0);
         royaltyAddress = _royaltyAddress;
         stableAcceptor = StableCoinAcceptor(_stableAcceptor);
         exchange = Exchange(_exchange);
@@ -402,14 +406,18 @@ contract StackOsNFTBasic is
     }
 
     function sendFees(uint256 _amount) internal returns (uint256) {
-        
+
         uint256 subsPart = _amount * subsFee / 10000;
         uint256 daoPart = _amount * daoFee / 10000;
         uint256 distrPart = _amount * distrFee / 10000;
         _amount = _amount - subsPart - daoPart - distrPart;
 
-        // TODO: send to appropriate subs address
-        stackOSToken.transfer(address(subscription), subsPart);
+        stackOSToken.approve(address(sub0), subsPart / 2);
+        // if subs contract don't take it, send to dao 
+        if(sub0.onReceiveStack(subsPart / 2) == false) {
+            stackOSToken.transfer(address(daoAddress), subsPart / 2);
+        }
+        stackOSToken.transfer(address(subscription), subsPart / 2);
         stackOSToken.transfer(address(daoAddress), daoPart);
         stackOSToken.transfer(address(royaltyDistrAddress), distrPart);
 

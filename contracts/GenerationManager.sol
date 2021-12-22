@@ -24,6 +24,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         address stackOSTokenToken;
         address darkMatter;
         address subscription;
+        address sub0;
         uint256 participationFee;
         uint256 subsFee;
         uint256 daoFee;
@@ -70,6 +71,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         address _stackOSTokenToken,
         address _darkMatter,
         address _subscription,
+        address _sub0,
         uint256 _participationFee,
         uint256 _subsFee,
         uint256 _maxSupplyGrowthPercent,
@@ -83,6 +85,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         deployment.stackOSTokenToken = _stackOSTokenToken;
         deployment.darkMatter = _darkMatter;
         deployment.subscription = _subscription;
+        deployment.sub0 = _sub0;
         deployment.participationFee = _participationFee;
         deployment.subsFee = _subsFee;
         deployment.maxSupplyGrowthPercent = _maxSupplyGrowthPercent;
@@ -139,6 +142,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
             deployment.stackOSTokenToken,
             deployment.darkMatter,
             deployment.subscription,
+            deployment.sub0,
             deployment.royaltyAddress,
             stableAcceptor,
             exchange,
@@ -187,6 +191,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         address _stackOSTokenToken,
         address _darkMatter,
         address _subscription,
+        address _sub0,
         uint256 _participationFee,
         uint256 _maxSupply,
         uint256 _transferDiscount,
@@ -204,6 +209,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
             _stackOSTokenToken,
             _darkMatter,
             _subscription,
+            _sub0,
             _royaltyAddress,
             stableAcceptor,
             exchange,

@@ -98,6 +98,7 @@ describe("StackOS NFT Basic", function () {
       STACK_TOKEN,
       DARK_MATTER_ADDRESS,
       SUBSCRIPTION,
+      sub0.address,
       PRICE,
       SUBS_FEE,
       MAX_SUPPLY_GROWTH,

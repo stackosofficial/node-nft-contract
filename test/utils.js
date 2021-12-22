@@ -17,6 +17,7 @@ async function deployStackOSBasic() {
     STACK_TOKEN,
     DARK_MATTER_ADDRESS,
     SUBSCRIPTION,
+    sub0.address,
     PRICE,
     MAX_SUPPLY,
     TRANSFER_DISCOUNT,
@@ -176,6 +177,25 @@ async function setup() {
   await subscription.setTaxResetDeadline(TAX_RESET_DEADLINE);
   MONTH = (await subscription.MONTH()).toNumber();
   console.log("MONTH: ", MONTH);
+
+  const Sub0 = await ethers.getContractFactory("Sub0");
+  sub0 = await Sub0.deploy(
+    STACK_TOKEN,
+    GENERATION_MANAGER_ADDRESS,
+    DARK_MATTER_ADDRESS,
+    stableAcceptor.address,
+    exchange.address,
+    TAX_ADDRESS,
+    TAX_RESET_DEADLINE,
+    SUBSCRIPTION_PRICE,
+    BONUS_PECENT,
+    TAX_REDUCTION_AMOUNT
+  );
+  await sub0.deployed();
+  await sub0.setPrice(SUBSCRIPTION_PRICE);
+  await sub0.setBonusPercent(BONUS_PECENT);
+  await sub0.settaxReductionAmount(TAX_REDUCTION_AMOUNT);
+  await sub0.setTaxResetDeadline(TAX_RESET_DEADLINE);
 
   NAME = "STACK OS NFT";
   SYMBOL = "SON";
