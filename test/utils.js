@@ -231,7 +231,6 @@ async function setup() {
   royalty = await Royalty.deploy(
     GENERATION_MANAGER_ADDRESS,
     DARK_MATTER_ADDRESS,
-    subscription.address,
     exchange.address,
     DEPOSIT_FEE_ADDRESS,
     MIN_CYCLE_ETHER

@@ -114,13 +114,13 @@ contract Sub0 is Subscription {
             );
             for (uint256 o; o < periods.length; o++) {
                 require(periods[o] < period, "Period not ended");
-                Period storage p = p[periods[o]];
-                require(p.subsNum > 0, "No subs in period");
-                uint256 share = p.balance / p.subsNum;
+                Period storage pr = p[periods[o]];
+                require(pr.subsNum > 0, "No subs in period");
+                uint256 share = pr.balance / pr.subsNum;
                 console.log("share:", share);
-                toWithdraw += (share - p.pd[generationId][tokenIds[i]].withdrawn);
+                toWithdraw += (share - pr.pd[generationId][tokenIds[i]].withdrawn);
                 console.log("toWithdraw:", toWithdraw);
-                p.pd[generationId][tokenIds[i]].withdrawn = share; 
+                pr.pd[generationId][tokenIds[i]].withdrawn = share; 
             }
         }
         stackToken.transfer(msg.sender, toWithdraw);

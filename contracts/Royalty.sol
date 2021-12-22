@@ -5,7 +5,6 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "./GenerationManager.sol";
 import "./DarkMatter.sol";
 import "./interfaces/IStackOsNFT.sol";
-import "./Subscription.sol";
 import "./Exchange.sol";
 
 contract Royalty is Ownable {
@@ -16,7 +15,6 @@ contract Royalty is Ownable {
     uint256 private constant HUNDRED_PERCENT = 10000;
     GenerationManager private generations;
     DarkMatter private darkMatter;
-    Subscription private subscription;
     Exchange private exchange;
     IERC20 private WETH; // for Matic network
     address payable private feeAddress; // fee from deposits will be transferred here
@@ -39,14 +37,12 @@ contract Royalty is Ownable {
     constructor(
         GenerationManager _generations,
         DarkMatter _darkMatter,
-        Subscription _subscription,
         Exchange _exchange,
         address payable _feeAddress,
         uint256 _minEthToStartCycle
     ) {
         generations = _generations;
         darkMatter = _darkMatter;
-        subscription = _subscription;
         exchange = _exchange;
         feeAddress = _feeAddress;
         minEthToStartCycle = _minEthToStartCycle;

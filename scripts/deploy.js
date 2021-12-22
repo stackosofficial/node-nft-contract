@@ -26,7 +26,6 @@ async function main() {
   ROUTER_ADDRESS = "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D";
   // Address to receive early Subscription withdraw TAX
   TAX_ADDRESS = "0xF90fF6d484331399f4eAa13f73D03b8B18eA1373";
-
   // Subscription price in USD
   SUBSCRIPTION_PRICE = parseEther("100.0");
   // Subscription bonus percent
@@ -35,6 +34,12 @@ async function main() {
   TAX_REDUCTION_AMOUNT = 2500;
   // Subscription time window. How much time you have to resub until TAX reset.
   TAX_RESET_DEADLINE = 60 * 60 * 24 * 7; // 1 week
+  // The same params for sub0
+  TAX_ADDRESS_2 = "0xF90fF6d484331399f4eAa13f73D03b8B18eA1373";
+  SUBSCRIPTION_PRICE_2 = parseEther("100.0");
+  BONUS_PECENT_2 = 2000;
+  TAX_REDUCTION_AMOUNT_2 = 2500;
+  TAX_RESET_DEADLINE_2 = 60 * 60 * 24 * 7; // 1 week
   
   // Market dao fee address
   DAO_ADDRESS = "0xF90fF6d484331399f4eAa13f73D03b8B18eA1373";
@@ -202,21 +207,22 @@ async function main() {
   await subscription.deployed();
   console.log("Subscription", subscription.address);
 
-    // TODO: need deploy sub0?
-  // const Sub0 = await ethers.getContractFactory("Sub0");
-  // sub0 = await Sub0.deploy(
-  //   STACK_TOKEN,
-  //   GENERATION_MANAGER_ADDRESS,
-  //   DARK_MATTER_ADDRESS,
-  //   stableAcceptor.address,
-  //   exchange.address,
-  //   TAX_ADDRESS,
-  //   TAX_RESET_DEADLINE,
-  //   SUBSCRIPTION_PRICE,
-  //   BONUS_PECENT,
-  //   TAX_REDUCTION_AMOUNT
-  // );
-  // await sub0.deployed();
+    // TODO: custom settings for this?
+  const Sub0 = await ethers.getContractFactory("Sub0");
+  sub0 = await Sub0.deploy(
+    STACK_TOKEN,
+    generationManager.address,
+    darkMatter.address,
+    stableAcceptor.address,
+    exchange.address,
+    TAX_ADDRESS_2,
+    TAX_RESET_DEADLINE_2,
+    SUBSCRIPTION_PRICE_2,
+    BONUS_PECENT_2,
+    TAX_REDUCTION_AMOUNT_2
+  );
+  await sub0.deployed();
+  console.log("Sub0", sub0.address);
 
   let StackOS = await ethers.getContractFactory("StackOsNFT");
   let stackOsNFT = await StackOS.deploy(
@@ -238,7 +244,6 @@ async function main() {
   royalty = await Royalty.deploy(
     generationManager.address,
     darkMatter.address,
-    subscription.address,
     exchange.address,
     DEPOSIT_FEE_ADDRESS,
     MIN_CYCLE_ETHER
@@ -264,7 +269,7 @@ async function main() {
   // Additional settings for StackNFT
   await stackOsNFT.adjustAddressSettings(
     generationManager.address,
-    subscription.address,
+    sub0.address,
     stableAcceptor.address,
     STACK_TOKEN,
     darkMatter.address,
@@ -301,6 +306,7 @@ async function main() {
     STACK_TOKEN,
     darkMatter.address,
     subscription.address,
+    sub0.address,
     PRICE_2,
     SUBS_FEE_2,
     MAX_SUPPLY_GROWTH,
@@ -322,6 +328,7 @@ async function main() {
     
     await marketProxy.transferOwnership(OWNERSHIP);
     
+    await sub0.transferOwnership(OWNERSHIP);
     await subscription.transferOwnership(OWNERSHIP);
     await stackOsNFT.transferOwnership(OWNERSHIP);
     await royalty.transferOwnership(OWNERSHIP);
@@ -399,6 +406,25 @@ async function main() {
   }
   try {
     await hre.run("verify:verify", {
+      address: sub0.address,
+      constructorArguments: [
+        STACK_TOKEN,
+        generationManager.address,
+        darkMatter.address,
+        stableAcceptor.address,
+        exchange.address,
+        TAX_ADDRESS_2,
+        TAX_RESET_DEADLINE_2,
+        SUBSCRIPTION_PRICE_2,
+        BONUS_PECENT_2,
+        TAX_REDUCTION_AMOUNT_2
+      ],
+    });
+  } catch (error) {
+    console.log(error)
+  }
+  try {
+    await hre.run("verify:verify", {
       address: stackOsNFT.address,
       constructorArguments: [
         NAME,
@@ -422,7 +448,6 @@ async function main() {
       constructorArguments: [
         generationManager.address,
         darkMatter.address,
-        subscription.address,
         exchange.address,
         DEPOSIT_FEE_ADDRESS,
         MIN_CYCLE_ETHER
