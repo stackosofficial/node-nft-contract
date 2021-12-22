@@ -254,7 +254,7 @@ contract Royalty is Ownable {
             uint256 reward;
 
             // iterate over tokens from args
-            for (uint256 i = 0; i < tokenIds.length; i++) {
+            for (uint256 i; i < tokenIds.length; i++) {
                 uint256 tokenId = tokenIds[i];
 
                 require(
@@ -275,7 +275,7 @@ contract Royalty is Ownable {
                 );
                 if (delegationTimestamp > 0) {
                     // iterate over cycles, ignoring current one since its not ended
-                    for (uint256 o = 0; o < counter.current(); o++) {
+                    for (uint256 o; o < counter.current(); o++) {
                         // generation must be added before start of the cycle (first generation's timestamp = 0)
                         if (
                             generations.getAddedTimestamp(generationId) <
