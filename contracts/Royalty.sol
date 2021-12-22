@@ -25,7 +25,6 @@ contract Royalty is Ownable {
 
     struct Cycle {
         uint256 startTimestamp; // when cycle started
-        uint256 perTokenReward; // price of 1 NFT, calculated on cycle end
         uint256 balance; // how much deposited during cycle
         uint256 delegatedCount; // how much tokens delegated when cycle starts
         mapping(uint256 => mapping(uint256 => bool)) isClaimed; // whether reward for this token in this cycle is claimed
@@ -64,8 +63,6 @@ contract Royalty is Ownable {
         ) {
             // is current cycle got enough ether?
             if (cycles[counter.current()].balance >= minEthToStartCycle) {
-                // at the end of cycle we calculate 'ETH per NFT' for it
-                cycles[counter.current()].perTokenReward = getUnitPayment();
                 // start new cycle
                 counter.increment();
                 // save count of delegates that exists on start of cycle
@@ -183,19 +180,6 @@ contract Royalty is Ownable {
     }
 
     /*
-     * @title Get how much current cycle can pay for 1 NFT.
-     * @return Amount that can be claimed in current cycle per 1 NFT
-     * @dev Make sure cycle's balance is not zero and delegates exists, if it first cycle then delegates must exist prior start of that cycle
-     */
-    function getUnitPayment() private view returns (uint256) {
-        uint256 delegatedCount = cycles[counter.current()].delegatedCount;
-        return
-            (delegatedCount > 0)
-                ? (cycles[counter.current()].balance / delegatedCount)
-                : 0;
-    }
-
-    /*
      * @title Claim royalty for holding delegated NFTs 
      * @param StackOS generation id 
      * @param Token ids
@@ -260,7 +244,6 @@ contract Royalty is Ownable {
             block.timestamp
         ) {
             if (cycles[counter.current()].balance >= minEthToStartCycle) {
-                cycles[counter.current()].perTokenReward = getUnitPayment();
                 counter.increment();
                 cycles[counter.current()].delegatedCount = getTotalDelegated();
                 cycles[counter.current()].startTimestamp = block.timestamp;
@@ -302,7 +285,7 @@ contract Royalty is Ownable {
                             // is this token delegated earlier than this cycle start?
                             && delegationTimestamp < cycles[o].startTimestamp
                         ) {
-                            reward += cycles[o].perTokenReward;
+                            reward += cycles[o].balance / cycles[o].delegatedCount;
                             cycles[o].isClaimed[generationId][
                                 tokenId
                             ] = true;
