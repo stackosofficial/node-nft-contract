@@ -59,7 +59,7 @@ contract StackOsNFTBasic is
     bool private initialized;
 
     modifier onlyGenerationManager() {
-        // Naive check, this should revert if msg.sender is wallet
+        // Naive check, this should revert if msg.sender don't have `count` function
         GenerationManager(_msgSender()).count();
         _;
     }
@@ -119,6 +119,8 @@ contract StackOsNFTBasic is
 
     /*
      * @title Adjust address settings
+     * @param Dao address
+     * @title Royalty distribution address
      * @dev Could only be invoked by the contract owner.
      */
 
@@ -134,7 +136,7 @@ contract StackOsNFTBasic is
     }
 
     /*
-     * @title Set discont appliend on mint from subscription or royalty rewards
+     * @title Set discont applied on mint from subscription or royalty rewards
      * @param percent
      * @dev Could only be invoked by the contract owner.
      */
@@ -190,7 +192,7 @@ contract StackOsNFTBasic is
      * @title Get token's owner.
      * @dev Token might be not delegated though.
      */
-
+// TODO: 1) this is kinda confusing, owner could be not delegator. 2) this is unused function, should remove?
     function getDelegator(uint256 _tokenId) public view returns (address) {
         return
             darkMatter.ownerOfStackOrDarkMatter(
@@ -217,6 +219,7 @@ contract StackOsNFTBasic is
     /*
      * @title Called by 1st generation as part of `transferTickets`
      * @param Wallet to mint tokens to
+     * @param Amount of STACK token received
      * @dev Could only be invoked by the StackNFT contract.
      * @dev It receives stack token and use it to mint NFTs at a discount
      */
@@ -281,7 +284,7 @@ contract StackOsNFTBasic is
     /*
      * @title User mint a token amount.
      * @param Number of tokens to mint.
-     * @param Address of supported stablecoin to pay for mint
+     * @param Address of supported stablecoin
      * @dev Sales should be started before mint.
      */
 
@@ -363,7 +366,11 @@ contract StackOsNFTBasic is
      * @dev Sales should be started before mint.
      */
 
-    function mintFromRoyaltyRewards(uint256 _mintNum, address _stablecoin, address _to) 
+    function mintFromRoyaltyRewards(
+        uint256 _mintNum, 
+        address _stablecoin, 
+        address _to
+    ) 
         public
         returns (uint256)
     {
@@ -392,7 +399,12 @@ contract StackOsNFTBasic is
         return amountIn;
     }
 
-    function sendFees(uint256 _amount) internal returns (uint256) {
+    /*
+     * @returns left over amount after fees subtracted
+     * @dev Take fees out of `_amount`
+     */
+
+    function sendFees(uint256 _amount) internal returns (uint256 ) {
 
         uint256 subsPart = _amount * subsFee / 10000;
         uint256 daoPart = _amount * daoFee / 10000;
@@ -402,7 +414,7 @@ contract StackOsNFTBasic is
         stackToken.approve(address(sub0), subsPart / 2);
         // if subs contract don't take it, send to dao 
         if(sub0.onReceiveStack(subsPart / 2) == false) {
-            stackToken.transfer(address(daoAddress), subsPart / 2);
+            daoPart += (subsPart / 2);
         }
         stackToken.transfer(address(subscription), subsPart / 2);
         stackToken.transfer(address(daoAddress), daoPart);
@@ -430,7 +442,7 @@ contract StackOsNFTBasic is
      * @title Delegate NFT.
      * @param Address of delegatee.
      * @param tokenIds to delegate.
-     * @dev Caller must be owner of NFT.
+     * @dev Caller must own token.
      * @dev Delegation can be done only once.
      */
 
