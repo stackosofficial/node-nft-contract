@@ -16,7 +16,6 @@ contract GenerationManager is Ownable, ReentrancyGuard {
 
     IStackOsNFT[] private generations;
     mapping(address => uint256) private ids;
-    uint256[] private generationAddedTimestamp; // time when generation was added
 
     struct Deployment {
         string name;
@@ -173,7 +172,6 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         }
         ids[address(_stackOS)] = generations.length;
         generations.push(_stackOS);
-        generationAddedTimestamp.push(block.timestamp);
     }
 
     /*
@@ -258,17 +256,5 @@ contract GenerationManager is Ownable, ReentrancyGuard {
     function isAdded(address _nftAddress) public view returns (bool) {
         uint256 generationID = ids[_nftAddress];
         return generations.length > generationID && address(get(generationID)) == _nftAddress;
-    }
-
-    /*
-     * @title Get timestamp when generation was added.
-     * @param Generation id.
-     */
-    function getAddedTimestamp(uint256 generationId)
-        public
-        view
-        returns (uint256)
-    {
-        return generationAddedTimestamp[generationId];
     }
 }
