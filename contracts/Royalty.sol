@@ -19,20 +19,19 @@ contract Royalty is Ownable {
     DarkMatter private darkMatter;
     Exchange private exchange;
     IERC20 private WETH; // for Matic network
-    address payable private feeAddress; // fee from deposits will be transferred here
+    address payable private feeAddress;
     uint256 private feePercent;
 
-    uint256 private minEthToStartCycle; // minimal cycle's balance required to end it
-    uint256 private constant CYCLE_DURATION = 30 days; // minimal cycle's duration required to end it
+    uint256 private minEthToStartCycle;
+    uint256 private constant CYCLE_DURATION = 30 days;
 
     struct Cycle {
-        uint256 startTimestamp; // when cycle started
+        uint256 startTimestamp; // cycle started timestamp
         uint256 balance; // how much deposited during cycle
-        uint256 delegatedCount; // how much tokens delegated when cycle starts
+        uint256 delegatedCount; // how much tokens delegated when cycle started
         mapping(uint256 => mapping(uint256 => bool)) isClaimed; // whether reward for this token in this cycle is claimed
     }
 
-    // a new cycle can start when `CYCLE_DURATION` time passed and `minEthToStartCycle` ether deposited
     mapping(uint256 => Cycle) private cycles; 
     mapping(uint256 => mapping(uint256 => uint256)) addedAt; // at which cycle the token were added
     uint256 totalDelegated;
