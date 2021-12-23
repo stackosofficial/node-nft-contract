@@ -91,7 +91,6 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
         keyHash = _keyHash;
         auctionedNFTs = _auctionedNFTs;
         timeLock = block.timestamp + _timeLock;
-        generations = GenerationManager(msg.sender);
     }
 
 
