@@ -34,8 +34,7 @@ contract Royalty is Ownable {
 
     // a new cycle can start when `CYCLE_DURATION` time passed and `minEthToStartCycle` ether deposited
     mapping(uint256 => Cycle) private cycles; 
-    mapping(uint256 => mapping(uint256 => uint256)) added;
-    mapping(uint256 => mapping(uint256 => bool)) isadded;
+    mapping(uint256 => mapping(uint256 => uint256)) addedAt; // at which cycle the token were added
     uint256 totalDelegated;
 
     constructor(
@@ -52,11 +51,16 @@ contract Royalty is Ownable {
         minEthToStartCycle = _minEthToStartCycle;
     }
 
+    /*
+     * @title Callback called when Stack NFT is delegated.
+     */
     function onDelegate(uint256 tokenId) public {
-        console.log("delegation:", tokenId, msg.sender);
+        require(
+            generations.isAdded(msg.sender), 
+            "Caller must be StackNFT contract"
+        );
         uint256 generationId = generations.getIDByAddress(msg.sender);
-        added[generationId][tokenId] = counter.current();
-        isadded[generationId][tokenId] = true;
+        addedAt[generationId][tokenId] = counter.current();
         totalDelegated += 1;
     }
 
@@ -111,7 +115,6 @@ contract Royalty is Ownable {
             */
             if (totalDelegated > 0) {
                 // we can still get 0 here, then in next ifs we will just receive eth for cycle
-                console.log("check 1 cycle, totalDelegated: ", totalDelegated);
                 cycles[counter.current()]
                     .delegatedCount = totalDelegated;
             }
@@ -146,17 +149,6 @@ contract Royalty is Ownable {
     function setFeePercent(uint256 _percent) external onlyOwner {
         require(feePercent <= HUNDRED_PERCENT, "invalid fee basis points");
         feePercent = _percent;
-    }
-
-    /*
-     * @titile Get number of delegated tokens in every generation
-     */
-    function getTotalDelegated() private view returns (uint256) {
-        uint256 total = 0;
-        for (uint256 i = 0; i < generations.count(); i++) {
-            total += generations.get(i).getTotalDelegated();
-        }
-        return total;
     }
 
     /*
@@ -233,7 +225,6 @@ contract Royalty is Ownable {
         if (counter.current() > 0) {
             uint256 reward;
 
-            console.log("claim:");
             // iterate over tokens from args
             for (uint256 i; i < tokenIds.length; i++) {
                 uint256 tokenId = tokenIds[i];
@@ -256,14 +247,13 @@ contract Royalty is Ownable {
                         // should be able to claim only once for cycle
                         cycles[o].isClaimed[generationId][tokenId] == false
                         // is this token delegated before this cycle start?
-                        && (added[generationId][tokenId] < o || added[generationId][tokenId] == 0)
-                        // && isadded[generationId][tokenId] 
+                        && (addedAt[generationId][tokenId] < o || 
+                            (addedAt[generationId][tokenId] == 0 && o == 0))
                     ) {
                         reward += cycles[o].balance / cycles[o].delegatedCount;
                         cycles[o].isClaimed[generationId][
                             tokenId
                         ] = true;
-                        // console.log( o, generationId, tokenId);
                     }
                 }
             }
@@ -277,8 +267,6 @@ contract Royalty is Ownable {
                         (bool success, ) = payable(msg.sender).call{value: reward}(
                             ""
                         );
-
-                        // console.log("transfer reward:", reward, payable(this).balance);
                         require(success, "Transfer failed");
                     }
                 } else {

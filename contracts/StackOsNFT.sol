@@ -79,7 +79,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
         uint256 _auctionedNFTs,
         bytes32 _keyHash,
         uint256 _timeLock,
-        Royalty _royaltyAddress
+        address _royaltyAddress
     )
         ERC721(_name, _symbol)
         VRFConsumerBase(
@@ -93,7 +93,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
         keyHash = _keyHash;
         auctionedNFTs = _auctionedNFTs;
         timeLock = block.timestamp + _timeLock;
-        royaltyAddress = _royaltyAddress;
+        royaltyAddress = Royalty(payable(_royaltyAddress));
     }
 
 
