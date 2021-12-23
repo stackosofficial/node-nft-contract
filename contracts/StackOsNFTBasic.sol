@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 // import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "./ERC721/CustomERC721.sol";
-import "./ERC721/extensions/ERC721URIStorage2.sol";
+import "./ERC721/extensions/CustomERC721URIStorage.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
@@ -19,7 +19,7 @@ import "./Royalty.sol";
 contract StackOsNFTBasic is
     Whitelist,
     CustomERC721,
-    ERC721URIStorage2
+    CustomERC721URIStorage
 {
     using Counters for Counters.Counter;
     using SafeMath for uint256;
@@ -498,7 +498,7 @@ contract StackOsNFTBasic is
 
     function _burn(uint256 tokenId)
         internal
-        override(CustomERC721, ERC721URIStorage2)
+        override(CustomERC721, CustomERC721URIStorage)
     {
         super._burn(tokenId);
     }
@@ -506,7 +506,7 @@ contract StackOsNFTBasic is
     function tokenURI(uint256 tokenId)
         public
         view
-        override(CustomERC721, ERC721URIStorage2)
+        override(CustomERC721, CustomERC721URIStorage)
         returns (string memory)
     {
         return super.tokenURI(tokenId);

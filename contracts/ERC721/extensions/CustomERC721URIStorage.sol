@@ -7,7 +7,7 @@ import "../CustomERC721.sol";
 /**
  * @dev ERC721 token with storage based token URI management.
  */
-abstract contract ERC721URIStorage2 is CustomERC721 {
+abstract contract CustomERC721URIStorage is CustomERC721 {
     using Strings for uint256;
 
     // Optional mapping for token URIs
