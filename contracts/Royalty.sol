@@ -109,6 +109,7 @@ contract Royalty is Ownable {
             */
             if (totalDelegated > 0) {
                 // we can still get 0 here, then in next ifs we will just receive eth for cycle
+                console.log("check 1 cycle, totalDelegated: ", totalDelegated);
                 cycles[counter.current()]
                     .delegatedCount = totalDelegated;
             }
@@ -143,39 +144,6 @@ contract Royalty is Ownable {
     function setFeePercent(uint256 _percent) external onlyOwner {
         require(feePercent <= HUNDRED_PERCENT, "invalid fee basis points");
         feePercent = _percent;
-    }
-
-    /*
-     * @title Get total delegated NFT's that exists prior current block, in all added generations
-     * @dev May consume a lot of gas if there is a lot of generations and NFTs.
-     * @dev This is called only once, when first cycle start.
-     */
-    function getTotalDelegatedBeforeCurrentBlock()
-        private
-        view
-        returns (uint256)
-    {
-        uint256 result = 0;
-        for (uint256 i = 0; i < generations.count(); i++) {
-            IStackOsNFT stack = generations.get(i);
-            uint256 generationTotalDelegated = stack.getTotalDelegated();
-            for (
-                uint256 tokenId;
-                tokenId < generationTotalDelegated;
-                tokenId++
-            ) {
-                uint256 delegationTimestamp = stack.getDelegationTimestamp(
-                    tokenId
-                );
-                if (
-                    delegationTimestamp > 0 &&
-                    delegationTimestamp < block.timestamp
-                ) {
-                    result += 1;
-                }
-            }
-        }
-        return result;
     }
 
     /*
@@ -280,10 +248,10 @@ contract Royalty is Ownable {
                     "NFT should be delegated"
                 );
 
-                uint256 delegationTimestamp = stack.getDelegationTimestamp(
-                    tokenId
-                );
-                if (delegationTimestamp > 0) {
+                // uint256 delegationTimestamp = stack.getDelegationTimestamp(
+                //     tokenId
+                // );
+                // if (delegationTimestamp > 0) {
                     // iterate over cycles, ignoring current one since its not ended
                     for (uint256 o; o < counter.current(); o++) {
                         // generation must be added before start of the cycle (first generation's timestamp = 0)
@@ -312,9 +280,10 @@ contract Royalty is Ownable {
                             cycles[o].isClaimed[generationId][
                                 tokenId
                             ] = true;
+                            console.log("claim:", o, generationId, tokenId);
                         }
                     }
-                }
+                // }
             }
 
             if (reward > 0) {
@@ -326,6 +295,8 @@ contract Royalty is Ownable {
                         (bool success, ) = payable(msg.sender).call{value: reward}(
                             ""
                         );
+
+                        console.log("transfer reward:", reward, payable(this).balance);
                         require(success, "Transfer failed");
                     }
                 } else {
