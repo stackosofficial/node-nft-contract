@@ -77,7 +77,7 @@ describe("StackOS NFT Basic", function () {
 
   it("Unable to mint for unsupported coin", async function () {
     await expect(stackOsNFTBasic.mint(1, stackToken.address)).to.be.revertedWith(
-      "Unsupported payment coin"
+      "Unsupported stablecoin"
     );
   });
 

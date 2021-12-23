@@ -123,7 +123,6 @@ contract DarkMatter is Whitelist, ERC721, ReentrancyGuard {
             uint256 tokenId = tokenIds[i];
             stackNFT.transferFrom(msg.sender, address(this), tokenId);
 
-
             if (deposits[msg.sender] == 0) {
                 lastUserDarkMatter[msg.sender] = _tokenIdCounter.current();
                 _tokenIdCounter.increment();

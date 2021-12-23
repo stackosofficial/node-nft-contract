@@ -421,7 +421,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
 
     function partnerMint(uint256 _nftAmount, IERC20 _stablecoin) public {
         require(salesStarted, "Sales not started");
-        require(stableAcceptor.supportsCoin(_stablecoin), "Unsupported payment coin");
+        require(stableAcceptor.supportsCoin(_stablecoin), "Unsupported stablecoin");
         require(strategicPartner[msg.sender] >= _nftAmount, "Amount Too Big");
 
         uint256 stackAmount = participationFee.mul(_nftAmount);

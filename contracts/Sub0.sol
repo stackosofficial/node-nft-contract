@@ -126,6 +126,8 @@ contract Sub0 is Subscription {
         stackToken.transfer(msg.sender, toWithdraw);
     }
 
+    //   The following just add more updatePeriod() calls, maybe we don't even need these overrides?
+
     /*
      *  @title Withdraw deposit taking into account bonus and tax
      *  @param StackNFT generation id
@@ -175,7 +177,7 @@ contract Sub0 is Subscription {
         nonReentrant 
     {
         updatePeriod();
-        require(stableAcceptor.supportsCoin(_stablecoin), "Unsupported payment coin");
+        require(stableAcceptor.supportsCoin(_stablecoin), "Unsupported stablecoin");
         require(purchaseGenerationId > 0, "Generation must be >0");
         for (uint256 i; i < withdrawTokenIds.length; i++) {
             _withdraw(

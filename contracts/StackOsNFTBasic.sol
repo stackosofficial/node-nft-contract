@@ -287,7 +287,7 @@ contract StackOsNFTBasic is
 
     function mint(uint256 _nftAmount, IERC20 _stablecoin) public {
         require(salesStarted, "Sales not started");
-        require(stableAcceptor.supportsCoin(_stablecoin), "Unsupported payment coin");
+        require(stableAcceptor.supportsCoin(_stablecoin), "Unsupported stablecoin");
 
         uint256 amountIn = participationFee.mul(_nftAmount);
         _stablecoin.transferFrom(msg.sender, address(this), amountIn);

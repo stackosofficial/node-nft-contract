@@ -7,7 +7,6 @@ import "./StableCoinAcceptor.sol";
 import "./Exchange.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-import "./interfaces/IStackOsNFT.sol";
 import "./interfaces/IStackOsNFTBasic.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
@@ -78,7 +77,7 @@ contract Subscription is Ownable, ReentrancyGuard {
 
     /*
      * @title Set drip perdiod
-     * @param Amount of seconds required to release bonus fully
+     * @param Amount of seconds required to release bonus
      * @dev Could only be invoked by the contract owner.
      */
     function setDripPeriod(uint256 _seconds) external onlyOwner {
@@ -97,8 +96,8 @@ contract Subscription is Ownable, ReentrancyGuard {
     }
 
     /*
-     * @title Set bonus percent added for each subscription on top of it's price
-     * @param Bonus basis points
+     * @title Set bonus added for each subscription on top of it's price
+     * @param Bonus percent
      * @dev Could only be invoked by the contract owner.
      */
     function setBonusPercent(uint256 _percent) external onlyOwner {
@@ -107,21 +106,19 @@ contract Subscription is Ownable, ReentrancyGuard {
     }
 
     /*
-     * @title Set tax reduction amount on subscription
-     * @param Amount to subtract from tax amount at the moment
+     * @title Set tax reduction amount
+     * @param Amount to subtract from tax on each subscribed month in a row
      * @dev Could only be invoked by the contract owner
-     * @dev Tax reduced by subtracting this value from it
      */
-    function settaxReductionAmount(uint256 _percent) external onlyOwner {
-        require(_percent <= HUNDRED_PERCENT, "invalid basis points");
-        taxReductionAmount = _percent;
+    function settaxReductionAmount(uint256 _amount) external onlyOwner {
+        require(_amount <= HUNDRED_PERCENT, "invalid basis points");
+        taxReductionAmount = _amount;
     }
 
     /*
-     * @title Set time window after `nextPayDate` when tax will reduce
+     * @title Set time frame that you have to resubscribe to keep TAX reducing
      * @param Amount of seconds
      * @dev Could only be invoked by the contract owner
-     * @dev If you miss that time window then the tax will reset
      */
     function setTaxResetDeadline(uint256 _seconds) external onlyOwner {
         require(_seconds > 0, "Cant be zero");
@@ -130,12 +127,11 @@ contract Subscription is Ownable, ReentrancyGuard {
 
     /*
      *  @title Pay subscription
-     *  @param StackNFT generation id
+     *  @param Generation id
      *  @param Token id
      *  @param Address of supported stablecoin
-     *  @param Pay with STACK token
+     *  @param Whether to pay with STACK token
      *  @dev Caller must approve us to spend `price` amount of `_stablecoin` or stack token.
-     *  @dev Tax resets to maximum if you re-subscribed after `nextPayDate` + `taxResetDeadline`.
      */
     function subscribe(
         uint256 generationId,
@@ -146,7 +142,7 @@ contract Subscription is Ownable, ReentrancyGuard {
         if(!_payWithStack)
             require(
                 stableAcceptor.supportsCoin(_stablecoin), 
-                "Unsupported payment coin"
+                "Unsupported stablecoin"
             );
         _subscribe(generationId, tokenId, _stablecoin, _payWithStack);
     }
@@ -158,8 +154,10 @@ contract Subscription is Ownable, ReentrancyGuard {
         bool _payWithStack
     ) internal {
         require(generationId < generations.count(), "Generation doesn't exist");
-        // check token exists
-        IERC721(address(generations.get(generationId))).ownerOf(tokenId);
+        require(
+            generations.get(generationId).exists(tokenId), 
+            "Token doesn't exists"
+        );
 
         Deposit storage deposit = deposits[generationId][tokenId];
         require(deposit.nextPayDate < block.timestamp, "Cant pay in advance");
@@ -212,6 +210,9 @@ contract Subscription is Ownable, ReentrancyGuard {
         }));
     }
 
+    /*
+     *  @dev Calculate dripped amount and remove fully released bonuses from array.
+     */
     function updateBonuses(
         uint256 generationId,
         uint256 tokenId
@@ -255,10 +256,9 @@ contract Subscription is Ownable, ReentrancyGuard {
 
     /*
      *  @title Withdraw deposit taking into account bonus and tax
-     *  @param StackNFT generation id
+     *  @param Generation id
      *  @param Token ids
      *  @dev Caller must own `tokenIds`
-     *  @dev Tax reduced by `taxReductionAmount` each month subscribed in a row, unless already 0
      *  @dev Tax resets to maximum on withdraw
      */
     function withdraw(uint256 generationId, uint256[] calldata tokenIds)
@@ -280,11 +280,13 @@ contract Subscription is Ownable, ReentrancyGuard {
 
    /*
      * @title Purchase StackNFTs, caller will receive the left over amount of royalties
-     * @param StackNFT generation id
-     * @param Token ids
+     * @param Generation id to withdraw
+     * @param Token ids to withdraw
+     * @param Generation id to mint
      * @param Amount to mint
      * @param Supported stablecoin to use to buy stack token
-     * @dev tokens must be delegated and owned by the caller
+     * @dev Withdraw tokens must be owned by the caller
+     * @dev Generation should be greater than 0
      */
     function purchaseNewNft(
         uint256 withdrawGenerationId,
@@ -293,8 +295,8 @@ contract Subscription is Ownable, ReentrancyGuard {
         uint256 amountToMint,
         IERC20 _stablecoin
     ) external virtual nonReentrant {
-        require(stableAcceptor.supportsCoin(_stablecoin), "Unsupported payment coin");
-        require(purchaseGenerationId > 0, "Generation must be >0");
+        require(stableAcceptor.supportsCoin(_stablecoin), "Unsupported stablecoin");
+        require(purchaseGenerationId > 0, "Generation mustn't be 0");
         for (uint256 i; i < withdrawTokenIds.length; i++) {
             _withdraw(
                 withdrawGenerationId,

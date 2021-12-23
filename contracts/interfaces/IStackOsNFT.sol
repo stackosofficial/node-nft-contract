@@ -16,4 +16,6 @@ interface IStackOsNFT is IERC721 {
 
     function transferOwnership(address newOwner) external;
 
+    function exists(uint256 _tokenId) external returns (bool);
+
 }
