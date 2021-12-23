@@ -104,6 +104,12 @@ describe("Sub0", function () {
       .to.changeTokenBalance(stackToken, owner, "0");
     print("owner stack:", await stackToken.balanceOf(owner.address));
   });
+
+  it("Unable to withdraw when token not subscribed in target period", async function () {
+    await expect(sub0.withdraw2(1, [1], [1])).to.be.revertedWith(
+      "Was not subscribed"
+    );
+  });
   it("Subscribe in 2 period for 2 tokens, send one to joe", async function () {
     await usdt.approve(sub0.address, parseEther("100.0"));
     await sub0.subscribe(1, 0, usdt.address, false);

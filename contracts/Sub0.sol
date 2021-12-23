@@ -50,7 +50,9 @@ contract Sub0 is Subscription {
     {
     }
 
-   
+    /*
+     *  @title Same as base, but also calculates active subs rewards.
+     */
     function subscribe(
         uint256 generationId,
         uint256 tokenId,
@@ -65,6 +67,10 @@ contract Sub0 is Subscription {
         p[period].pd[generationId][tokenId].isSub = true;
     }
 
+    /*
+     *  @title End period if its time
+     *  @dev Called automatically from other functions, but can be called manually
+     */
     function updatePeriod() public {
         if (p[period].endAt < block.timestamp) {
             period += 1;
@@ -73,6 +79,12 @@ contract Sub0 is Subscription {
         console.log("updatePeriod:", period);
     }    
 
+    /*
+     *  @title Handle fee sent from minting
+     *  @return Whether fee received or not
+     *  @dev Called automatically from stack NFT contract, but can be called manually
+     *  @dev Will receive tokens if previous period has active subs
+     */
     function onReceiveStack(uint256 _amount) 
         external 
         returns 
@@ -92,6 +104,14 @@ contract Sub0 is Subscription {
         return true;
     }
 
+    /*
+     *  @title Handle fee sent from minting
+     *  @param Generation id
+     *  @param Token ids
+     *  @param Period ids
+     *  @dev Caller must own tokens
+     *  @dev Periods must be ended and tokens should have subscription during periods
+     */
     function withdraw2(
         uint256 generationId, 
         uint256[] calldata tokenIds,
@@ -104,11 +124,12 @@ contract Sub0 is Subscription {
 
         uint256 toWithdraw;
         for (uint256 i; i < tokenIds.length; i++) {
+            uint256 tokenId = tokenIds[i];
             require(
                 darkMatter.isOwnStackOrDarkMatter(
                     msg.sender,
                     generationId,
-                    tokenIds[i]
+                    tokenId
                 ),
                 "Not owner"
             );
@@ -116,11 +137,16 @@ contract Sub0 is Subscription {
                 require(periods[o] < period, "Period not ended");
                 Period storage pr = p[periods[o]];
                 require(pr.subsNum > 0, "No subs in period");
+                require(
+                    pr.pd[generationId][tokenId].isSub, 
+                    "Was not subscribed"
+                );
+                        
                 uint256 share = pr.balance / pr.subsNum;
                 console.log("share:", share);
-                toWithdraw += (share - pr.pd[generationId][tokenIds[i]].withdrawn);
+                toWithdraw += (share - pr.pd[generationId][tokenId].withdrawn);
                 console.log("toWithdraw:", toWithdraw);
-                pr.pd[generationId][tokenIds[i]].withdrawn = share; 
+                pr.pd[generationId][tokenId].withdrawn = share; 
             }
         }
         stackToken.transfer(msg.sender, toWithdraw);
@@ -129,12 +155,7 @@ contract Sub0 is Subscription {
     //   The following just add more updatePeriod() calls, maybe we don't even need these overrides?
 
     /*
-     *  @title Withdraw deposit taking into account bonus and tax
-     *  @param StackNFT generation id
-     *  @param Token ids
-     *  @dev Caller must own `tokenIds`
-     *  @dev Tax reduced by `taxReductionAmount` each month subscribed in a row, unless already 0
-     *  @dev Tax resets to maximum on withdraw
+     *  @title Same as base, but also update periods
      */
     function withdraw(
         uint256 generationId, 
@@ -157,13 +178,8 @@ contract Sub0 is Subscription {
         }
     }
 
-   /*
-     * @title Purchase StackNFTs, caller will receive the left over amount of royalties
-     * @param StackNFT generation id
-     * @param Token ids
-     * @param Amount to mint
-     * @param Supported stablecoin to use to buy stack token
-     * @dev tokens must be delegated and owned by the caller
+     /*
+     *  @title Same as base, but also update periods
      */
     function purchaseNewNft(
         uint256 withdrawGenerationId,
