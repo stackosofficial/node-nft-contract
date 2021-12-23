@@ -10,11 +10,6 @@ interface IStackOsNFT is IERC721 {
 
     function getTotalDelegated() external view returns (uint256);
 
-    function getDelegationTimestamp(uint256 _tokenId)
-        external
-        view
-        returns (uint256);
-
     function getDelegatee(uint256 _tokenId) external view returns (address);
 
     function getDelegator(uint256 _tokenId) external view returns (address);

@@ -57,7 +57,6 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
     mapping(uint256 => TicketStatus) public ticketStatus;
     mapping(uint256 => uint256) public topBids;
     mapping(uint256 => address) public topBiders;
-    mapping(uint256 => uint256) private delegationTimestamp;
     mapping(uint256 => address) private delegates;
     mapping(address => uint256) private strategicPartner;
 
@@ -155,19 +154,6 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
 
     function getTotalDelegated() public view returns (uint256) {
         return totalDelegated;
-    }
-
-    /*
-     * @title Get timestamp of the block when token was delegated.
-     * @dev Returns zero if token not delegated.
-     */
-
-    function getDelegationTimestamp(uint256 _tokenId)
-        public
-        view
-        returns (uint256)
-    {
-        return delegationTimestamp[_tokenId];
     }
 
     /*
@@ -524,8 +510,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
         );
         require(delegates[tokenId] == address(0), "Already delegated");
         delegates[tokenId] = _delegatee;
-        if (delegationTimestamp[tokenId] == 0) totalDelegated += 1;
-        delegationTimestamp[tokenId] = block.timestamp;
+        totalDelegated += 1;
         royaltyAddress.onDelegate(tokenId);
     }
 

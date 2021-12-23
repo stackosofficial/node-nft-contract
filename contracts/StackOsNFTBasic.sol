@@ -49,7 +49,6 @@ contract StackOsNFTBasic is
     uint256 internal distrFee;
     uint256 constant maxMintRate = 10;
 
-    mapping(uint256 => uint256) private delegationTimestamp;
     mapping(uint256 => address) private delegates;
     mapping(address => uint256) private totalMinted;
     mapping(address => uint256) private lastMintAt;
@@ -176,19 +175,6 @@ contract StackOsNFTBasic is
 
     function getTotalDelegated() public view returns (uint256) {
         return totalDelegated;
-    }
-
-    /*
-     * @title Get timestamp of the block when token was delegated.
-     * @dev Returns zero if token not delegated.
-     */
-
-    function getDelegationTimestamp(uint256 _tokenId)
-        public
-        view
-        returns (uint256)
-    {
-        return delegationTimestamp[_tokenId];
     }
 
     /*
@@ -436,8 +422,7 @@ contract StackOsNFTBasic is
         );
         require(delegates[tokenId] == address(0), "Already delegated");
         delegates[tokenId] = _delegatee;
-        if (delegationTimestamp[tokenId] == 0) totalDelegated += 1;
-        delegationTimestamp[tokenId] = block.timestamp;
+        totalDelegated += 1;
         royaltyAddress.onDelegate(tokenId);
     }
 
