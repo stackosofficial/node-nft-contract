@@ -5,7 +5,9 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "./GenerationManager.sol";
 import "./DarkMatter.sol";
 import "./interfaces/IStackOsNFT.sol";
+import "./interfaces/IStackOsNFTBasic.sol";
 import "./Exchange.sol";
+import "hardhat/console.sol";
 
 contract Royalty is Ownable {
     using Counters for Counters.Counter;
@@ -32,6 +34,8 @@ contract Royalty is Ownable {
 
     // a new cycle can start when `CYCLE_DURATION` time passed and `minEthToStartCycle` ether deposited
     mapping(uint256 => Cycle) private cycles; 
+    mapping(uint256 => mapping(uint256 => uint256)) added;
+    uint256 totalDelegated;
 
     constructor(
         GenerationManager _generations,
@@ -45,6 +49,13 @@ contract Royalty is Ownable {
         exchange = _exchange;
         feeAddress = _feeAddress;
         minEthToStartCycle = _minEthToStartCycle;
+    }
+
+    function onDelegate(uint256 tokenId) public {
+        console.log("delegation:", tokenId, msg.sender);
+        uint256 generationId = generations.getIDByAddress(msg.sender);
+        added[generationId][tokenId] = counter.current();
+        totalDelegated += 1;
     }
 
     /*
@@ -66,7 +77,7 @@ contract Royalty is Ownable {
                 // start new cycle
                 counter.increment();
                 // save count of delegates that exists on start of cycle
-                cycles[counter.current()].delegatedCount = getTotalDelegated();
+                cycles[counter.current()].delegatedCount = totalDelegated;
                 cycles[counter.current()].startTimestamp = block.timestamp;
 
                 // previous cycle already got enough balance, otherwise we wouldn't get here, thus we assign this deposit to the new cycle
@@ -96,11 +107,10 @@ contract Royalty is Ownable {
                 then no one can claim for the first cycle, because when claiming royalty
                 there is check: tokenDelegationTime < cycleStartTime
             */
-            uint256 totalDelegatedBeforeCurrentBlock = getTotalDelegatedBeforeCurrentBlock();
-            if (totalDelegatedBeforeCurrentBlock > 0) {
+            if (totalDelegated > 0) {
                 // we can still get 0 here, then in next ifs we will just receive eth for cycle
                 cycles[counter.current()]
-                    .delegatedCount = totalDelegatedBeforeCurrentBlock;
+                    .delegatedCount = totalDelegated;
             }
         }
     }
@@ -245,7 +255,7 @@ contract Royalty is Ownable {
         ) {
             if (cycles[counter.current()].balance >= minEthToStartCycle) {
                 counter.increment();
-                cycles[counter.current()].delegatedCount = getTotalDelegated();
+                cycles[counter.current()].delegatedCount = totalDelegated;
                 cycles[counter.current()].startTimestamp = block.timestamp;
             }
         }
@@ -277,13 +287,26 @@ contract Royalty is Ownable {
                     // iterate over cycles, ignoring current one since its not ended
                     for (uint256 o; o < counter.current(); o++) {
                         // generation must be added before start of the cycle (first generation's timestamp = 0)
+                        // if (
+                        //     generations.getAddedTimestamp(generationId) <
+                        //     cycles[o].startTimestamp
+                        //     // reward for token in this cycle shouldn't be already claimed
+                        //     && cycles[o].isClaimed[generationId][tokenId] == false
+                        //     // is this token delegated earlier than this cycle start?
+                        //     && delegationTimestamp < cycles[o].startTimestamp
+                        // ) {
+                        //     reward += cycles[o].balance / cycles[o].delegatedCount;
+                        //     cycles[o].isClaimed[generationId][
+                        //         tokenId
+                        //     ] = true;
+                        // }
                         if (
-                            generations.getAddedTimestamp(generationId) <
-                            cycles[o].startTimestamp
+                            // generations.getAddedTimestamp(generationId) <
+                            // cycles[o].startTimestamp
                             // reward for token in this cycle shouldn't be already claimed
-                            && cycles[o].isClaimed[generationId][tokenId] == false
+                            cycles[o].isClaimed[generationId][tokenId] == false
                             // is this token delegated earlier than this cycle start?
-                            && delegationTimestamp < cycles[o].startTimestamp
+                            && added[generationId][tokenId] <= o
                         ) {
                             reward += cycles[o].balance / cycles[o].delegatedCount;
                             cycles[o].isClaimed[generationId][

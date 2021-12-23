@@ -14,6 +14,7 @@ import "./StableCoinAcceptor.sol";
 import "./Exchange.sol";
 import "hardhat/console.sol";
 import "./Whitelist.sol";
+import "./Royalty.sol";
 
 contract StackOsNFTBasic is
     Whitelist,
@@ -28,7 +29,7 @@ contract StackOsNFTBasic is
     DarkMatter private darkMatter;
     Subscription private subscription;
     Sub0 private sub0;
-    address private royaltyAddress;
+    Royalty private royaltyAddress;
     StableCoinAcceptor stableAcceptor;
     GenerationManager private generations;
     Exchange private exchange;
@@ -91,7 +92,7 @@ contract StackOsNFTBasic is
         darkMatter = DarkMatter(_darkMatter);
         subscription = Subscription(_subscription);
         sub0 = Sub0(_sub0);
-        royaltyAddress = _royaltyAddress;
+        royaltyAddress = Royalty(payable(_royaltyAddress));
         stableAcceptor = StableCoinAcceptor(_stableAcceptor);
         exchange = Exchange(_exchange);
 
@@ -437,6 +438,7 @@ contract StackOsNFTBasic is
         delegates[tokenId] = _delegatee;
         if (delegationTimestamp[tokenId] == 0) totalDelegated += 1;
         delegationTimestamp[tokenId] = block.timestamp;
+        royaltyAddress.onDelegate(tokenId);
     }
 
     /*

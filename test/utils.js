@@ -58,7 +58,8 @@ async function deployStackOS() {
     PRIZES,
     AUCTIONED_NFTS,
     KEY_HASH,
-    TIMELOCK
+    TIMELOCK,
+    royalty.address
   );
   await stackOsNFT.deployed();
   await generationManager.add(stackOsNFT.address);
@@ -196,7 +197,31 @@ async function setup() {
   await sub0.setBonusPercent(BONUS_PECENT);
   await sub0.settaxReductionAmount(TAX_REDUCTION_AMOUNT);
   await sub0.setTaxResetDeadline(TAX_RESET_DEADLINE);
+  console.log("sub0", sub0.address);
 
+  weth = await ERC20.deploy(parseEther("100000000.0"));
+  await weth.deployed();
+  console.log("weth", weth.address);
+
+
+  DEPOSIT_FEE_ADDRESS = bank.address;
+  MIN_CYCLE_ETHER = parseEther("1");
+  DEPOSIT_FEE_PERCENT = 1000;
+
+  const Royalty = await ethers.getContractFactory("Royalty");
+  royalty = await Royalty.deploy(
+    generationManager.address,
+    darkMatter.address,
+    exchange.address,
+    DEPOSIT_FEE_ADDRESS,
+    MIN_CYCLE_ETHER
+  );
+  await royalty.deployed();
+  ROYALTY_ADDRESS = royalty.address;
+  await royalty.setFeePercent(DEPOSIT_FEE_PERCENT);
+  await royalty.setWETH(weth.address);
+  console.log("royalty", royalty.address);
+  
   NAME = "STACK OS NFT";
   SYMBOL = "SON";
   STACK_TOKEN = stackToken.address;
@@ -216,30 +241,6 @@ async function setup() {
   TIMELOCK = 6442850;
   let StackOS = await ethers.getContractFactory("StackOsNFT");
   stackOsNFT = await deployStackOS();
-
-  weth = await ERC20.deploy(parseEther("100000000.0"));
-  await weth.deployed();
-  console.log("weth", weth.address);
-
-  GENERATION_MANAGER_ADDRESS = generationManager.address;
-  DARK_MATTER_ADDRESS = darkMatter.address;
-  DEPOSIT_FEE_ADDRESS = bank.address;
-  MIN_CYCLE_ETHER = parseEther("1");
-  DEPOSIT_FEE_PERCENT = 1000;
-
-  const Royalty = await ethers.getContractFactory("Royalty");
-  royalty = await Royalty.deploy(
-    GENERATION_MANAGER_ADDRESS,
-    DARK_MATTER_ADDRESS,
-    exchange.address,
-    DEPOSIT_FEE_ADDRESS,
-    MIN_CYCLE_ETHER
-  );
-  await royalty.deployed();
-  ROYALTY_ADDRESS = royalty.address;
-  await royalty.setFeePercent(DEPOSIT_FEE_PERCENT);
-  await royalty.setWETH(weth.address);
-  
 }
 
 async function setupLiquidity() {
