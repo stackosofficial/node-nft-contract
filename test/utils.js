@@ -71,7 +71,7 @@ async function deployStackOS() {
     DARK_MATTER_ADDRESS,
     exchange.address
   );
-  await stackOsNFT.setFees(SUBS_FEE, DAO_FEE, DISTR_FEE);
+  await stackOsNFT.setFees(SUBS_FEE);
   await stackOsNFT.whitelist(darkMatter.address);
   return stackOsNFT;
 }

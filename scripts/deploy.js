@@ -275,7 +275,7 @@ async function main() {
     darkMatter.address,
     exchange.address,
   );
-  await stackOsNFT.setFees(SUBS_FEE, DAO_FEE, DISTR_FEE);
+  await stackOsNFT.setFees(SUBS_FEE);
   // Allow DarkMatter to transfer StackNFT
   await stackOsNFT.whitelist(darkMatter.address);
   // Allow Market to transfer StackNFT

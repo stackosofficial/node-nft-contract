@@ -1,20 +1,17 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
 
-// import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "./ERC721/CustomERC721.sol";
 import "./ERC721/extensions/CustomERC721URIStorage.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "./interfaces/IStackOsNFT.sol";
-import "./Subscription.sol";
 import "./Sub0.sol";
 import "./StableCoinAcceptor.sol";
 import "./Exchange.sol";
-import "hardhat/console.sol";
 import "./Whitelist.sol";
 import "./Royalty.sol";
+import "hardhat/console.sol";
 
 contract StackOsNFTBasic is
     Whitelist,
@@ -27,7 +24,7 @@ contract StackOsNFTBasic is
     Counters.Counter private _tokenIdCounter;
     IERC20 private stackToken;
     DarkMatter private darkMatter;
-    Subscription private subscription;
+    address private subscription;
     Sub0 private sub0;
     Royalty private royaltyAddress;
     StableCoinAcceptor stableAcceptor;
@@ -89,7 +86,7 @@ contract StackOsNFTBasic is
         
         stackToken = IERC20(_stackToken);
         darkMatter = DarkMatter(_darkMatter);
-        subscription = Subscription(_subscription);
+        subscription = _subscription;
         sub0 = Sub0(_sub0);
         royaltyAddress = Royalty(payable(_royaltyAddress));
         stableAcceptor = StableCoinAcceptor(_stableAcceptor);

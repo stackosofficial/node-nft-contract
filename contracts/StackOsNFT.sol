@@ -1,6 +1,6 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
-// import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
@@ -10,8 +10,8 @@ import "./DarkMatter.sol";
 import "./interfaces/IStackOsNFT.sol";
 import "./GenerationManager.sol";
 import "./StableCoinAcceptor.sol";
-import "hardhat/console.sol";
 import "./Exchange.sol";
+import "hardhat/console.sol";
 
 contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
     using Counters for Counters.Counter;
@@ -48,9 +48,6 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
     uint256 private iterationCount;
     uint256 internal fee = 1e14; // 0.0001 (1e14) on MATIC, 0.1 (1e17) on eth
     uint256 internal subsFee;
-    // TODO: remove these if they don't have to be in gen0
-    uint256 internal daoFee;
-    uint256 internal distrFee;
 
     mapping(uint256 => bool) public randomUniqueNumbers;
     mapping(uint256 => address) public ticketOwner;
@@ -99,25 +96,25 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
     /*
      * @title Set amounts taken from mint
      * @param % that is sended to Subscription contract 
-     * @param % that is sended to dao
-     * @param % that is sended to royalty distribution
      * @dev Could only be invoked by the contract owner.
      */
 
-    function setFees(uint256 _subs, uint256 _dao, uint256 _distr)
+    function setFees(uint256 _subs)
         public
         onlyOwner
     {
-        require(_subs <= 10000 && _dao <= 10000 && _distr <= 10000, "invalid fee basis points");
+        require(_subs <= 10000, "invalid fee basis points");
         subsFee = _subs;
-        daoFee = _dao;
-        distrFee = _distr;
     }
 
     /*
      * @title Adjust address settings
-     * @param address of generation manager contract
-     * @param address of subscription contract
+     * @param address of GenerationManager 
+     * @param address of Subscription 
+     * @param address of StablecoinAcceptor
+     * @param address of STACK token
+     * @param address of DarkMatter
+     * @param address of Exchange
      * @dev Could only be invoked by the contract owner.
      */
 
