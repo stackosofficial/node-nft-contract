@@ -223,6 +223,17 @@ async function main() {
   await sub0.deployed();
   console.log("Sub0", sub0.address);
 
+  const Royalty = await ethers.getContractFactory("Royalty");
+  royalty = await Royalty.deploy(
+    generationManager.address,
+    darkMatter.address,
+    exchange.address,
+    DEPOSIT_FEE_ADDRESS,
+    MIN_CYCLE_ETHER
+  );
+
+  await royalty.deployed();
+  console.log("Royalty", royalty.address);
   let StackOS = await ethers.getContractFactory("StackOsNFT");
   let stackOsNFT = await StackOS.deploy(
     NAME,
@@ -234,21 +245,11 @@ async function main() {
     PRIZES,
     AUCTIONED_NFTS,
     KEY_HASH,
-    TIMELOCK
+    TIMELOCK,
+    royalty.address
   );
   await stackOsNFT.deployed();
   console.log("StackOsNFT", stackOsNFT.address);
-
-  const Royalty = await ethers.getContractFactory("Royalty");
-  royalty = await Royalty.deploy(
-    generationManager.address,
-    darkMatter.address,
-    exchange.address,
-    DEPOSIT_FEE_ADDRESS,
-    MIN_CYCLE_ETHER
-  );
-  await royalty.deployed();
-  console.log("Royalty", royalty.address);
 
   //vvvvvvvvvvvvvvvvvv CONTRACT SETTINGS vvvvvvvvvvvvvvvvvv
   
@@ -435,7 +436,8 @@ async function main() {
         PRIZES,
         AUCTIONED_NFTS,
         KEY_HASH,
-        TIMELOCK
+        TIMELOCK,
+        royalty.address
       ],
     });
   } catch (error) {
