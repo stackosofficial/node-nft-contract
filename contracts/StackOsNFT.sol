@@ -131,7 +131,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
         public
         onlyOwner
     {
-        // TODO: should allow to call this func only once? as these addresses supposed to be in constructor
+        // TODO: should allow to call this func only once? as these addresses supposed to be in constructor (the same question for other contracts)
         generations = GenerationManager(_genManager);
         subscription = Subscription(_subscription);
         stableAcceptor = StableCoinAcceptor(_stableAcceptor);

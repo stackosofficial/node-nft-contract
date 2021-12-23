@@ -207,7 +207,6 @@ async function main() {
   await subscription.deployed();
   console.log("Subscription", subscription.address);
 
-    // TODO: custom settings for this?
   const Sub0 = await ethers.getContractFactory("Sub0");
   sub0 = await Sub0.deploy(
     STACK_TOKEN,
