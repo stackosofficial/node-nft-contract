@@ -35,6 +35,7 @@ contract Royalty is Ownable {
     // a new cycle can start when `CYCLE_DURATION` time passed and `minEthToStartCycle` ether deposited
     mapping(uint256 => Cycle) private cycles; 
     mapping(uint256 => mapping(uint256 => uint256)) added;
+    mapping(uint256 => mapping(uint256 => bool)) isadded;
     uint256 totalDelegated;
 
     constructor(
@@ -55,6 +56,7 @@ contract Royalty is Ownable {
         console.log("delegation:", tokenId, msg.sender);
         uint256 generationId = generations.getIDByAddress(msg.sender);
         added[generationId][tokenId] = counter.current();
+        isadded[generationId][tokenId] = true;
         totalDelegated += 1;
     }
 
@@ -231,6 +233,7 @@ contract Royalty is Ownable {
         if (counter.current() > 0) {
             uint256 reward;
 
+            console.log("claim:");
             // iterate over tokens from args
             for (uint256 i; i < tokenIds.length; i++) {
                 uint256 tokenId = tokenIds[i];
@@ -248,42 +251,21 @@ contract Royalty is Ownable {
                     "NFT should be delegated"
                 );
 
-                // uint256 delegationTimestamp = stack.getDelegationTimestamp(
-                //     tokenId
-                // );
-                // if (delegationTimestamp > 0) {
-                    // iterate over cycles, ignoring current one since its not ended
-                    for (uint256 o; o < counter.current(); o++) {
-                        // generation must be added before start of the cycle (first generation's timestamp = 0)
-                        // if (
-                        //     generations.getAddedTimestamp(generationId) <
-                        //     cycles[o].startTimestamp
-                        //     // reward for token in this cycle shouldn't be already claimed
-                        //     && cycles[o].isClaimed[generationId][tokenId] == false
-                        //     // is this token delegated earlier than this cycle start?
-                        //     && delegationTimestamp < cycles[o].startTimestamp
-                        // ) {
-                        //     reward += cycles[o].balance / cycles[o].delegatedCount;
-                        //     cycles[o].isClaimed[generationId][
-                        //         tokenId
-                        //     ] = true;
-                        // }
-                        if (
-                            // generations.getAddedTimestamp(generationId) <
-                            // cycles[o].startTimestamp
-                            // reward for token in this cycle shouldn't be already claimed
-                            cycles[o].isClaimed[generationId][tokenId] == false
-                            // is this token delegated earlier than this cycle start?
-                            && added[generationId][tokenId] <= o
-                        ) {
-                            reward += cycles[o].balance / cycles[o].delegatedCount;
-                            cycles[o].isClaimed[generationId][
-                                tokenId
-                            ] = true;
-                            console.log("claim:", o, generationId, tokenId);
-                        }
+                for (uint256 o; o < counter.current(); o++) {
+                    if (
+                        // should be able to claim only once for cycle
+                        cycles[o].isClaimed[generationId][tokenId] == false
+                        // is this token delegated before this cycle start?
+                        && (added[generationId][tokenId] < o || added[generationId][tokenId] == 0)
+                        // && isadded[generationId][tokenId] 
+                    ) {
+                        reward += cycles[o].balance / cycles[o].delegatedCount;
+                        cycles[o].isClaimed[generationId][
+                            tokenId
+                        ] = true;
+                        // console.log( o, generationId, tokenId);
                     }
-                // }
+                }
             }
 
             if (reward > 0) {
@@ -296,7 +278,7 @@ contract Royalty is Ownable {
                             ""
                         );
 
-                        console.log("transfer reward:", reward, payable(this).balance);
+                        // console.log("transfer reward:", reward, payable(this).balance);
                         require(success, "Transfer failed");
                     }
                 } else {
