@@ -257,7 +257,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
      */
     function isAdded(address _nftAddress) public view returns (bool) {
         uint256 generationID = ids[_nftAddress];
-        return generations.length > 0 && address(get(generationID)) == _nftAddress;
+        return generations.length > generationID && address(get(generationID)) == _nftAddress;
     }
 
     /*

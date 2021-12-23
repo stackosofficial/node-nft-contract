@@ -31,6 +31,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
     GenerationManager private generations;
     Subscription private subscription;
     StableCoinAcceptor stableAcceptor;
+    Royalty royaltyAddress;
 
     uint256[] public winningTickets;
     uint256 public timeLock;
@@ -77,7 +78,8 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
         uint256 _prizes,
         uint256 _auctionedNFTs,
         bytes32 _keyHash,
-        uint256 _timeLock
+        uint256 _timeLock,
+        address _royaltyAddress
     )
         ERC721(_name, _symbol)
         VRFConsumerBase(
@@ -91,6 +93,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
         keyHash = _keyHash;
         auctionedNFTs = _auctionedNFTs;
         timeLock = block.timestamp + _timeLock;
+        royaltyAddress = Royalty(payable(_royaltyAddress));
     }
 
 
@@ -523,6 +526,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
         delegates[tokenId] = _delegatee;
         if (delegationTimestamp[tokenId] == 0) totalDelegated += 1;
         delegationTimestamp[tokenId] = block.timestamp;
+        royaltyAddress.onDelegate(tokenId);
     }
 
     /*

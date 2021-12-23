@@ -5,7 +5,9 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "./GenerationManager.sol";
 import "./DarkMatter.sol";
 import "./interfaces/IStackOsNFT.sol";
+import "./interfaces/IStackOsNFTBasic.sol";
 import "./Exchange.sol";
+import "hardhat/console.sol";
 
 contract Royalty is Ownable {
     using Counters for Counters.Counter;
@@ -32,6 +34,8 @@ contract Royalty is Ownable {
 
     // a new cycle can start when `CYCLE_DURATION` time passed and `minEthToStartCycle` ether deposited
     mapping(uint256 => Cycle) private cycles; 
+    mapping(uint256 => mapping(uint256 => uint256)) addedAt; // at which cycle the token were added
+    uint256 totalDelegated;
 
     constructor(
         GenerationManager _generations,
@@ -45,6 +49,19 @@ contract Royalty is Ownable {
         exchange = _exchange;
         feeAddress = _feeAddress;
         minEthToStartCycle = _minEthToStartCycle;
+    }
+
+    /*
+     * @title Callback called when Stack NFT is delegated.
+     */
+    function onDelegate(uint256 tokenId) public {
+        require(
+            generations.isAdded(msg.sender), 
+            "Caller must be StackNFT contract"
+        );
+        uint256 generationId = generations.getIDByAddress(msg.sender);
+        addedAt[generationId][tokenId] = counter.current();
+        totalDelegated += 1;
     }
 
     /*
@@ -66,7 +83,7 @@ contract Royalty is Ownable {
                 // start new cycle
                 counter.increment();
                 // save count of delegates that exists on start of cycle
-                cycles[counter.current()].delegatedCount = getTotalDelegated();
+                cycles[counter.current()].delegatedCount = totalDelegated;
                 cycles[counter.current()].startTimestamp = block.timestamp;
 
                 // previous cycle already got enough balance, otherwise we wouldn't get here, thus we assign this deposit to the new cycle
@@ -96,11 +113,10 @@ contract Royalty is Ownable {
                 then no one can claim for the first cycle, because when claiming royalty
                 there is check: tokenDelegationTime < cycleStartTime
             */
-            uint256 totalDelegatedBeforeCurrentBlock = getTotalDelegatedBeforeCurrentBlock();
-            if (totalDelegatedBeforeCurrentBlock > 0) {
+            if (totalDelegated > 0) {
                 // we can still get 0 here, then in next ifs we will just receive eth for cycle
                 cycles[counter.current()]
-                    .delegatedCount = totalDelegatedBeforeCurrentBlock;
+                    .delegatedCount = totalDelegated;
             }
         }
     }
@@ -133,50 +149,6 @@ contract Royalty is Ownable {
     function setFeePercent(uint256 _percent) external onlyOwner {
         require(feePercent <= HUNDRED_PERCENT, "invalid fee basis points");
         feePercent = _percent;
-    }
-
-    /*
-     * @title Get total delegated NFT's that exists prior current block, in all added generations
-     * @dev May consume a lot of gas if there is a lot of generations and NFTs.
-     * @dev This is called only once, when first cycle start.
-     */
-    function getTotalDelegatedBeforeCurrentBlock()
-        private
-        view
-        returns (uint256)
-    {
-        uint256 result = 0;
-        for (uint256 i = 0; i < generations.count(); i++) {
-            IStackOsNFT stack = generations.get(i);
-            uint256 generationTotalDelegated = stack.getTotalDelegated();
-            for (
-                uint256 tokenId;
-                tokenId < generationTotalDelegated;
-                tokenId++
-            ) {
-                uint256 delegationTimestamp = stack.getDelegationTimestamp(
-                    tokenId
-                );
-                if (
-                    delegationTimestamp > 0 &&
-                    delegationTimestamp < block.timestamp
-                ) {
-                    result += 1;
-                }
-            }
-        }
-        return result;
-    }
-
-    /*
-     * @titile Get number of delegated tokens in every generation
-     */
-    function getTotalDelegated() private view returns (uint256) {
-        uint256 total = 0;
-        for (uint256 i = 0; i < generations.count(); i++) {
-            total += generations.get(i).getTotalDelegated();
-        }
-        return total;
     }
 
     /*
@@ -245,7 +217,7 @@ contract Royalty is Ownable {
         ) {
             if (cycles[counter.current()].balance >= minEthToStartCycle) {
                 counter.increment();
-                cycles[counter.current()].delegatedCount = getTotalDelegated();
+                cycles[counter.current()].delegatedCount = totalDelegated;
                 cycles[counter.current()].startTimestamp = block.timestamp;
             }
         }
@@ -270,26 +242,18 @@ contract Royalty is Ownable {
                     "NFT should be delegated"
                 );
 
-                uint256 delegationTimestamp = stack.getDelegationTimestamp(
-                    tokenId
-                );
-                if (delegationTimestamp > 0) {
-                    // iterate over cycles, ignoring current one since its not ended
-                    for (uint256 o; o < counter.current(); o++) {
-                        // generation must be added before start of the cycle (first generation's timestamp = 0)
-                        if (
-                            generations.getAddedTimestamp(generationId) <
-                            cycles[o].startTimestamp
-                            // reward for token in this cycle shouldn't be already claimed
-                            && cycles[o].isClaimed[generationId][tokenId] == false
-                            // is this token delegated earlier than this cycle start?
-                            && delegationTimestamp < cycles[o].startTimestamp
-                        ) {
-                            reward += cycles[o].balance / cycles[o].delegatedCount;
-                            cycles[o].isClaimed[generationId][
-                                tokenId
-                            ] = true;
-                        }
+                for (uint256 o; o < counter.current(); o++) {
+                    if (
+                        // should be able to claim only once for cycle
+                        cycles[o].isClaimed[generationId][tokenId] == false
+                        // is this token delegated before this cycle start?
+                        && (addedAt[generationId][tokenId] < o || 
+                            (addedAt[generationId][tokenId] == 0 && o == 0))
+                    ) {
+                        reward += cycles[o].balance / cycles[o].delegatedCount;
+                        cycles[o].isClaimed[generationId][
+                            tokenId
+                        ] = true;
                     }
                 }
             }
