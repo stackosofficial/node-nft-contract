@@ -46,8 +46,8 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
     uint256 private iterationCount;
     uint256 internal fee = 1e14; // 0.0001 (1e14) on MATIC, 0.1 (1e17) on eth
 
-    mapping(uint256 => bool) public randomUniqueNumbers;
     mapping(uint256 => address) public ticketOwner;
+    mapping(uint256 => uint256) public shuffle;
     mapping(uint256 => TicketStatus) public ticketStatus;
     mapping(uint256 => uint256) public topBids;
     mapping(uint256 => address) public topBiders;
@@ -109,7 +109,6 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
         public
         onlyOwner
     {
-        // TODO: should allow to call this func only once? as these addresses supposed to be in constructor (the same question for other contracts)
         generations = GenerationManager(_genManager);
         stableAcceptor = StableCoinAcceptor(_stableAcceptor);
         stackToken = IERC20(_stackToken);
@@ -157,6 +156,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
         uint256 nextTicketID = participationTickets;
         for (uint256 i; i < _ticketAmount; i++) {
             ticketOwner[nextTicketID] = msg.sender;
+            shuffle[nextTicketID] = nextTicketID;
             nextTicketID++;
         }
         participationTickets += _ticketAmount;
@@ -196,19 +196,23 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
      * @dev Could only be invoked by the contract owner.
      */
 
+    // TODO: there is no check that for example randomNumber is not 0, this can break randomness?
+    // TODO: why iterationCount is global?
+    // TODO: why there is constant 'randomness' in tests? (in callBackWithRandomness, this is producing the same tickets won)
     function announceWinners(uint256 _numbers) public onlyOwner {
-        for (uint256 i; i < _numbers; i++) {
+        
+        for (uint256 i = participationTickets - 1; i > 0; i--) {
             if (winningTickets.length < prizes) {
                 uint256 nr = uint256(
                     keccak256(abi.encode(randomNumber + iterationCount))
-                ) % participationTickets;
+                ) % i;
+                console.log(i, "ticket", nr, randomNumber);
+                (shuffle[i], shuffle[nr]) = (shuffle[nr], shuffle[i]);
+
                 iterationCount++;
 
-                if (randomUniqueNumbers[nr] == false) {
-                    winningTickets.push(nr);
-                    randomUniqueNumbers[nr] = true;
-                }
-            }
+                winningTickets.push(shuffle[i]);
+            } else break;
         }
     }
 
