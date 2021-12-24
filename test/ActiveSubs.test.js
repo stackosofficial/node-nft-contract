@@ -3,7 +3,7 @@ const { expect } = require("chai");
 const { parseEther, formatEther } = require("@ethersproject/units");
 const { deployStackOS, setup, deployStackOSBasic, print } = require("./utils");
 
-describe("Sub0 + Active subs reward", function () {
+describe("Active subs reward", function () {
   it("Snapshot EVM", async function () {
     snapshotId = await ethers.provider.send("evm_snapshot");
   });
