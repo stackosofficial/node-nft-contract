@@ -29,7 +29,6 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
     DarkMatter private darkMatter;
     Exchange exchange;
     GenerationManager private generations;
-    Subscription private subscription;
     StableCoinAcceptor stableAcceptor;
     Royalty royaltyAddress;
 
@@ -47,7 +46,6 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
     uint256 private totalDelegated;
     uint256 private iterationCount;
     uint256 internal fee = 1e14; // 0.0001 (1e14) on MATIC, 0.1 (1e17) on eth
-    uint256 internal subsFee;
 
     mapping(uint256 => bool) public randomUniqueNumbers;
     mapping(uint256 => address) public ticketOwner;
@@ -92,25 +90,9 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
         royaltyAddress = Royalty(payable(_royaltyAddress));
     }
 
-
-    /*
-     * @title Set amounts taken from mint
-     * @param % that is sended to Subscription contract 
-     * @dev Could only be invoked by the contract owner.
-     */
-
-    function setFees(uint256 _subs)
-        public
-        onlyOwner
-    {
-        require(_subs <= 10000, "invalid fee basis points");
-        subsFee = _subs;
-    }
-
     /*
      * @title Adjust address settings
      * @param address of GenerationManager 
-     * @param address of Subscription 
      * @param address of StablecoinAcceptor
      * @param address of STACK token
      * @param address of DarkMatter
@@ -120,7 +102,6 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
 
     function adjustAddressSettings(
         address _genManager, 
-        address _subscription,
         address _stableAcceptor,
         address _stackToken,
         address _darkMatter,
@@ -131,7 +112,6 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
     {
         // TODO: should allow to call this func only once? as these addresses supposed to be in constructor (the same question for other contracts)
         generations = GenerationManager(_genManager);
-        subscription = Subscription(_subscription);
         stableAcceptor = StableCoinAcceptor(_stableAcceptor);
         stackToken = IERC20(_stackToken);
         darkMatter = DarkMatter(_darkMatter);
@@ -436,11 +416,6 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
             stackToken
         );
 
-        uint256 subsPart = stackAmount * subsFee / 10000;
-        stackAmount -= subsPart;
-        // TODO: should just transfer or do the same as in basic?
-        stackToken.transfer(address(subscription), subsPart);
-        
         adminWithdrawableAmount += stackAmount;
         for (uint256 i; i < _nftAmount; i++) {
             strategicPartner[msg.sender]--;

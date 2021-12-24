@@ -167,7 +167,7 @@ describe("StackOS NFT", function () {
     await stackOsNFT.connect(joe).partnerMint(2, usdc.address);
     expect(await stackOsNFT.balanceOf(joe.address)).to.be.equal(2);
     expect(await stackToken.balanceOf(stackOsNFT.address)).to.be.equal(
-      parseEther("1.180000000000000008")
+      parseEther("1.200000000000000008")
     );
   });
 

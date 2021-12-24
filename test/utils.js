@@ -65,13 +65,11 @@ async function deployStackOS() {
   await generationManager.add(stackOsNFT.address);
   await stackOsNFT.adjustAddressSettings(
     generationManager.address,
-    sub0.address,
     stableAcceptor.address,
     STACK_TOKEN,
     DARK_MATTER_ADDRESS,
     exchange.address
   );
-  await stackOsNFT.setFees(SUBS_FEE);
   await stackOsNFT.whitelist(darkMatter.address);
   return stackOsNFT;
 }

@@ -269,13 +269,11 @@ async function main() {
   // Additional settings for StackNFT
   await stackOsNFT.adjustAddressSettings(
     generationManager.address,
-    sub0.address,
     stableAcceptor.address,
     STACK_TOKEN,
     darkMatter.address,
     exchange.address,
   );
-  await stackOsNFT.setFees(SUBS_FEE);
   // Allow DarkMatter to transfer StackNFT
   await stackOsNFT.whitelist(darkMatter.address);
   // Allow Market to transfer StackNFT
