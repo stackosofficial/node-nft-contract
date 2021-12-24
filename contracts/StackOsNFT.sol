@@ -438,6 +438,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
 
         uint256 subsPart = stackAmount * subsFee / 10000;
         stackAmount -= subsPart;
+        // TODO: should just transfer or do the same as in basic?
         stackToken.transfer(address(subscription), subsPart);
         
         adminWithdrawableAmount += stackAmount;

@@ -3,7 +3,7 @@ const { expect } = require("chai");
 const { parseEther, formatEther } = require("@ethersproject/units");
 const { deployStackOS, setup, deployStackOSBasic, print } = require("./utils");
 
-describe("Sub0", function () {
+describe("Sub0 + Active subs reward", function () {
   it("Snapshot EVM", async function () {
     snapshotId = await ethers.provider.send("evm_snapshot");
   });
@@ -61,74 +61,88 @@ describe("Sub0", function () {
     );
   });
 
-  it("Mint for usdc", async function () {
+  it("Mint for usdc (gen 2)", async function () {
     await stackOsNFTBasic.startSales();
 
     await usdc.approve(stackOsNFTBasic.address, parseEther("100.0"));
-    // pass some time, so that enough tokens dripped
     await provider.send("evm_increaseTime", [60 * 60]); 
     await stackOsNFTBasic.mint(4, usdc.address);
   });
 
-  it("Mint for usdt", async function () {
-    await usdt.approve(stackOsNFTBasic.address, parseEther("100.0"));
-    await expect(() => stackOsNFTBasic.mint(1, usdt.address))
-      .to.changeTokenBalance(stackToken, bank, "90627646028740518"); 
+  it("Partners mint for usdt (gen 1)", async function () {
+    await stackOsNFT.startPartnerSales();
+    await stackOsNFT.whitelistPartner(owner.address, 100);
+    await usdt.approve(stackOsNFT.address, parseEther("100.0"));
+    await stackOsNFT.partnerMint(2, usdt.address);
+  });
+
+  it("Lock subscription contract to generation 1", async function () {
+    await sub0.setOnlyFirstGeneration();
   });
 
   it("Subscribe", async function () {
     await usdt.approve(sub0.address, parseEther("100.0"));
-    await sub0.subscribe(1, 0, usdt.address, false);
+    await sub0.subscribe(0, 0, usdt.address, false);
+  });
+
+  it("Unable to use contract from generation >1", async function () {
+    await expect(sub0.subscribe(1, 0, usdt.address, false)).to.be.revertedWith(
+      "Generaion should be 0"
+    );
+    await expect(sub0.withdraw2(1, [0], [0])).to.be.revertedWith(
+      "Generaion should be 0"
+    );
   });
   it("Unable to withdraw when no subs in period", async function () {
-    await expect(sub0.withdraw2(1, [0], [0])).to.be.revertedWith(
+    await expect(sub0.withdraw2(0, [0], [0])).to.be.revertedWith(
       "No subs in period"
     );
   });
   it("Unable to withdraw when period not ended", async function () {
-    await expect(sub0.withdraw2(1, [0], [1])).to.be.revertedWith(
+    await expect(sub0.withdraw2(0, [0], [1])).to.be.revertedWith(
       "Period not ended"
     );
   });
   it("End period, mint to send fee, and withdraw this fee", async function () {
     await provider.send("evm_increaseTime", [MONTH]); // start period 2
-
+    
     await stackOsNFTBasic.mint(1, usdc.address); // send mint fee
     print("owner stack:", await stackToken.balanceOf(owner.address));
-    await expect(() => sub0.withdraw2(1, [0], [1])) // 1 claimer receives all
-      .to.changeTokenBalance(stackToken, owner, "29846823230785611");
-    await stackOsNFTBasic.mint(1, usdc.address); // again send to the same period
-    await expect(() => sub0.withdraw2(1, [0], [1])) // again 1 claimer
-      .to.changeTokenBalance(stackToken, owner, "29846327615160887");
-    await expect(() => sub0.withdraw2(1, [0], [1])) // claim 0 as no fees
+    await expect(() => sub0.withdraw2(0, [0], [1])) // 1 claimer receives all
+      .to.changeTokenBalance(stackToken, owner, "29847062325441287");
+
+    await stackOsNFTBasic.mint(1, usdc.address); // send mint fee
+    await expect(() => sub0.withdraw2(0, [0], [1])) // again 1 claimer
+      .to.changeTokenBalance(stackToken, owner, "29846566704406135");
+    await expect(() => sub0.withdraw2(0, [0], [1])) // claim 0 as no fees
       .to.changeTokenBalance(stackToken, owner, "0");
     print("owner stack:", await stackToken.balanceOf(owner.address));
   });
 
   it("Unable to withdraw when token not subscribed in target period", async function () {
-    await expect(sub0.withdraw2(1, [1], [1])).to.be.revertedWith(
+    await expect(sub0.withdraw2(0, [1], [1])).to.be.revertedWith(
       "Was not subscribed"
     );
   });
   it("Subscribe in 2 period for 2 tokens, send one to joe", async function () {
     await usdt.approve(sub0.address, parseEther("100.0"));
-    await sub0.subscribe(1, 0, usdt.address, false);
+    await sub0.subscribe(0, 0, usdt.address, false);
     await usdt.approve(sub0.address, parseEther("100.0"));
-    await sub0.subscribe(1, 1, usdt.address, false);
-    await stackOsNFTBasic.whitelist(owner.address);
-    await stackOsNFTBasic.transferFrom(owner.address, joe.address, 1);
+    await sub0.subscribe(0, 1, usdt.address, false);
+    await stackOsNFT.whitelist(owner.address);
+    await stackOsNFT.transferFrom(owner.address, joe.address, 1);
   });
   it("End period 2, mint to send fee, withdraw on multiple account", async function () {
     await provider.send("evm_increaseTime", [MONTH]);
-    await stackOsNFTBasic.mint(1, usdc.address);
-    await expect(() => sub0.withdraw2(1, [0], [2]))
-      .to.changeTokenBalance(stackToken, owner, "14573417520805722");
+    await stackOsNFTBasic.mint(1, usdc.address); // send fee
+    await expect(() => sub0.withdraw2(0, [0], [2]))
+      .to.changeTokenBalance(stackToken, owner, "14573531839446835");
     await provider.send("evm_increaseTime", [MONTH]); // enter 4 period, should be able to withdraw for 2
-    await expect(() => sub0.connect(joe).withdraw2(1, [1], [2]))
-      .to.changeTokenBalance(stackToken, joe, "14573417520805722");
+    await expect(() => sub0.connect(joe).withdraw2(0, [1], [2]))
+      .to.changeTokenBalance(stackToken, joe, "14573531839446835");
   });
   it("Unable to withdraw foreign reward", async function () {
-    await expect(sub0.withdraw2(1, [1], [2])).to.be.revertedWith(
+    await expect(sub0.withdraw2(0, [1], [2])).to.be.revertedWith(
       "Not owner"
     );
   });

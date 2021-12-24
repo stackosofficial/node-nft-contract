@@ -179,7 +179,7 @@ async function setup() {
   MONTH = (await subscription.MONTH()).toNumber();
   console.log("MONTH: ", MONTH);
 
-  const Sub0 = await ethers.getContractFactory("Sub0");
+  const Sub0 = await ethers.getContractFactory("Subscription");
   sub0 = await Sub0.deploy(
     STACK_TOKEN,
     GENERATION_MANAGER_ADDRESS,
@@ -197,6 +197,7 @@ async function setup() {
   await sub0.setBonusPercent(BONUS_PECENT);
   await sub0.settaxReductionAmount(TAX_REDUCTION_AMOUNT);
   await sub0.setTaxResetDeadline(TAX_RESET_DEADLINE);
+  await sub0.setOnlyFirstGeneration();
   console.log("sub0", sub0.address);
 
   weth = await ERC20.deploy(parseEther("100000000.0"));

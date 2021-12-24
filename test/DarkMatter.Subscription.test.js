@@ -78,35 +78,19 @@ describe("DarkMatter integration with Subscription", function () {
 
   });
 
-  it("Unable to withdraw foreign ids", async function () {
-    await expect(subscription.connect(joe).withdraw(0, [4])).to.be.revertedWith("Not owner");
-  });
-
-  it("Unable to subscribe and withdraw on wrong generation id", async function () {
-    await expect(
-      subscription.subscribe(1337, 0, usdt.address, false)
-    ).to.be.revertedWith("Generation doesn't exist");
-    await expect(subscription.withdraw(1337, [0])).to.be.revertedWith(
-      "Generation doesn't exist"
-    );
-  });
-
   it("Subscribe with usdt token", async function () {
-    await usdt.approve(subscription.address, parseEther("5000.0"));
-    await subscription.subscribe(0, 0, usdt.address, false);
+    await usdt.approve(sub0.address, parseEther("5000.0"));
+    await sub0.subscribe(0, 0, usdt.address, false);
   });
   it("Subscribe with dai coin", async function () {
-    // await usdt.approve(subscription.address, parseEther("5000.0"));
-    // await subscription.subscribe(0, 1, 4, usdt.address, false);
-
-    await dai.approve(subscription.address, parseEther("5000.0"));
-    await subscription.subscribe(0, 1, dai.address, false);
+    await dai.approve(sub0.address, parseEther("5000.0"));
+    await sub0.subscribe(0, 1, dai.address, false);
   });
   it("Take TAX for early withdrawal", async function () {
     await darkMatter.whitelist(owner.address);
     await darkMatter.transferFrom(owner.address, bob.address, 0);
     expect(await stackToken.balanceOf(bob.address)).to.equal(0);
-    await subscription.connect(bob).withdraw(0, [0]);
+    await sub0.connect(bob).withdraw(0, [0]);
     print("bob: ", await stackToken.balanceOf(bob.address));
     print("tax: ", await stackToken.balanceOf(tax.address));
     // 599 Deposit. Withdraw 150 first month tax 75%
@@ -115,49 +99,6 @@ describe("DarkMatter integration with Subscription", function () {
 
     await darkMatter.whitelist(bob.address);
     await darkMatter.connect(bob).transferFrom(bob.address, owner.address, 0);
-  });
-
-
-  it("Subscribe 3 months in a row", async function () {
-    await usdt.approve(subscription.address, parseEther("5000.0"));
-    await provider.send("evm_increaseTime", [MONTH]);
-    await subscription.subscribe(0, 1, usdt.address, false);
-    await provider.send("evm_increaseTime", [MONTH]);
-    await subscription.subscribe(0, 1, usdt.address, false);
-  });
-  it("Unable to withdraw when low balance on bonus wallet", async function () {
-    await expect(subscription.withdraw(0, [1])).to.be.revertedWith(
-      "Not enough balance on bonus wallet"
-    );
-  });
-  it("Withdraw", async function () {
-    await stackToken.transfer(subscription.address, parseEther("5000.0"));
-
-    await darkMatter.transferFrom(owner.address, bank.address, 0);
-
-    expect(await stackToken.balanceOf(bank.address)).to.equal(0);
-    print("bank: ", await stackToken.balanceOf(bank.address));
-
-    await subscription.connect(bank).withdraw(0, [1]);
-    expect(await stackToken.balanceOf(bank.address)).closeTo(
-      parseEther("1324.710361"),
-      parseEther("0.000009")
-    );
-
-    print(
-      "bank(before withdraw bonus): ",
-      await stackToken.balanceOf(bank.address)
-    );
-    expect(await stackToken.balanceOf(bank.address)).closeTo(
-      parseEther("1324.710367"),
-      parseEther("0.000009")
-    );
-    print(
-      "bank(after withdraw bonus): ",
-      await stackToken.balanceOf(bank.address)
-    );
-
-    print("tax: ", await stackToken.balanceOf(tax.address));
   });
 
   it("Revert EVM state", async function () {

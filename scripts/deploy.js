@@ -207,7 +207,7 @@ async function main() {
   await subscription.deployed();
   console.log("Subscription", subscription.address);
 
-  const Sub0 = await ethers.getContractFactory("Sub0");
+  const Sub0 = await ethers.getContractFactory("Subscription");
   sub0 = await Sub0.deploy(
     STACK_TOKEN,
     generationManager.address,
@@ -280,6 +280,10 @@ async function main() {
   await stackOsNFT.whitelist(darkMatter.address);
   // Allow Market to transfer StackNFT
   await stackOsNFT.whitelist(marketProxy.address);
+
+  // 1 subs contract is only for 1st generaion
+  // 2 subs contract is only for any other generation
+  await sub0.setOnlyFirstGeneration();
 
   // Whitelist partners to mint if there is any
   await Promise.all(
