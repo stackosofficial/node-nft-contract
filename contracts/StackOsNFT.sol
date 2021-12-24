@@ -148,6 +148,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
      * @dev Lottery has to be active.
      */
 
+// TODO: limit amount to 100 (like pancakeswap) to prevent ran out of gas error!
     function stakeForTickets(uint256 _ticketAmount) public {
         require(lotteryActive, "Lottery inactive");
         require(randomNumber == 0, "Random Number already assigned!");
@@ -196,6 +197,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
      * @dev Could only be invoked by the contract owner.
      */
 
+    // TODO: ask how many prizes will be when we deploy for real
     // TODO: there is no check that for example randomNumber is not 0, this can break randomness?
     // TODO: why iterationCount is global?
     // TODO: why there is constant 'randomness' in tests? (in callBackWithRandomness, this is producing the same tickets won)
@@ -206,7 +208,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
                 uint256 nr = uint256(
                     keccak256(abi.encode(randomNumber + iterationCount))
                 ) % i;
-                console.log(i, "ticket", nr, randomNumber);
+                // console.log(i, "ticket", nr, randomNumber);
                 (shuffle[i], shuffle[nr]) = (shuffle[nr], shuffle[i]);
 
                 iterationCount++;
@@ -215,7 +217,8 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
             } else break;
         }
     }
-
+// 3422804
+// 3418004
     /*
      * @title Map out the winning tickets.
      * @param From ID
