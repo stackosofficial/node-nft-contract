@@ -40,7 +40,6 @@ contract StackOsNFTBasic is
     uint256 private totalSupply;
     uint256 private participationFee;
     uint256 private transferDiscount;
-    uint256 private totalDelegated;
     uint256 internal subsFee;
     uint256 internal daoFee;
     uint256 internal distrFee;
@@ -167,14 +166,6 @@ contract StackOsNFTBasic is
     function getMaxSupply() public view returns (uint256) {
         return maxSupply;
     }
-    
-    /*
-     * @title Get total delegated NFTs.
-     */
-
-    function getTotalDelegated() public view returns (uint256) {
-        return totalDelegated;
-    }
 
     /*
      * @title Get token's delegatee.
@@ -183,19 +174,6 @@ contract StackOsNFTBasic is
 
     function getDelegatee(uint256 _tokenId) public view returns (address) {
         return delegates[_tokenId];
-    }
-
-    /*
-     * @title Get token's owner.
-     * @dev Token might be not delegated though.
-     */
-// TODO: 1) this is kinda confusing, owner could be not delegator. 2) this is unused function, should remove?
-    function getDelegator(uint256 _tokenId) public view returns (address) {
-        return
-            darkMatter.ownerOfStackOrDarkMatter(
-                IStackOsNFT(address(this)),
-                _tokenId
-            );
     }
 
     function _baseURI() internal pure override returns (string memory) {
@@ -436,7 +414,6 @@ contract StackOsNFTBasic is
         );
         require(delegates[tokenId] == address(0), "Already delegated");
         delegates[tokenId] = _delegatee;
-        totalDelegated += 1;
         royaltyAddress.onDelegate(tokenId);
     }
 

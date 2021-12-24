@@ -43,7 +43,6 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
     uint256 private participationFee;
     uint256 private participationTickets;
     uint256 private prizes;
-    uint256 private totalDelegated;
     uint256 private iterationCount;
     uint256 internal fee = 1e14; // 0.0001 (1e14) on MATIC, 0.1 (1e17) on eth
 
@@ -126,14 +125,6 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
     }
 
     /*
-     * @title Get total delegated NFTs.
-     */
-
-    function getTotalDelegated() public view returns (uint256) {
-        return totalDelegated;
-    }
-
-    /*
      * @title Get token's delegatee.
      * @dev Returns zero-address if token not delegated.
      */
@@ -142,18 +133,6 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
         return delegates[_tokenId];
     }
 
-    /*
-     * @title Get token's owner.
-     * @dev Token might be not delegated though.
-     */
-
-    function getDelegator(uint256 _tokenId) public view returns (address) {
-        return
-            darkMatter.ownerOfStackOrDarkMatter(
-                IStackOsNFT(address(this)),
-                _tokenId
-            );
-    }
 
     function _baseURI() internal pure override returns (string memory) {
         return "";
@@ -483,7 +462,6 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
         );
         require(delegates[tokenId] == address(0), "Already delegated");
         delegates[tokenId] = _delegatee;
-        totalDelegated += 1;
         royaltyAddress.onDelegate(tokenId);
     }
 
