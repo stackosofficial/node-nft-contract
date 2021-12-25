@@ -28,7 +28,8 @@ describe("StackOS NFT", function () {
       "Lottery inactive"
     );
     await stackOsNFT.activateLottery();
-    await stackOsNFT.stakeForTickets(14);
+    TICKETS = 14;
+    await stackOsNFT.stakeForTickets(TICKETS);
 
     expect(await stackToken.balanceOf(owner.address)).to.be.equal(
       parseEther("99999998.6")
@@ -56,18 +57,32 @@ describe("StackOS NFT", function () {
   });
 
   it("Announce winners", async function () {
-    await stackOsNFT.announceWinners();
+    await stackOsNFT.announceWinners(10);
 
     winningTickets = [];
     for (let i = 0; i < PRIZES; i++) {
       winningTickets.push((await stackOsNFT.winningTickets(i)).toNumber());
     }
-    // // get NOT winning tickets
-    notWinning = [...Array(14).keys()].filter(
+    // get looser tickets
+    notWinning = [...Array(TICKETS).keys()].filter(
       (e) => winningTickets.indexOf(e) == -1
     );
     print(winningTickets, notWinning);
 
+    // check that tickets are valid indexes
+    await expect(
+      winningTickets.findIndex((n) => n < 0 || n > TICKETS-1)
+    ).to.be.equal(
+      -1
+    );
+    // check that there is no duplicated tickets indexes
+    await expect(new Set(winningTickets).size).to.be.equal(
+      winningTickets.length
+    );
+    // We get exact winning tickets as we want
+    await expect(winningTickets.length).to.be.equal(
+      PRIZES
+    );
     await expect(stackOsNFT.claimReward(winningTickets)).to.be.revertedWith(
       "Not Assigned Yet!"
     );
