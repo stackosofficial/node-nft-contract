@@ -43,7 +43,6 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
     uint256 private participationFee;
     uint256 private participationTickets;
     uint256 private prizes;
-    uint256 private iterationCount;
     uint256 internal fee = 1e14; // 0.0001 (1e14) on MATIC, 0.1 (1e17) on eth
 
     mapping(uint256 => address) public ticketOwner;
