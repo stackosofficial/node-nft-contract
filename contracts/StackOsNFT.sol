@@ -146,8 +146,9 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
      * @title Each ticket has a number which can be selected in the lottery.
      * @param Amount of tickets you stake for.
      * @dev Lottery has to be active.
+     * @dev Don't try to get too much, you may encounter 'ran out of gas' error.
      */
-// TODO: add limit to prevent ran out of gas error?
+
     function stakeForTickets(uint256 _ticketAmount) public {
         require(lotteryActive, "Lottery inactive");
         require(randomNumber == 0, "Random Number already assigned!");
@@ -195,37 +196,21 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
      */
 
     function announceWinners(uint256 _amount) public onlyOwner {
-            
-            uint256 i = participationTickets - 1 - winningTickets.length;
-            for (; 0 < _amount; _amount--) {
-                if (winningTickets.length < prizes) {
-                    uint256 j = uint256(
-                        keccak256(abi.encode(randomNumber + winningTickets.length))
-                    ) % i;
+        uint256 i = participationTickets - 1 - winningTickets.length;
+        for (; 0 < _amount; _amount--) {
+            if (winningTickets.length < prizes) {
+                uint256 j = uint256(
+                    keccak256(abi.encode(randomNumber + winningTickets.length))
+                ) % i;
 
-                    if(shuffle[i] == 0) shuffle[i] = i;
-                    if(shuffle[j] == 0) shuffle[j] = j;
-                    (shuffle[i], shuffle[j]) = (shuffle[j], shuffle[i]);
+                if(shuffle[i] == 0) shuffle[i] = i;
+                if(shuffle[j] == 0) shuffle[j] = j;
+                (shuffle[i], shuffle[j]) = (shuffle[j], shuffle[i]);
 
-                    winningTickets.push(shuffle[i]);
-                    i --;
-                } else break;
-            }
-        // for (uint256 i = participationTickets - 1 - winningTickets.length; i > 0; i--) {
-        //     if (winningTickets.length < prizes && _amount != 0) {
-        //         uint256 j = uint256(
-        //             keccak256(abi.encode(randomNumber + winningTickets.length))
-        //         ) % i;
-
-        //         if(shuffle[i] == 0) shuffle[i] = i;
-        //         if(shuffle[j] == 0) shuffle[j] = j;
-        //         (shuffle[i], shuffle[j]) = (shuffle[j], shuffle[i]);
-
-        //         winningTickets.push(shuffle[i]);
-        //         _amount --;
-        //         // iterationCount++;
-        //     } else break;
-        // }
+                winningTickets.push(shuffle[i]);
+                i --;
+            } else break;
+        }
     }
 
     /*
