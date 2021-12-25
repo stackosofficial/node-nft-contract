@@ -147,18 +147,15 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
      * @param Amount of tickets you stake for.
      * @dev Lottery has to be active.
      */
-
-// TODO: limit amount to 100 (like pancakeswap) to prevent ran out of gas error!
+// TODO: add limit to prevent ran out of gas error?
     function stakeForTickets(uint256 _ticketAmount) public {
         require(lotteryActive, "Lottery inactive");
         require(randomNumber == 0, "Random Number already assigned!");
         uint256 depositAmount = participationFee.mul(_ticketAmount);
         stackToken.transferFrom(msg.sender, address(this), depositAmount);
-        uint256 nextTicketID = participationTickets;
-        for (uint256 i; i < _ticketAmount; i++) {
-            ticketOwner[nextTicketID] = msg.sender;
-            shuffle[nextTicketID] = nextTicketID;
-            nextTicketID++;
+        uint256 desiredTotalTickets = participationTickets + _ticketAmount;
+        for (uint256 i = participationTickets; i < desiredTotalTickets; i++) {
+            ticketOwner[i] = msg.sender;
         }
         participationTickets += _ticketAmount;
     }
@@ -195,30 +192,26 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
      * @title Get winning tickets. Might have to call multiple times as not unique tickets will be ignored.
      * @param Amount of unique random numbers expected to receive.
      * @dev Could only be invoked by the contract owner.
+     * @dev Must be at least 2 participation tickets.
      */
 
-    // TODO: ask how many prizes will be when we deploy for real
-    // TODO: there is no check that for example randomNumber is not 0, this can break randomness?
-    // TODO: why iterationCount is global?
-    // TODO: why there is constant 'randomness' in tests? (in callBackWithRandomness, this is producing the same tickets won)
-    function announceWinners(uint256 _numbers) public onlyOwner {
+    function announceWinners() public onlyOwner {
         
         for (uint256 i = participationTickets - 1; i > 0; i--) {
             if (winningTickets.length < prizes) {
-                uint256 nr = uint256(
-                    keccak256(abi.encode(randomNumber + iterationCount))
+                uint256 j = uint256(
+                    keccak256(abi.encode(randomNumber + i))
                 ) % i;
-                // console.log(i, "ticket", nr, randomNumber);
-                (shuffle[i], shuffle[nr]) = (shuffle[nr], shuffle[i]);
 
-                iterationCount++;
+                if(shuffle[i] == 0) shuffle[i] = i;
+                if(shuffle[j] == 0) shuffle[j] = j;
+                (shuffle[i], shuffle[j]) = (shuffle[j], shuffle[i]);
 
                 winningTickets.push(shuffle[i]);
             } else break;
         }
     }
-// 3422804
-// 3418004
+
     /*
      * @title Map out the winning tickets.
      * @param From ID
