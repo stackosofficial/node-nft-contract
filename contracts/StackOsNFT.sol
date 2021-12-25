@@ -192,24 +192,40 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
      * @title Get winning tickets. Might have to call multiple times as not unique tickets will be ignored.
      * @param Amount of unique random numbers expected to receive.
      * @dev Could only be invoked by the contract owner.
-     * @dev Must be at least 2 participation tickets.
      */
 
-    function announceWinners() public onlyOwner {
-        
-        for (uint256 i = participationTickets - 1; i > 0; i--) {
-            if (winningTickets.length < prizes) {
-                uint256 j = uint256(
-                    keccak256(abi.encode(randomNumber + i))
-                ) % i;
+    function announceWinners(uint256 _amount) public onlyOwner {
+            
+            uint256 i = participationTickets - 1 - winningTickets.length;
+            for (; 0 < _amount; _amount--) {
+                if (winningTickets.length < prizes) {
+                    uint256 j = uint256(
+                        keccak256(abi.encode(randomNumber + winningTickets.length))
+                    ) % i;
 
-                if(shuffle[i] == 0) shuffle[i] = i;
-                if(shuffle[j] == 0) shuffle[j] = j;
-                (shuffle[i], shuffle[j]) = (shuffle[j], shuffle[i]);
+                    if(shuffle[i] == 0) shuffle[i] = i;
+                    if(shuffle[j] == 0) shuffle[j] = j;
+                    (shuffle[i], shuffle[j]) = (shuffle[j], shuffle[i]);
 
-                winningTickets.push(shuffle[i]);
-            } else break;
-        }
+                    winningTickets.push(shuffle[i]);
+                    i --;
+                } else break;
+            }
+        // for (uint256 i = participationTickets - 1 - winningTickets.length; i > 0; i--) {
+        //     if (winningTickets.length < prizes && _amount != 0) {
+        //         uint256 j = uint256(
+        //             keccak256(abi.encode(randomNumber + winningTickets.length))
+        //         ) % i;
+
+        //         if(shuffle[i] == 0) shuffle[i] = i;
+        //         if(shuffle[j] == 0) shuffle[j] = j;
+        //         (shuffle[i], shuffle[j]) = (shuffle[j], shuffle[i]);
+
+        //         winningTickets.push(shuffle[i]);
+        //         _amount --;
+        //         // iterationCount++;
+        //     } else break;
+        // }
     }
 
     /*

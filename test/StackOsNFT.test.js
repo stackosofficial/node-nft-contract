@@ -56,7 +56,7 @@ describe("StackOS NFT", function () {
   });
 
   it("Announce winners", async function () {
-    await stackOsNFT.announceWinners(100);
+    await stackOsNFT.announceWinners();
 
     winningTickets = [];
     for (let i = 0; i < PRIZES; i++) {
