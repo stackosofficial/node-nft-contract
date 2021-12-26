@@ -67,7 +67,7 @@ contract Subscription is Ownable, ReentrancyGuard {
     mapping(uint256 => mapping(uint256 => uint256)) public overflow; // generationId => tokenId => withdraw amount
 
     modifier restrictGeneration(uint256 generationId) {
-        isFirstGeneration(generationId);
+        requireCorrectGeneration(generationId);
         _;
     }
 
@@ -154,10 +154,10 @@ contract Subscription is Ownable, ReentrancyGuard {
     }  
     
     /*
-     * @title If set, then only 1st generation allowed to use contract, otherwise only generations above 1st can.
+     * @title Reverts if passed generationId doesn't match desired generation by the contract.
      * @dev Could only be invoked by the contract owner.
      */
-    function isFirstGeneration(uint256 generationId) internal view {
+    function requireCorrectGeneration(uint256 generationId) internal view {
         if(isOnlyFirstGeneration)
             require(generationId == 0, "Generaion should be 0");
         else
@@ -168,6 +168,7 @@ contract Subscription is Ownable, ReentrancyGuard {
      *  @title Pay subscription
      *  @param Generation id
      *  @param Token id
+     *  @param Amount user wish to pay, used only in 1st generation
      *  @param Address of supported stablecoin
      *  @param Whether to pay with STACK token
      *  @dev Caller must approve us to spend `price` amount of `_stablecoin` or stack token.
@@ -175,6 +176,7 @@ contract Subscription is Ownable, ReentrancyGuard {
     function subscribe(
         uint256 generationId,
         uint256 tokenId,
+        uint256 _payAmount,
         IERC20 _stablecoin,
         bool _payWithStack
     ) 
@@ -187,8 +189,19 @@ contract Subscription is Ownable, ReentrancyGuard {
                 stableAcceptor.supportsCoin(_stablecoin), 
                 "Unsupported stablecoin"
             );
-        _subscribe(generationId, tokenId, _stablecoin, _payWithStack);
 
+        uint256 _price = price;
+        if(isOnlyFirstGeneration) {
+            _price = _payAmount;
+            require(
+                _payAmount >= 100e18 && _payAmount <= 5000e18, 
+                "Wrong pay amount"
+            );
+        }
+
+        _subscribe(generationId, tokenId, _price, _stablecoin, _payWithStack);
+
+        // active sub reward logic
         updatePeriod();
         p[period].subsNum += 1;
         p[period].pd[generationId][tokenId].isSub = true;
@@ -197,6 +210,7 @@ contract Subscription is Ownable, ReentrancyGuard {
     function _subscribe(
         uint256 generationId,
         uint256 tokenId,
+        uint256 _price,
         IERC20 _stablecoin,
         bool _payWithStack
     ) internal {
@@ -229,16 +243,16 @@ contract Subscription is Ownable, ReentrancyGuard {
             _stablecoin = stableAcceptor.stablecoins(0);
             // how much stack we need to get `price` amount of usd
             amount = exchange.getAmountIn(
-                price, 
+                _price, 
                 _stablecoin, 
                 stackToken
             );
             stackToken.transferFrom(msg.sender, address(this), amount);
         } else {
-            _stablecoin.transferFrom(msg.sender, address(this), price);
-            _stablecoin.approve(address(exchange), price);
+            _stablecoin.transferFrom(msg.sender, address(this), _price);
+            _stablecoin.approve(address(exchange), _price);
             amount = exchange.swapExactTokensForTokens(
-                price, 
+                _price, 
                 _stablecoin,
                 stackToken
             );

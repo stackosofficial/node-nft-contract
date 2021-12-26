@@ -82,11 +82,11 @@ describe("Active subs reward", function () {
 
   it("Subscribe", async function () {
     await usdt.approve(sub0.address, parseEther("100.0"));
-    await sub0.subscribe(0, 0, usdt.address, false);
+    await sub0.subscribe(0, 0, parseEther("100"), usdt.address, false);
   });
 
   it("Unable to use contract from generation >1", async function () {
-    await expect(sub0.subscribe(1, 0, usdt.address, false)).to.be.revertedWith(
+    await expect(sub0.subscribe(1, 0, parseEther("100"), usdt.address, false)).to.be.revertedWith(
       "Generaion should be 0"
     );
     await expect(sub0.withdraw2(1, [0], [0])).to.be.revertedWith(
@@ -126,9 +126,9 @@ describe("Active subs reward", function () {
   });
   it("Subscribe in 2 period for 2 tokens, send one to joe", async function () {
     await usdt.approve(sub0.address, parseEther("100.0"));
-    await sub0.subscribe(0, 0, usdt.address, false);
+    await sub0.subscribe(0, 0, parseEther("100"), usdt.address, false);
     await usdt.approve(sub0.address, parseEther("100.0"));
-    await sub0.subscribe(0, 1, usdt.address, false);
+    await sub0.subscribe(0, 1, parseEther("100"), usdt.address, false);
     await stackOsNFT.whitelist(owner.address);
     await stackOsNFT.transferFrom(owner.address, joe.address, 1);
   });

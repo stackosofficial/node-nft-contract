@@ -80,11 +80,11 @@ describe("DarkMatter integration with Subscription", function () {
 
   it("Subscribe with usdt token", async function () {
     await usdt.approve(sub0.address, parseEther("5000.0"));
-    await sub0.subscribe(0, 0, usdt.address, false);
+    await sub0.subscribe(0, 0, parseEther("100"), usdt.address, false);
   });
   it("Subscribe with dai coin", async function () {
     await dai.approve(sub0.address, parseEther("5000.0"));
-    await sub0.subscribe(0, 1, dai.address, false);
+    await sub0.subscribe(0, 1, parseEther("100"), dai.address, false);
   });
   it("Take TAX for early withdrawal", async function () {
     await darkMatter.whitelist(owner.address);
