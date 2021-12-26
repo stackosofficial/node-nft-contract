@@ -152,6 +152,7 @@ async function setup() {
   TAX_ADDRESS = tax.address;
 
   SUBSCRIPTION_PRICE = parseEther("100.0");
+  SUBSCRIPTION_PRICE_MAX = parseEther("5000.0");
   BONUS_PECENT = 2000;
   TAX_REDUCTION_AMOUNT = 2500; // 25% means: 1month withdraw 75% tax, 2 month 50%, 3 month 25%, 4 month 0%
   TAX_RESET_DEADLINE = 60 * 60 * 24 * 7; // 1 week
@@ -192,6 +193,7 @@ async function setup() {
   );
   await sub0.deployed();
   await sub0.setPrice(SUBSCRIPTION_PRICE);
+  await sub0.setMaxPrice(SUBSCRIPTION_PRICE_MAX);
   await sub0.setBonusPercent(BONUS_PECENT);
   await sub0.settaxReductionAmount(TAX_REDUCTION_AMOUNT);
   await sub0.setTaxResetDeadline(TAX_RESET_DEADLINE);

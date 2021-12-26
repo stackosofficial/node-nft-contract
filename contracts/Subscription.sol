@@ -26,6 +26,7 @@ contract Subscription is Ownable, ReentrancyGuard {
     uint256 public dripPeriod = 700 days;
     uint256 public taxResetDeadline = 7 days;
     uint256 public price = 1e18;
+    uint256 public maxPrice = 5000e18;
     uint256 public bonusPercent = 2000;
     uint256 public taxReductionAmount = 2500;
     uint256 public period;
@@ -124,6 +125,16 @@ contract Subscription is Ownable, ReentrancyGuard {
     }
 
     /*
+     * @title Set subscription price
+     * @param New price in USD
+     * @dev Could only be invoked by the contract owner.
+     */
+    function setMaxPrice(uint256 _maxPrice) external onlyOwner {
+        require(_maxPrice > 0, "Cant be zero");
+        maxPrice = _maxPrice;
+    }
+
+    /*
      * @title Set bonus added for each subscription on top of it's price
      * @param Bonus percent
      * @dev Could only be invoked by the contract owner.
@@ -194,7 +205,7 @@ contract Subscription is Ownable, ReentrancyGuard {
         if(isOnlyFirstGeneration) {
             _price = _payAmount;
             require(
-                _payAmount >= 100e18 && _payAmount <= 5000e18, 
+                _payAmount >= price && _payAmount <= maxPrice, 
                 "Wrong pay amount"
             );
         }

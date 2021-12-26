@@ -34,9 +34,13 @@ async function main() {
   TAX_REDUCTION_AMOUNT = 2500;
   // Subscription time window. How much time you have to resub until TAX reset.
   TAX_RESET_DEADLINE = 60 * 60 * 24 * 7; // 1 week
-  // The same params for sub0
+
+  // Params for generation 0 subscriptions
   TAX_ADDRESS_2 = "0xF90fF6d484331399f4eAa13f73D03b8B18eA1373";
+  // Subscription min price in USD
   SUBSCRIPTION_PRICE_2 = parseEther("100.0");
+  // Subscription max price in USD
+  SUBSCRIPTION_MAX_PRICE_2 = parseEther("100.0");
   BONUS_PECENT_2 = 2000;
   TAX_REDUCTION_AMOUNT_2 = 2500;
   TAX_RESET_DEADLINE_2 = 60 * 60 * 24 * 7; // 1 week
@@ -106,7 +110,7 @@ async function main() {
   NAME_2 = "STACK OS NFT";
   SYMBOL_2 = "STACK NFT";
   // Mint price in USD
-  PRICE_2 = parseEther("0.001626");
+  PRICE_2 = parseEther("100");
   // Fee percent for Subscription contract on mint
   SUBS_FEE_2 = 2000;
   DAO_FEE_2 = 500;
@@ -282,6 +286,7 @@ async function main() {
   // 1 subs contract is only for 1st generaion
   // 2 subs contract is only for any other generation
   await sub0.setOnlyFirstGeneration();
+  await sub0.setMaxPrice(SUBSCRIPTION_MAX_PRICE_2);
 
   // Whitelist partners to mint if there is any
   await Promise.all(

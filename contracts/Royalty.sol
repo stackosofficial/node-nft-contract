@@ -101,7 +101,8 @@ contract Royalty is Ownable {
      * @dev Ensures that a cycle cannot start if there is no delegated StackOS NFTs.
      */
     function checkDelegationsForFirstCycle() private {
-        // this should be true for the first cycle only, even if there is already delegates exists, this cycle still dont know about it
+        // this should be true for the first cycle only, 
+        // even if there is already delegates exists, this cycle still dont know about it
         if (cycles[counter.current()].delegatedCount == 0) {
             // we can't start first cycle without delegated NFTs, so with this we 'restart' first cycle,
             // this dont allow to end first cycle with perTokenReward = 0 and balance > 0
