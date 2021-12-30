@@ -23,7 +23,7 @@ contract Subscription is Ownable, ReentrancyGuard {
     uint256 public constant MONTH = 28 days;
 
     uint256 public dripPeriod = 700 days;
-    uint256 public taxResetDeadline = 7 days;
+    uint256 public forgivenessPeriod = 7 days;
     uint256 public price = 1e18;
     uint256 public maxPrice = 5000e18;
     uint256 public bonusPercent = 2000;
@@ -78,7 +78,7 @@ contract Subscription is Ownable, ReentrancyGuard {
         StableCoinAcceptor _stableAcceptor,
         Exchange _exchange,
         address _taxAddress,
-        uint256 _taxResetDeadline,
+        uint256 _forgivenessPeriod,
         uint256 _price,
         uint256 _bonusPercent,
         uint256 _taxReductionAmount
@@ -89,7 +89,7 @@ contract Subscription is Ownable, ReentrancyGuard {
         stableAcceptor = _stableAcceptor;
         exchange = _exchange;
         taxAddress = _taxAddress;
-        taxResetDeadline = _taxResetDeadline;
+        forgivenessPeriod = _forgivenessPeriod;
         price = _price;
         bonusPercent = _bonusPercent;
         taxReductionAmount = _taxReductionAmount;
@@ -158,9 +158,9 @@ contract Subscription is Ownable, ReentrancyGuard {
      * @param Amount of seconds
      * @dev Could only be invoked by the contract owner
      */
-    function setTaxResetDeadline(uint256 _seconds) external onlyOwner {
+    function setForgivenessPeriod(uint256 _seconds) external onlyOwner {
         require(_seconds > 0, "Cant be zero");
-        taxResetDeadline = _seconds;
+        forgivenessPeriod = _seconds;
     }  
     
     /*
@@ -239,7 +239,7 @@ contract Subscription is Ownable, ReentrancyGuard {
         }
 
         // Paid after deadline?
-        if (deposit.nextPayDate + taxResetDeadline < block.timestamp) {
+        if (deposit.nextPayDate + forgivenessPeriod < block.timestamp) {
             deposit.nextPayDate = block.timestamp;
             deposit.tax = HUNDRED_PERCENT;
         }

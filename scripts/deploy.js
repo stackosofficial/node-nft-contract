@@ -33,7 +33,7 @@ async function main() {
   // Subscription tax reduction. 25% means: 1month withdraw 75% tax, 2 month 50%, 3 month 25%, 4 month 0%
   TAX_REDUCTION_AMOUNT = 2500;
   // Subscription time window. How much time you have to resub until TAX reset.
-  TAX_RESET_DEADLINE = 60 * 60 * 24 * 7; // 1 week
+  FORGIVENESS_PERIOD = 60 * 60 * 24 * 7; // 1 week
 
   // Params for generation 0 subscriptions
   TAX_ADDRESS_2 = "0xF90fF6d484331399f4eAa13f73D03b8B18eA1373";
@@ -43,7 +43,7 @@ async function main() {
   SUBSCRIPTION_MAX_PRICE_2 = parseEther("100.0");
   BONUS_PECENT_2 = 2000;
   TAX_REDUCTION_AMOUNT_2 = 2500;
-  TAX_RESET_DEADLINE_2 = 60 * 60 * 24 * 7; // 1 week
+  FORGIVENESS_PERIOD_2 = 60 * 60 * 24 * 7; // 1 week
   
   // Market dao fee address
   DAO_ADDRESS = "0xF90fF6d484331399f4eAa13f73D03b8B18eA1373";
@@ -203,7 +203,7 @@ async function main() {
     stableAcceptor.address,
     exchange.address,
     TAX_ADDRESS,
-    TAX_RESET_DEADLINE,
+    FORGIVENESS_PERIOD,
     SUBSCRIPTION_PRICE,
     BONUS_PECENT,
     TAX_REDUCTION_AMOUNT
@@ -219,7 +219,7 @@ async function main() {
     stableAcceptor.address,
     exchange.address,
     TAX_ADDRESS_2,
-    TAX_RESET_DEADLINE_2,
+    FORGIVENESS_PERIOD_2,
     SUBSCRIPTION_PRICE_2,
     BONUS_PECENT_2,
     TAX_REDUCTION_AMOUNT_2
@@ -402,7 +402,7 @@ async function main() {
         stableAcceptor.address,
         exchange.address,
         TAX_ADDRESS,
-        TAX_RESET_DEADLINE,
+        FORGIVENESS_PERIOD,
         SUBSCRIPTION_PRICE,
         BONUS_PECENT,
         TAX_REDUCTION_AMOUNT
@@ -421,7 +421,7 @@ async function main() {
         stableAcceptor.address,
         exchange.address,
         TAX_ADDRESS_2,
-        TAX_RESET_DEADLINE_2,
+        FORGIVENESS_PERIOD_2,
         SUBSCRIPTION_PRICE_2,
         BONUS_PECENT_2,
         TAX_REDUCTION_AMOUNT_2

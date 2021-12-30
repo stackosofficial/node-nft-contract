@@ -155,7 +155,7 @@ async function setup() {
   SUBSCRIPTION_PRICE_MAX = parseEther("5000.0");
   BONUS_PECENT = 2000;
   TAX_REDUCTION_AMOUNT = 2500; // 25% means: 1month withdraw 75% tax, 2 month 50%, 3 month 25%, 4 month 0%
-  TAX_RESET_DEADLINE = 60 * 60 * 24 * 7; // 1 week
+  FORGIVENESS_PERIOD = 60 * 60 * 24 * 7; // 1 week
 
   const Subscription = await ethers.getContractFactory("Subscription");
   subscription = await Subscription.deploy(
@@ -165,7 +165,7 @@ async function setup() {
     stableAcceptor.address,
     exchange.address,
     TAX_ADDRESS,
-    TAX_RESET_DEADLINE,
+    FORGIVENESS_PERIOD,
     SUBSCRIPTION_PRICE,
     BONUS_PECENT,
     TAX_REDUCTION_AMOUNT
@@ -174,7 +174,7 @@ async function setup() {
   await subscription.setPrice(SUBSCRIPTION_PRICE);
   await subscription.setBonusPercent(BONUS_PECENT);
   await subscription.settaxReductionAmount(TAX_REDUCTION_AMOUNT);
-  await subscription.setTaxResetDeadline(TAX_RESET_DEADLINE);
+  await subscription.setForgivenessPeriod(FORGIVENESS_PERIOD);
   MONTH = (await subscription.MONTH()).toNumber();
   console.log("MONTH: ", MONTH);
 
@@ -186,7 +186,7 @@ async function setup() {
     stableAcceptor.address,
     exchange.address,
     TAX_ADDRESS,
-    TAX_RESET_DEADLINE,
+    FORGIVENESS_PERIOD,
     SUBSCRIPTION_PRICE,
     BONUS_PECENT,
     TAX_REDUCTION_AMOUNT
@@ -196,7 +196,7 @@ async function setup() {
   await sub0.setMaxPrice(SUBSCRIPTION_PRICE_MAX);
   await sub0.setBonusPercent(BONUS_PECENT);
   await sub0.settaxReductionAmount(TAX_REDUCTION_AMOUNT);
-  await sub0.setTaxResetDeadline(TAX_RESET_DEADLINE);
+  await sub0.setForgivenessPeriod(FORGIVENESS_PERIOD);
   await sub0.setOnlyFirstGeneration();
   console.log("sub0", sub0.address);
 
