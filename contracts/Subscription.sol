@@ -10,7 +10,6 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "./interfaces/IStackOsNFTBasic.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "hardhat/console.sol";
 
 contract Subscription is Ownable, ReentrancyGuard {
     IERC20 internal stackToken;
@@ -291,7 +290,6 @@ contract Subscription is Ownable, ReentrancyGuard {
             period += 1;
             p[period].endAt = block.timestamp + MONTH;
         }
-        console.log("updatePeriod:", period);
     }    
 
     /*
@@ -309,12 +307,10 @@ contract Subscription is Ownable, ReentrancyGuard {
         updatePeriod();
 
         if(p[period - 1].subsNum == 0) {
-            console.log("0 subs, sending to dao");
             return false;
         } else {
             p[period - 1].balance += _amount;
             stackToken.transferFrom(msg.sender, address(this), _amount);
-            console.log("total received:", p[period - 1].balance);
         }
         return true;
     }
@@ -358,9 +354,7 @@ contract Subscription is Ownable, ReentrancyGuard {
                 );
                         
                 uint256 share = pr.balance / pr.subsNum;
-                console.log("share:", share);
                 toWithdraw += (share - pr.pd[generationId][tokenId].withdrawn);
-                console.log("toWithdraw:", toWithdraw);
                 pr.pd[generationId][tokenId].withdrawn = share; 
             }
         }

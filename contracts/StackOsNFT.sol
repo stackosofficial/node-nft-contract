@@ -11,7 +11,6 @@ import "./interfaces/IStackOsNFT.sol";
 import "./GenerationManager.sol";
 import "./StableCoinAcceptor.sol";
 import "./Exchange.sol";
-import "hardhat/console.sol";
 
 contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
     using Counters for Counters.Counter;

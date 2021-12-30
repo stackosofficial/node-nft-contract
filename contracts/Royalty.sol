@@ -7,7 +7,6 @@ import "./DarkMatter.sol";
 import "./interfaces/IStackOsNFT.sol";
 import "./interfaces/IStackOsNFTBasic.sol";
 import "./Exchange.sol";
-import "hardhat/console.sol";
 
 contract Royalty is Ownable {
     using Counters for Counters.Counter;

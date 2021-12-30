@@ -11,7 +11,6 @@ import "./StableCoinAcceptor.sol";
 import "./Exchange.sol";
 import "./Whitelist.sol";
 import "./Royalty.sol";
-import "hardhat/console.sol";
 
 contract StackOsNFTBasic is
     Whitelist,
@@ -354,8 +353,7 @@ contract StackOsNFTBasic is
         uint256 discountAmount = participationFee -
             (participationFee * rewardDiscount) /
             10000;
-        // console.log("mint from royalty: ", _usdAmount/1e18, discountAmount /1e18);
-        // uint256 _nftAmount = _usdAmount / discountAmount;
+            
         uint256 amountIn = discountAmount.mul(_mintNum);
         IERC20(_stablecoin).transferFrom(msg.sender, address(this), amountIn);
         IERC20(_stablecoin).approve(address(exchange), amountIn);

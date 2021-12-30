@@ -6,7 +6,6 @@ import "./GenerationManager.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import "hardhat/console.sol";
 
 contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeable {
 
