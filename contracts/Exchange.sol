@@ -33,7 +33,7 @@ contract Exchange {
     }
 
     /*
-     *  @title Swap exact tokens for tokens
+     *  @title Swap exact tokens for tokens using path tokenA > WETH > tokenB
      *  @param Amount of tokenA to spend
      *  @param Address of tokenA to spend
      *  @param Address of tokenB to receive
@@ -65,8 +65,9 @@ contract Exchange {
     }
 
     /*
-     * @title Get amount of USD needed to buy `amount` of stack token
+     *  @title Get amount of tokenIn needed to buy amountOut of tokenOut using path tokenIn > WETH > tokenOut
      */
+
     function getAmountIn(
         uint256 amountOut, 
         IERC20 tokenOut, 
