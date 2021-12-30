@@ -1,8 +1,3 @@
-### TODO
-4. remove console logs
-
-## TOKEN DEPLOYED
-
 ## CONFIGURE THE DEPLOYMENT
 
 ### Step 1
@@ -16,9 +11,10 @@ npm install
 ### Step 2
 Rename `.env.template` to `.env`, open it and then enter your:
 1. Rinkeby node URL (e.g. from [Alchemy](https://dashboard.alchemyapi.io/) or [Infura](https://infura.io/dashboard))
+    - If you use non-archival node, remove `blockNumber` from hardhat config. Alchemy should be archival by default.
 2. Matic node URL (e.g. from [Alchemy](https://dashboard.alchemyapi.io/) or [Infura](https://infura.io/dashboard))
 3. The private key of the account which will send the deployment transaction
-4. POLYGONSCAN API key (get one [here](https://polygonscan.com/myapikey))
+4. POLYGONSCAN or ETHERSCAN api key depends where you wish to deploy, matic or rinkeby (get one [here](https://polygonscan.com/myapikey))
 
 ### Step 3: Testing locally
 1. Run tests `npx hardhat test`

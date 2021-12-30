@@ -11,8 +11,8 @@ async function main() {
   // Set fee amount for chainlink in StackOsNFT.sol
 
   // This address will be owner of all contracts plus market proxy owner
-  // Leave empty if you wan't the deployer to be owner
-  OWNERSHIP = ""; // "0xeb2198ba8047B20aC84fBfB78af33f5A9690F674"
+  // Leave empty if you want the deployer to be owner, you will be able to transfer ownership later
+  OWNERSHIP = ""; // Example: "0xeb2198ba8047B20aC84fBfB78af33f5A9690F674"
 
   // Stablecoins supported by Subscription, StackOsNFT, StackOsNFTBasic
   STABLES = [
