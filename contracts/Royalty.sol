@@ -33,7 +33,7 @@ contract Royalty is Ownable {
     }
 
     mapping(uint256 => Cycle) private cycles; 
-    mapping(uint256 => mapping(uint256 => uint256)) addedAt; // at which cycle the token were added
+    mapping(uint256 => mapping(uint256 => int256)) addedAt; // at which cycle the token were added
     uint256 totalDelegated;
 
     constructor(
@@ -59,7 +59,9 @@ contract Royalty is Ownable {
             "Caller must be StackNFT contract"
         );
         uint256 generationId = generations.getIDByAddress(msg.sender);
-        addedAt[generationId][tokenId] = counter.current();
+        addedAt[generationId][tokenId] = int256(counter.current());
+        if (cycles[counter.current()].delegatedCount == 0)
+            addedAt[generationId][tokenId] = -1;
         totalDelegated += 1;
     }
 
@@ -85,7 +87,6 @@ contract Royalty is Ownable {
                 cycles[counter.current()].delegatedCount = totalDelegated;
                 cycles[counter.current()].startTimestamp = block.timestamp;
 
-                // previous cycle already got enough balance, otherwise we wouldn't get here, thus we assign this deposit to the new cycle
                 cycles[counter.current()].balance += msg.value - feePart;
             } else {
                 cycles[counter.current()].balance += msg.value - feePart;
@@ -247,8 +248,7 @@ contract Royalty is Ownable {
                         // should be able to claim only once for cycle
                         cycles[o].isClaimed[generationId][tokenId] == false
                         // is this token delegated before this cycle start?
-                        && (addedAt[generationId][tokenId] < o || 
-                            (addedAt[generationId][tokenId] == 0 && o == 0))
+                        && addedAt[generationId][tokenId] < int256(o)
                     ) {
                         reward += cycles[o].balance / cycles[o].delegatedCount;
                         cycles[o].isClaimed[generationId][
