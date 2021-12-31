@@ -165,6 +165,7 @@ contract Subscription is Ownable, ReentrancyGuard {
     
     /*
      * @title Reverts if passed generationId doesn't match desired generation by the contract.
+     * @title This is used in modifier.
      * @dev Could only be invoked by the contract owner.
      */
     function requireCorrectGeneration(uint256 generationId) internal view {
@@ -251,7 +252,7 @@ contract Subscription is Ownable, ReentrancyGuard {
         uint256 amount;
         if(_payWithStack) {
             _stablecoin = stableAcceptor.stablecoins(0);
-            // how much stack we need to get `price` amount of usd
+            // get stack amount we need to sell to get `price` amount of usd
             amount = exchange.getAmountIn(
                 _price, 
                 _stablecoin, 

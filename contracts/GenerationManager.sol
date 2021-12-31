@@ -183,6 +183,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
      * @dev Adjust address settings.
      * @dev Example of full setup can be seen in deployNextGenPreset.
      */
+
     function deployNextGen(
         string memory _name,
         string memory _symbol,

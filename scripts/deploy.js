@@ -14,36 +14,45 @@ async function main() {
   // Leave empty if you want the deployer to be owner, you will be able to transfer ownership later
   OWNERSHIP = ""; // Example: "0xeb2198ba8047B20aC84fBfB78af33f5A9690F674"
 
-  // Stablecoins supported by Subscription, StackOsNFT, StackOsNFTBasic
+  // Stablecoins supported by the protocol
   STABLES = [
     "0xeb8f08a975Ab53E34D8a0330E0D34de942C95926"
   ]
+
+  // Stack token address
+  STACK_TOKEN = "0x641f40c85e070b92ce14b25c21609a68cd2d8a53";
 
   // Required deposit amount of StackNFTs to be able to mint DarkMatter
   DARK_MATTER_PRICE = 5;
 
   // Uniswap router
   ROUTER_ADDRESS = "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D";
-  // Address to receive early Subscription withdraw TAX
+  // Address to receive tax of early withdraw subscription
   TAX_ADDRESS = "0xF90fF6d484331399f4eAa13f73D03b8B18eA1373";
   // Subscription price in USD
   SUBSCRIPTION_PRICE = parseEther("100.0");
   // Subscription bonus percent
   BONUS_PECENT = 2000;
-  // Subscription tax reduction. 25% means: 1month withdraw 75% tax, 2 month 50%, 3 month 25%, 4 month 0%
+  // Subscription tax reduction amount each month
+  // 25% means: 1 month withdraw 75% tax, 2 month 50%, 3 month 25%, 4 month 0%
   TAX_REDUCTION_AMOUNT = 2500;
-  // Subscription time window. How much time you have to resub until TAX reset.
-  FORGIVENESS_PERIOD = 60 * 60 * 24 * 7; // 1 week
+  // Subscription forgiveness period in seconds
+  FORGIVENESS_PERIOD = 60 * 60 * 24 * 7;
 
-  // Params for generation 0 subscriptions
+  // Params for first generation subscription
+
+  // Address to receive tax of early withdraw subscription
   TAX_ADDRESS_2 = "0xF90fF6d484331399f4eAa13f73D03b8B18eA1373";
   // Subscription min price in USD
   SUBSCRIPTION_PRICE_2 = parseEther("100.0");
   // Subscription max price in USD
   SUBSCRIPTION_MAX_PRICE_2 = parseEther("100.0");
+  // Subscription bonus percent
   BONUS_PECENT_2 = 2000;
+  // Subscription tax reduction
   TAX_REDUCTION_AMOUNT_2 = 2500;
-  FORGIVENESS_PERIOD_2 = 60 * 60 * 24 * 7; // 1 week
+  // Subscription forgiveness period in seconds
+  FORGIVENESS_PERIOD_2 = 60 * 60 * 24 * 7;
   
   // Market dao fee address
   DAO_ADDRESS = "0xF90fF6d484331399f4eAa13f73D03b8B18eA1373";
@@ -55,73 +64,75 @@ async function main() {
   ROYALTY_FEE = 1000;
 
   // StackNFT 1st generation
+
+  // Token name
   NAME = "STACK OS NFT";
+  // Token symbol
   SYMBOL = "SON";
-  STACK_TOKEN = "0x641f40c85e070b92ce14b25c21609a68cd2d8a53";
   // Mint price in STACK
   PRICE = parseEther("0.1");
+  // Max amount of NFT in this generation
   MAX_SUPPLY = 25;
   // Lottery prizes amount
   PRIZES = 10;
+  // Auctioned NFTs amount
   AUCTIONED_NFTS = 10;
+  // Timelock period for admin withdraw
+  // If you set this to 60, then admin can withdraw after 60 seconds after deployment
+  TIMELOCK = 6442850;
   // For chainlink VRF.
   KEY_HASH =
     "0x2ed0feb3e7fd2022120aa84fab1945545a9f2ffc9076fd6156fa96eaff4c1311";
-  // Timelock for admin withdraw. Counting from current block's timestamp.
-  TIMELOCK = 6442850;
-  // Fee percent sent to Subscription contract on partner mint
-  SUBS_FEE = 1000;
-  DAO_FEE = 500;
-  DISTR_FEE = 500;
   VRF_COORDINATOR = "0xb3dCcb4Cf7a26f6cf6B120Cf5A73875B7BBc655B";
   LINK_TOKEN = "0x01BE23585060835E02B77ef475b0Cc51aA1e0709";
 
-  /**
-   * Set to true if you want partners to be able to mint for themselves (can be started later, after deployment)
-   */
+  // Set to true if you want partners to be able to mint for themselves (can be started later, after deployment)
   START_PARTNER_SALES = false;
-  /**
-   * Set to true if you want to allow staking for lottery tickets (can be activated later, after deployment)
-   */
+
+  // Set to true if you want to allow staking for lottery tickets (can be activated later, after deployment)
   ACTIVATE_LOTTERY = false
+
   /** 
    * You can add more partners, just copy-paste inner array and adjust parameters for each partner.
    * Or remove that inner array for no whitelisted partners initially.
    * 
    * Params
-   * Address - address who will be allowed to mint for themselves
+   * Address - address who will be allowed to mint
    * Uint256 - amount of NFTs allowed for this address to mint
    */
   WHITELISTED_PARTNERS = [
     // ["0x47ef611fcb6480fa4bc74522f2ea2b5812352ae5", 4], // remove or copy-paste this line
   ];
-
-  // Address to take fees from when royalties deposited
+  
+  // Address to send fees when royalties received by Royalty contract
   DEPOSIT_FEE_ADDRESS = "0xF90fF6d484331399f4eAa13f73D03b8B18eA1373";
-  // Amount of eth required to allow new cycle start
+  // Amount of eth required to allow new cycle start (Royalty)
   MIN_CYCLE_ETHER = parseEther("1");
-  // Fee percent to take on royalties received by Royalty contract
+  // Fee percent to take when royalties received by Royalty contract
   DEPOSIT_FEE_PERCENT = 1000;
   // Set weth address to be able to claim royalty in WETH on matic network.
   WETH_ADDRESS = "0xc778417E063141139Fce010982780140Aa0cD5Ab";
 
-  // Settings for auto deploy StackNFTBasic (generations after 1)
-  // On auto deploy we append " N" where N is generation number
+  // Settings for auto deploy StackNFTBasic (generations after first)
+
+  // Token name, on auto deploy we append " N" to the name, where N is generation number
   NAME_2 = "STACK OS NFT";
+  // Token symbol
   SYMBOL_2 = "STACK NFT";
   // Mint price in USD
   PRICE_2 = parseEther("100");
-  // Fee percent for Subscription contract on mint
+  // Mint fee percent for active subs
   SUBS_FEE_2 = 2000;
+  // Mint fee percent for DAO
   DAO_FEE_2 = 500;
+  // Mint fee percent royalty distribution
   DISTR_FEE_2 = 500;
-  // How much to grow max supply on auto deployed StackNFTBasic
-  // We get max supply from current generation, and add this percent
-  // So if we have 25, then 10000 will give us 50
+  // How much to grow max supply in percents.
+  // For example value of 25% will increase max supply from 100 to 125.
   MAX_SUPPLY_GROWTH = 10000;
-  // Discount applied to mint NFTs when you transfer tickets from 1st generation to the next
+  // Transfer discount to mint NFTs (when transfer unwon tickets)
   TRANSFER_DISCOUNT_2 = 2000;
-  // Timelock for admin withdraw. Counting from current block's timestamp.
+  // Timelock period for admin withdraw
   TIMELOCK_2 = 6442850;
 
   //^^^^^^^^^^^^^^^^^^ SETTINGS ^^^^^^^^^^^^^^^^^^
@@ -185,15 +196,9 @@ async function main() {
       666,
       666 
     );
-    if(OWNERSHIP)
-      await marketImplementaion.transferOwnership(OWNERSHIP);
-  } catch (error) {
-    // console.log(error);
-  }
-  // const marketProxyAdminAddress = await getAdminAddress(ethers.provider, marketProxy.address);
+  } catch (error) { }
   console.log("Market Proxy", marketProxy.address);
   console.log("Market Implementation", marketImplementaionAddress);
-  // console.log("Market Proxy Admin", marketProxyAdminAddress);
   
   const Subscription = await ethers.getContractFactory("Subscription");
   let subscription = await Subscription.deploy(
@@ -283,8 +288,7 @@ async function main() {
   // Allow Market to transfer StackNFT
   await stackOsNFT.whitelist(marketProxy.address);
 
-  // 1 subs contract is only for 1st generaion
-  // 2 subs contract is only for any other generation
+  // One of subs contracts is only for 1st generaion
   await sub0.setOnlyFirstGeneration();
   await sub0.setMaxPrice(SUBSCRIPTION_MAX_PRICE_2);
 
