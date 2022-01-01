@@ -296,6 +296,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
     /*
      * @title Transfer out stake to the next generation, and receive a bonus.
      * @param List of Ticket Numbers that are transferable.
+     * @param StackNFT generation address.
      */
 
     function transferTicket(uint256[] calldata _ticketID, address _address)

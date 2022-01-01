@@ -53,16 +53,12 @@ contract StackOsNFTBasic is
 
     bool private initialized;
 
-    modifier onlyGenerationManager() {
-        // Naive check, this should revert if msg.sender don't have `count` function
-        GenerationManager(_msgSender()).count();
-        _;
-    }
-
     /*
      * @title Must be deployed only by GenerationManager
      */
-    constructor() onlyGenerationManager {
+    constructor() {
+        
+        require(Address.isContract(msg.sender), "Must be deployed by generation manager");
         generations = GenerationManager(msg.sender);
     }
 
