@@ -173,7 +173,7 @@ async function setup() {
   await subscription.deployed();
   await subscription.setPrice(SUBSCRIPTION_PRICE);
   await subscription.setBonusPercent(BONUS_PECENT);
-  await subscription.settaxReductionAmount(TAX_REDUCTION_AMOUNT);
+  await subscription.setTaxReductionAmount(TAX_REDUCTION_AMOUNT);
   await subscription.setForgivenessPeriod(FORGIVENESS_PERIOD);
   MONTH = (await subscription.MONTH()).toNumber();
   console.log("MONTH: ", MONTH);
@@ -195,7 +195,7 @@ async function setup() {
   await sub0.setPrice(SUBSCRIPTION_PRICE);
   await sub0.setMaxPrice(SUBSCRIPTION_PRICE_MAX);
   await sub0.setBonusPercent(BONUS_PECENT);
-  await sub0.settaxReductionAmount(TAX_REDUCTION_AMOUNT);
+  await sub0.setTaxReductionAmount(TAX_REDUCTION_AMOUNT);
   await sub0.setForgivenessPeriod(FORGIVENESS_PERIOD);
   await sub0.setOnlyFirstGeneration();
   console.log("sub0", sub0.address);

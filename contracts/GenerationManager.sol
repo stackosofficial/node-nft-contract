@@ -112,6 +112,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
     /*
      * @title Called by StackNFTBasic once it reaches max supply.
      * @dev Could only be invoked by the last StackOsNFTBasic generation.
+     * @dev Generation id is appended to the name. 
      */
     function deployNextGenPreset() public returns (IStackOsNFTBasic) 
     {

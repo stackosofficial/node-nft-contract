@@ -148,7 +148,7 @@ contract Subscription is Ownable, ReentrancyGuard {
      * @param Amount to subtract from tax on each subscribed month in a row
      * @dev Could only be invoked by the contract owner
      */
-    function settaxReductionAmount(uint256 _amount) external onlyOwner {
+    function setTaxReductionAmount(uint256 _amount) external onlyOwner {
         require(_amount <= HUNDRED_PERCENT, "invalid basis points");
         taxReductionAmount = _amount;
     }

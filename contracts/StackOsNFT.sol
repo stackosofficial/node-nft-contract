@@ -188,7 +188,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
     }
 
     /*
-     * @title Get winning tickets. Might have to call multiple times as not unique tickets will be ignored.
+     * @title Get winning tickets, you able to call it multiple times to avoid gas error.
      * @param Amount of unique random numbers expected to receive.
      * @dev Could only be invoked by the contract owner.
      */
