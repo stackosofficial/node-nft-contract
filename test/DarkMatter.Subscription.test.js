@@ -3,7 +3,7 @@ const { use, expect } = require("chai");
 const { parseEther } = require("@ethersproject/units");
 const { print, setup, deployStackOSBasic, setupLiquidity } = require("./utils");
 
-describe("DarkMatter integration with Subscription", function () {
+describe("DarkMatter doesn't corrupt Subscription logic", function () {
 
   it("Snapshot EVM", async function () {
     snapshotId = await ethers.provider.send("evm_snapshot");

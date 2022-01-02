@@ -3,7 +3,7 @@ const { use, expect } = require("chai");
 const { print, setup, deployStackOS, setupLiquidity, deployStackOSBasic } = require("./utils");
 const { parseEther } = require("ethers/lib/utils");
 
-describe("DarkMatter integration with Royalty", function () {
+describe("DarkMatter doesn't corrupt Royalty contract logic", function () {
   it("Snapshot EVM", async function () {
     snapshotId = await ethers.provider.send("evm_snapshot");
   });

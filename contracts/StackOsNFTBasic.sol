@@ -111,7 +111,7 @@ contract StackOsNFTBasic is
     /*
      * @title Adjust address settings
      * @param Dao address
-     * @title Royalty distribution address
+     * @param Royalty distribution address
      * @dev Could only be invoked by the contract owner.
      */
 
@@ -373,7 +373,7 @@ contract StackOsNFTBasic is
      * @dev Take fees out of `_amount`
      */
 
-    function sendFees(uint256 _amount) internal returns (uint256 ) {
+    function sendFees(uint256 _amount) internal returns (uint256) {
 
         uint256 subsPart = _amount * subsFee / 10000;
         uint256 daoPart = _amount * daoFee / 10000;

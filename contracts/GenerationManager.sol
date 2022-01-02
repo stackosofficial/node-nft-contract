@@ -60,7 +60,6 @@ contract GenerationManager is Ownable, ReentrancyGuard {
 
     /*
      * @title Save settings for auto deployment.
-     * @title Has the same params as StackNFTBasic constructor with one exception.
      * @param _maxSupplyGrowthPercent increase max supply for new contract by this percent.
      * @dev Could only be invoked by the contract owner.
      */
@@ -163,7 +162,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
     /*
      * @title Add next generation of StackNFT.
      * @param IStackOsNFT address.
-     * @dev Could only be invoked by the contract owner or StackOsNFT contract.
+     * @dev Could only be invoked by the contract owner or StackNFT contract.
      * @dev Address should be unique.
      */
     function add(IStackOsNFT _stackOS) public onlyOwnerOrStackContract {
@@ -176,8 +175,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
     }
 
     /*
-     * @title Deploy new StackOsNFT manually.
-     * @dev All params should be the same as in StackOsNFTBasic constructor.
+     * @title Deploy new StackOsNFTBasic manually.
      * @dev Additional setup is required after deploy: 
      * @dev Whitelist DarkMatter and Market.
      * @dev Call to setFees.

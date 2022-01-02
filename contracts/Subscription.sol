@@ -124,7 +124,7 @@ contract Subscription is Ownable, ReentrancyGuard {
     }
 
     /*
-     * @title Set subscription price
+     * @title Set max subscription price, usde only if contract locked to 1st generation
      * @param New price in USD
      * @dev Could only be invoked by the contract owner.
      */
@@ -317,7 +317,7 @@ contract Subscription is Ownable, ReentrancyGuard {
     }
 
     /*
-     *  @title Handle fee sent from minting
+     *  @title Withdraw active subs reward
      *  @param Generation id
      *  @param Token ids
      *  @param Period ids
@@ -431,7 +431,7 @@ contract Subscription is Ownable, ReentrancyGuard {
     }
 
    /*
-     * @title Purchase StackNFTs, caller will receive the left over amount of royalties
+     * @title Purchase StackNFTs
      * @param Generation id to withdraw
      * @param Token ids to withdraw
      * @param Generation id to mint

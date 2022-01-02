@@ -210,7 +210,7 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeab
     }
 
     /*
-     * @title Buy listed StackNFT
+     * @title Buy listed DarkMatter NFT
      * @param Token id
      * @dev Market contract must be whitelisted in StackNFT contract to transfer tokens.
      */

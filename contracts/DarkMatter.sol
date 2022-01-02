@@ -33,7 +33,7 @@ contract DarkMatter is Whitelist, ERC721, ReentrancyGuard {
     uint256 immutable mintPrice; 
 
     constructor(GenerationManager _generations, uint256 _mintPrice)
-        ERC721("DarkMatter", "MN")
+        ERC721("DarkMatter", "DM")
     {
         generations = _generations;
         mintPrice = _mintPrice;
@@ -94,7 +94,7 @@ contract DarkMatter is Whitelist, ERC721, ReentrancyGuard {
     }
 
     /*
-     * @title Returns owner of the DarkMatterNFT that owns designated StackNFT.
+     * @title Returns owner of the DarkMatterNFT that owns StackNFT.
      * @param StackNFT generation id.
      * @param StackNFT token id.
      */
