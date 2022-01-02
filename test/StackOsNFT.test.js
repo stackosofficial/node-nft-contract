@@ -1,6 +1,6 @@
 const { ethers } = require("hardhat");
 const { use, expect } = require("chai");
-const { parseEther } = require("@ethersproject/units");
+const { parseEther, formatEther } = require("@ethersproject/units");
 const { deployStackOS, setup, print, deployStackOSBasic } = require("./utils");
 
 describe("StackOS NFT", function () {
@@ -217,8 +217,21 @@ describe("StackOS NFT", function () {
     await stackOsNFT.adjustAuctionCloseTime(deadline);
   });
 
+  async function logBids () {
+    let topBids = [];
+    for(let i = 0; i <= AUCTIONED_NFTS; i++) {
+      topBids.push(
+        formatEther((await stackOsNFT.topBids(i)).toString())
+      );
+    }
+    print("topBids", topBids, topBids.length);
+  }
   it("Auction", async function () {
-    //   // print((await stackToken.balanceOf(owner.address)))
+
+    print("auctioned NFTs:", AUCTIONED_NFTS)
+
+    await logBids();
+
     await stackOsNFT.placeBid(parseEther("1.0"));
     await stackOsNFT.placeBid(parseEther("1.0"));
     await stackOsNFT.placeBid(parseEther("2.0"));
@@ -229,6 +242,13 @@ describe("StackOS NFT", function () {
     await stackOsNFT.placeBid(parseEther("5.0"));
     await stackOsNFT.placeBid(parseEther("1.0"));
     await stackOsNFT.placeBid(parseEther("9.0"));
+    await stackOsNFT.placeBid(parseEther("20.0"));
+
+    await logBids();
+
+    await expect(stackOsNFT.placeBid(parseEther("1.0"))).to.be.revertedWith(
+      "Bid too small"
+    );
   });
 
   it("Try to close auction before it has ended.", async function () {
@@ -239,7 +259,11 @@ describe("StackOS NFT", function () {
 
   it("Close Auction Distribute NFT's", async function () {
     await ethers.provider.send("evm_setNextBlockTimestamp", [deadline + 1]);
-    await stackOsNFT.finalizeAuction();
+    print(await stackOsNFT.balanceOf(owner.address))
+    await expect(() => stackOsNFT.finalizeAuction()).to.changeTokenBalance(
+      stackOsNFT, owner, AUCTIONED_NFTS
+    );
+    print(await stackOsNFT.balanceOf(owner.address))
   });
 
   it("Unable to transfer when not whitelisted", async function () {

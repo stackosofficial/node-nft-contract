@@ -444,7 +444,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
         require(block.timestamp > auctionCloseTime, "Auction still ongoing.");
         require(auctionFinalized == false, "Auction Already Finalized");
         auctionFinalized = true;
-        for (uint256 i = 1; i < 10; i++) {
+        for (uint256 i = 1; i <= auctionedNFTs; i++) {
             if (topBiders[i] != address(0)) {
                 mint(topBiders[i]);
             }
