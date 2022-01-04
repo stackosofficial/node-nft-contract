@@ -3,7 +3,7 @@
 ### Step 1
 Clone this repo and install dependencies:
 ```
-git clone https://github.com/grape404/STACKNFT
+git clone https://github.com/stackosofficial/node-nft-contract
 cd ./STACKNFT
 npm install
 ```
