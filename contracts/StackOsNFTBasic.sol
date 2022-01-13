@@ -20,6 +20,18 @@ contract StackOsNFTBasic is
     using Counters for Counters.Counter;
     using SafeMath for uint256;
 
+    event SetName(string name_);
+    event SetSymbol(string symbol_);
+    event AdjustAddressSettings(
+        address _dao, 
+        address _distr
+    );
+    event SetRewardDiscount(uint256 _rewardDiscount);
+    event SetFees(uint256 _subs, uint256 _dao, uint256 _distr);
+    event StartSales();
+    event Delegate(address _delegator, address _delegatee, uint256 tokenId);
+    event AdminWithdraw(uint256 adminWithdrawableAmount);
+
     Counters.Counter private _tokenIdCounter;
     IERC20 private stackToken;
     DarkMatter private darkMatter;
@@ -98,6 +110,7 @@ contract StackOsNFTBasic is
      */
     function setName(string memory name_) public onlyOwner {
         _name = name_;
+        emit SetName(name_);
     }
 
     /*
@@ -106,6 +119,7 @@ contract StackOsNFTBasic is
      */
     function setSymbol(string memory symbol_) public onlyOwner {
         _symbol = symbol_;
+        emit SetSymbol(symbol_);
     }
 
     /*
@@ -124,6 +138,7 @@ contract StackOsNFTBasic is
     {
         daoAddress = _dao;
         royaltyDistrAddress = _distr;
+        emit AdjustAddressSettings(_dao, _distr);
     }
 
     /*
@@ -135,6 +150,7 @@ contract StackOsNFTBasic is
     function setRewardDiscount(uint256 _rewardDiscount) public onlyOwner {
         require(_rewardDiscount <= 10000, "invalid basis points");
         rewardDiscount = _rewardDiscount;
+        emit SetRewardDiscount(_rewardDiscount);
     }
 
     /*
@@ -153,6 +169,7 @@ contract StackOsNFTBasic is
         subsFee = _subs;
         daoFee = _dao;
         distrFee = _distr;
+        emit SetFees(_subs, _dao, _distr);
     }
 
     /*
@@ -249,6 +266,7 @@ contract StackOsNFTBasic is
 
     function startSales() public onlyOwner {
         salesStarted = true;
+        emit StartSales();
     }
 
     /*
@@ -409,6 +427,7 @@ contract StackOsNFTBasic is
         require(delegates[tokenId] == address(0), "Already delegated");
         delegates[tokenId] = _delegatee;
         royaltyAddress.onDelegate(tokenId);
+        emit Delegate(msg.sender, _delegatee, tokenId);
     }
 
     /*
@@ -492,6 +511,7 @@ contract StackOsNFTBasic is
     function adminWithdraw() public onlyOwner {
         require(block.timestamp > timeLock, "Locked!");
         stackToken.transfer(msg.sender, adminWithdrawableAmount);
+        emit AdminWithdraw(adminWithdrawableAmount);
         adminWithdrawableAmount = 0;
     }
 
