@@ -11,6 +11,10 @@ import "./Exchange.sol";
 contract Royalty is Ownable {
     using Counters for Counters.Counter;
 
+    event SetFeeAddress(address payable _feeAddress);
+    event SetWETH(IERC20 WETH);
+    event SetFeePercent(uint256 _percent);
+
     Counters.Counter private counter; // counting cycles
 
     uint256 private constant HUNDRED_PERCENT = 10000;
@@ -130,6 +134,7 @@ contract Royalty is Ownable {
     function setFeeAddress(address payable _feeAddress) external onlyOwner {
         require(_feeAddress != address(0), "Must be not zero-address");
         feeAddress = _feeAddress;
+        emit SetFeeAddress(_feeAddress);
     }    
 
     /*
@@ -140,6 +145,7 @@ contract Royalty is Ownable {
     function setWETH(IERC20 _WETH) external onlyOwner {
         require(address(_WETH) != address(0), "Must be not zero-address");
         WETH = _WETH;
+        emit SetWETH(_WETH);
     }
 
     /*
@@ -150,6 +156,7 @@ contract Royalty is Ownable {
     function setFeePercent(uint256 _percent) external onlyOwner {
         require(feePercent <= HUNDRED_PERCENT, "invalid fee basis points");
         feePercent = _percent;
+        emit SetFeePercent(_percent);
     }
 
     /*
