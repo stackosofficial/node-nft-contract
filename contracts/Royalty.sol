@@ -94,7 +94,8 @@ contract Royalty is Ownable {
             cycles[counter.current()].balance += msg.value - feePart;
         }
 
-        feeAddress.call{value: feePart}("");
+        (bool success, ) = feeAddress.call{value: feePart}("");
+        require(success, "Transfer failed.");
     }
 
     /**
