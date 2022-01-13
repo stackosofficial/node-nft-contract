@@ -66,7 +66,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
     uint256 private immutable participationFee;
     uint256 private participationTickets;
     uint256 private immutable prizes;
-    uint256 internal fee = 1e14; // 0.0001 (1e14) on MATIC, 0.1 (1e17) on eth
+    uint256 internal constant fee = 1e14; // 0.0001 (1e14) on MATIC, 0.1 (1e17) on eth
 
     mapping(uint256 => address) public ticketOwner;
     mapping(uint256 => uint256) public shuffle;
@@ -283,7 +283,6 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
      */
 
     function claimReward(uint256[] calldata _ticketID) public {
-        require(winningTickets.length > 0, "Not Decided Yet.");
         require(ticketStatusAssigned == true, "Not Assigned Yet!");
         for (uint256 i; i < _ticketID.length; i++) {
             require(
@@ -337,7 +336,6 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
         public
     {
         require(generations.isAdded(_address), "Wrong stack contract");
-        require(winningTickets.length > 0, "Not Decided Yet.");
         require(ticketStatusAssigned == true, "Not Assigned Yet!");
         for (uint256 i; i < _ticketID.length; i++) {
             require(
