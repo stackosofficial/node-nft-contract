@@ -12,9 +12,15 @@ import "./Whitelist.sol";
 contract DarkMatter is Whitelist, ERC721, ReentrancyGuard {
     using Counters for Counters.Counter;
 
+    event Deposit(
+        address _wallet, 
+        uint256 generationId,
+        uint256[] tokenIds
+    );
+
     Counters.Counter private _tokenIdCounter;
     
-    GenerationManager private generations;
+    GenerationManager private immutable generations;
 
     // total amount of NFT deposited from any generation
     mapping(address => uint256) private deposits; 
@@ -27,7 +33,6 @@ contract DarkMatter is Whitelist, ERC721, ReentrancyGuard {
 
     // DarkMatter id => generation => StackNFT ids 
     mapping(uint256 => mapping(uint256 => uint256[])) private darkMatterToStack; 
-    // mapping(address => bool) _whitelist;
     
     // number of StackNFTs that must be deposited in order to be able to mint a DarkMatter.
     uint256 immutable mintPrice; 
@@ -139,6 +144,8 @@ contract DarkMatter is Whitelist, ERC721, ReentrancyGuard {
                 msg.sender
             ];
         }
+
+        emit Deposit(msg.sender, generationId, tokenIds);
     }
 
     /*
