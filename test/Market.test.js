@@ -1,7 +1,7 @@
 const { ethers, upgrades } = require("hardhat");
 const { use, expect } = require("chai");
 const { parseEther } = require("@ethersproject/units");
-const { deployStackOS, setup, print, deployStackOSBasic } = require("./utils");
+const { deployStackOS, setup, print, deployStackOSBasic, setupDeployment } = require("./utils");
 
 describe("Market", function () {
   it("Snapshot EVM", async function () {
@@ -22,6 +22,7 @@ describe("Market", function () {
 
   it("Deploy full SETUP", async function () {
     await setup();
+    await setupDeployment();
   });
 
   it("Deploy Market", async function () {

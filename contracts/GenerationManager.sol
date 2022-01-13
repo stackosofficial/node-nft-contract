@@ -189,11 +189,8 @@ contract GenerationManager is Ownable, ReentrancyGuard {
 
     /*
      * @title Deploy new StackOsNFTBasic manually.
-     * @dev Additional setup is required after deploy: 
-     * @dev Whitelist DarkMatter and Market.
-     * @dev Call to setFees.
-     * @dev Adjust address settings.
-     * @dev Example of full setup can be seen in deployNextGenPreset.
+     * @dev Deployment structure must be filled prior to calling this.
+     * @dev adjustAddressSettings must be called in manager prior to calling this.
      */
 
     function deployNextGen(
@@ -230,6 +227,10 @@ contract GenerationManager is Ownable, ReentrancyGuard {
             _timeLock
         );
         add(IStackOsNFT(address(stack)));
+        stack.setFees(deployment.subsFee, deployment.daoFee, deployment.distrFee);
+        stack.adjustAddressSettings(dao, distr);
+        stack.whitelist(address(deployment.darkMatter));
+        stack.whitelist(address(deployment.market));
         stack.transferOwnership(msg.sender);
         return IStackOsNFTBasic(address(stack));
     }

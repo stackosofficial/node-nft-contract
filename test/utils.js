@@ -4,12 +4,11 @@ const { solidity } = require("ethereum-waffle");
 const { BigNumber } = require("@ethersproject/bignumber");
 const { parseEther, formatEther } = require("@ethersproject/units");
 
-module.exports = { setup, setupLiquidity, deployStackOS, deployStackOSBasic, print };
+module.exports = { setup, setupLiquidity, deployStackOS, deployStackOSBasic, setupDeployment, print };
 
 async function deployStackOSBasic() {
 
   SUBSCRIPTION = subscription.address;
-  TRANSFER_DISCOUNT = 2000;
 
   let args = [
     NAME,
@@ -37,12 +36,6 @@ async function deployStackOSBasic() {
     stackOsNFTBasic
   )
   console.log("stackOsNFTBasic", stackOsNFTBasic.address);
-  await stackOsNFTBasic.setFees(SUBS_FEE, DAO_FEE, DISTR_FEE);
-  await stackOsNFTBasic.adjustAddressSettings(
-    bank.address, //fake dao & distr addresses
-    bank.address
-  );
-  await stackOsNFTBasic.whitelist(darkMatter.address);
   return stackOsNFTBasic;
 }
 
@@ -242,6 +235,33 @@ async function setup() {
   TIMELOCK = 6442850;
   let StackOS = await ethers.getContractFactory("StackOsNFT");
   stackOsNFT = await deployStackOS();
+}
+
+async function setupDeployment() {
+    MAX_SUPPLY_GROWTH = 10000;
+    TRANSFER_DISCOUNT = 2000;
+    await generationManager.setupDeploy(
+      NAME,
+      SYMBOL,
+      STACK_TOKEN,
+      DARK_MATTER_ADDRESS,
+      subscription.address,
+      sub0.address,
+      PRICE,
+      SUBS_FEE,
+      MAX_SUPPLY_GROWTH,
+      TRANSFER_DISCOUNT,
+      TIMELOCK,
+      royalty.address
+    );
+    await generationManager.setupDeploy2(
+      owner.address, // fake market address
+      DAO_FEE,
+      DISTR_FEE
+    )
+    // already called
+    // await generationManager.adjustAddressSettings(
+    // )
 }
 
 async function setupLiquidity() {

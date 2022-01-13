@@ -1,6 +1,6 @@
 const { ethers } = require("hardhat");
 const { use, expect } = require("chai");
-const { print, setup, deployStackOS, setupLiquidity, deployStackOSBasic } = require("./utils");
+const { print, setup, deployStackOS, setupLiquidity, deployStackOSBasic, setupDeployment } = require("./utils");
 const { parseEther } = require("ethers/lib/utils");
 
 describe("DarkMatter doesn't corrupt Royalty contract logic", function () {
@@ -23,7 +23,7 @@ describe("DarkMatter doesn't corrupt Royalty contract logic", function () {
   it("Deploy full SETUP", async function () {
 
     await setup();
-
+    await setupDeployment();
     await setupLiquidity()
 
   });
