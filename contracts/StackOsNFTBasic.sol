@@ -149,7 +149,7 @@ contract StackOsNFTBasic is
         public
         onlyOwner
     {
-        require(_subs <= 10000 && _dao <= 10000 && _distr <= 10000, "invalid fee basis points");
+        require(_subs + _dao + _distr <= 10000, "invalid fee basis points");
         subsFee = _subs;
         daoFee = _dao;
         distrFee = _distr;
