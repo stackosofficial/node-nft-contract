@@ -10,6 +10,13 @@ contract StableCoinAcceptor {
     constructor(
         IERC20[] memory _stables
     ) {
+        require(_stables.length > 0, "Empty data");
+        for(uint256 i; i < _stables.length; i++) {
+            require(
+                address(_stables[i]) != address(0), 
+                "Should not be zero-address"
+            );
+        }
         stablecoins = _stables;
     }
 
@@ -19,7 +26,8 @@ contract StableCoinAcceptor {
      */
 
     function supportsCoin(IERC20 _address) public view returns (bool) {
-        for(uint256 i; i < stablecoins.length; i++) {
+        uint256 len = stablecoins.length;
+        for(uint256 i; i < len; i++) {
             if(_address == stablecoins[i]) {
                 return true;
             }
