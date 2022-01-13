@@ -1,7 +1,7 @@
 const { ethers } = require("hardhat");
 const { use, expect } = require("chai");
 const { parseEther } = require("@ethersproject/units");
-const { deployStackOSBasic, setup, print } = require("./utils");
+const { deployStackOSBasic, setup, print, setupDeployment } = require("./utils");
 
 describe("Subscription (generations above 1st)", function () {
   it("Snapshot EVM", async function () {
@@ -21,6 +21,7 @@ describe("Subscription (generations above 1st)", function () {
 
   it("Deploy full SETUP", async function () {
     await setup();
+    await setupDeployment();
     stackOsNFTBasic = await deployStackOSBasic();
   });
 

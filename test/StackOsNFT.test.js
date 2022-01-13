@@ -19,6 +19,7 @@ describe("StackOS NFT", function () {
 
   it("Deploy full SETUP", async function () {
     await setup()
+    await setupDeployment();
   });
 
   it("Stake for tickets", async function () {

@@ -12,6 +12,15 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 contract Subscription is Ownable, ReentrancyGuard {
+
+    event SetOnlyFirstGeneration();
+    event SetDripPeriod(uint256 _seconds);
+    event SetPrice(uint256 price);
+    event SetMaxPrice(uint256 maxPrice);
+    event SetBonusPercent(uint256 _percent);
+    event SetTaxReductionAmount(uint256 _amount);
+    event SetForgivenessPeriod(uint256 _seconds);
+
     IERC20 internal stackToken;
     GenerationManager internal generations;
     DarkMatter internal darkMatter;
@@ -101,6 +110,7 @@ contract Subscription is Ownable, ReentrancyGuard {
      */
     function setOnlyFirstGeneration() external onlyOwner {
         isOnlyFirstGeneration = true;
+        emit SetOnlyFirstGeneration();
     }
 
     /*
@@ -111,6 +121,7 @@ contract Subscription is Ownable, ReentrancyGuard {
     function setDripPeriod(uint256 _seconds) external onlyOwner {
         require(_seconds > 0, "Cant be zero");
         dripPeriod = _seconds;
+        emit SetDripPeriod(_seconds);
     }
 
     /*
@@ -121,6 +132,7 @@ contract Subscription is Ownable, ReentrancyGuard {
     function setPrice(uint256 _price) external onlyOwner {
         require(_price > 0, "Cant be zero");
         price = _price;
+        emit SetPrice(_price);
     }
 
     /*
@@ -131,6 +143,7 @@ contract Subscription is Ownable, ReentrancyGuard {
     function setMaxPrice(uint256 _maxPrice) external onlyOwner {
         require(_maxPrice > 0, "Cant be zero");
         maxPrice = _maxPrice;
+        emit SetMaxPrice(_maxPrice);
     }
 
     /*
@@ -141,6 +154,7 @@ contract Subscription is Ownable, ReentrancyGuard {
     function setBonusPercent(uint256 _percent) external onlyOwner {
         require(_percent <= HUNDRED_PERCENT, "invalid basis points");
         bonusPercent = _percent;
+        emit SetBonusPercent(_percent);
     }
 
     /*
@@ -151,6 +165,7 @@ contract Subscription is Ownable, ReentrancyGuard {
     function setTaxReductionAmount(uint256 _amount) external onlyOwner {
         require(_amount <= HUNDRED_PERCENT, "invalid basis points");
         taxReductionAmount = _amount;
+        emit SetTaxReductionAmount(_amount);
     }
 
     /*
@@ -161,6 +176,7 @@ contract Subscription is Ownable, ReentrancyGuard {
     function setForgivenessPeriod(uint256 _seconds) external onlyOwner {
         require(_seconds > 0, "Cant be zero");
         forgivenessPeriod = _seconds;
+        emit SetForgivenessPeriod(_seconds);
     }  
     
     /*

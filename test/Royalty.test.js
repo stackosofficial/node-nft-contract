@@ -1,7 +1,7 @@
 const { ethers } = require("hardhat");
 const { use, expect } = require("chai");
 const { parseEther } = require("@ethersproject/units");
-const { deployStackOS, setup, print, deployStackOSBasic } = require("./utils");
+const { deployStackOS, setup, print, deployStackOSBasic, setupDeployment } = require("./utils");
 
 describe("Royalty", function () {
   const CYCLE_DURATION = 60 * 60 * 24 * 31;
@@ -25,6 +25,7 @@ describe("Royalty", function () {
 
   it("Deploy full SETUP", async function () {
     await setup();
+    await setupDeployment();
   });
 
   it("Add liquidity STACK", async function () {

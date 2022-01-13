@@ -1,7 +1,7 @@
 const { ethers } = require("hardhat");
 const { use, expect } = require("chai");
 const { parseEther } = require("@ethersproject/units");
-const { print, setup, deployStackOSBasic, setupLiquidity } = require("./utils");
+const { print, setup } = require("./utils");
 
 describe("DarkMatter doesn't corrupt Subscription logic", function () {
 
