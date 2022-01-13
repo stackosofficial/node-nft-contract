@@ -32,16 +32,16 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
     Royalty royaltyAddress;
 
     uint256[] public winningTickets;
-    uint256 public timeLock;
+    uint256 public immutable timeLock;
     uint256 public randomNumber;
-    uint256 public auctionedNFTs;
+    uint256 public immutable auctionedNFTs;
     uint256 public auctionCloseTime;
     uint256 public adminWithdrawableAmount;
-    uint256 private maxSupply;
+    uint256 private immutable maxSupply;
     uint256 private totalSupply;
-    uint256 private participationFee;
+    uint256 private immutable participationFee;
     uint256 private participationTickets;
-    uint256 private prizes;
+    uint256 private immutable prizes;
     uint256 internal fee = 1e14; // 0.0001 (1e14) on MATIC, 0.1 (1e17) on eth
 
     mapping(uint256 => address) public ticketOwner;
@@ -57,7 +57,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
     bool private salesStarted;
     bool private lotteryActive;
     string private URI = "https://google.com/";
-    bytes32 internal keyHash;
+    bytes32 internal immutable keyHash;
 
     constructor(
         string memory _name,
