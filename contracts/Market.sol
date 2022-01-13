@@ -9,6 +9,9 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeable {
 
+    event SetRoyaltyFee(uint256 _percent);
+    event SetDaoFee(uint256 _percent);
+
     event StackSale(
         address seller,
         address buyer,
@@ -91,6 +94,7 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeab
     function setDaoFee(uint256 _percent) public onlyOwner {
         require(_percent <= HUNDRED_PERCENT, "invalid fee basis points");
         daoFee = _percent;
+        emit SetDaoFee(_percent);
     }
 
     /*
@@ -101,6 +105,7 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeab
     function setRoyaltyFee(uint256 _percent) public onlyOwner {
         require(_percent <= HUNDRED_PERCENT, "invalid fee basis points");
         royaltyFee = _percent;
+        emit SetRoyaltyFee(_percent);
     }
 
     /*
