@@ -227,6 +227,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
      */
 
     function announceWinners(uint256 _amount) public onlyOwner {
+        require(randomNumber != 0, "No random number");
         uint256 i = participationTickets - 1 - winningTickets.length;
         for (; 0 < _amount; _amount--) {
             if (winningTickets.length < prizes) {
