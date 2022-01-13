@@ -20,17 +20,17 @@ contract StackOsNFTBasic is
     using Counters for Counters.Counter;
     using SafeMath for uint256;
 
-    event SetName(string name_);
-    event SetSymbol(string symbol_);
+    event SetName(string name);
+    event SetSymbol(string symbol);
     event AdjustAddressSettings(
-        address _dao, 
-        address _distr
+        address dao, 
+        address distr
     );
     event SetRewardDiscount(uint256 _rewardDiscount);
-    event SetFees(uint256 _subs, uint256 _dao, uint256 _distr);
+    event SetFees(uint256 subs, uint256 dao, uint256 distr);
     event StartSales();
-    event Delegate(address _delegator, address _delegatee, uint256 tokenId);
-    event AdminWithdraw(uint256 adminWithdrawableAmount);
+    event Delegate(address delegator, address delegatee, uint256 tokenId);
+    event AdminWithdraw(address admin, uint256 withdrawAmount);
 
     Counters.Counter private _tokenIdCounter;
     IERC20 private stackToken;
@@ -511,7 +511,7 @@ contract StackOsNFTBasic is
     function adminWithdraw() public onlyOwner {
         require(block.timestamp > timeLock, "Locked!");
         stackToken.transfer(msg.sender, adminWithdrawableAmount);
-        emit AdminWithdraw(adminWithdrawableAmount);
+        emit AdminWithdraw(msg.sender, adminWithdrawableAmount);
         adminWithdrawableAmount = 0;
     }
 

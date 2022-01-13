@@ -16,6 +16,30 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
     using Counters for Counters.Counter;
     using SafeMath for uint256;
 
+    event AdjustAddressSettings(
+        address genManager, 
+        address stableAcceptor,
+        address stackToken,
+        address darkMatter,
+        address exchange
+    );
+    event StakeForTickets(address participant, uint256 ticketAmount);
+    event AnnounceLottery(bytes32 requestId);
+    event ChangeTicketStatus();
+    event TransferTicket(
+        address participant, 
+        uint256[] ticketIDs, 
+        address nextGenerationAddress, 
+        uint256 stackTransfered
+    );
+    event WhitelistPartner(address partner, uint256 amount);
+    event StartPartnerSales();
+    event ActivateLottery();
+    event AdjustAuctionCloseTime(uint256 time);
+    event PlaceBid(address bider, uint256 amount, uint256 placeInAuction);
+    event Delegate(address delegator, address delegatee, uint256 tokenId);
+    event AdminWithdraw(address admin, uint256 withdrawAmount);
+
     enum TicketStatus {
         None,
         Won,
@@ -112,6 +136,13 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
         stackToken = IERC20(_stackToken);
         darkMatter = DarkMatter(_darkMatter);
         exchange = Exchange(_exchange);
+        emit AdjustAddressSettings(
+            _genManager, 
+            _stableAcceptor,
+            _stackToken,
+            _darkMatter,
+            _exchange
+        );
     }
 
     /*
@@ -157,6 +188,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
             ticketOwner[i] = msg.sender;
         }
         participationTickets += _ticketAmount;
+        emit StakeForTickets(msg.sender, _ticketAmount);
     }
 
     /*
@@ -169,6 +201,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
         require(randomNumber == 0, "Random Number already assigned!");
         require(participationTickets > prizes, "No enough participants.");
         requestId = getRandomNumber();
+        emit AnnounceLottery(requestId);
     }
 
     function getRandomNumber() internal returns (bytes32 requestId) {
@@ -241,6 +274,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
         require(winningTickets.length == prizes);
         ticketStatusAssigned = true;
         adminWithdrawableAmount += winningTickets.length.mul(participationFee);
+        emit ChangeTicketStatus();
     }
 
     /*
@@ -323,6 +357,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
         uint256 amount = _ticketID.length.mul(participationFee);
         stackToken.approve(_address, stackToken.balanceOf(address(this)));
         IStackOsNFTBasic(_address).transferFromLastGen(msg.sender, amount);
+        emit TransferTicket(msg.sender, _ticketID, _address, amount);
     }
 
     /*
@@ -337,6 +372,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
         onlyOwner
     {
         strategicPartner[_address] = _amount;
+        emit WhitelistPartner(_address, _amount);
     }
 
     /*
@@ -346,6 +382,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
 
     function startPartnerSales() public onlyOwner {
         salesStarted = true;
+        emit StartPartnerSales();
     }
 
     /*
@@ -355,6 +392,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
 
     function activateLottery() public onlyOwner {
         lotteryActive = true;
+        emit ActivateLottery();
     }
 
     /*
@@ -366,6 +404,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
     function adjustAuctionCloseTime(uint256 _time) public onlyOwner {
         require(auctionFinalized == false, "Auction Already Finalized");
         auctionCloseTime = _time;
+        emit AdjustAuctionCloseTime(_time);
     }
 
     /*
@@ -433,6 +472,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
                 return i;
             }
         }
+        emit PlaceBid(msg.sender, _amount, i);
     }
 
     /*
@@ -463,6 +503,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
         require(delegates[tokenId] == address(0), "Already delegated");
         delegates[tokenId] = _delegatee;
         royaltyAddress.onDelegate(tokenId);
+        emit Delegate(msg.sender, _delegatee, tokenId);
     }
 
     /*
@@ -532,6 +573,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
         require(block.timestamp > timeLock, "Locked!");
         require(ticketStatusAssigned == true, "Not Assigned.");
         stackToken.transfer(msg.sender, adminWithdrawableAmount);
+        emit AdminWithdraw(msg.sender, adminWithdrawableAmount);
         adminWithdrawableAmount = 0;
     }
 }
