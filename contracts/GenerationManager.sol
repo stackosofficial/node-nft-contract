@@ -9,6 +9,13 @@ import "./StackOsNFTBasic.sol";
 contract GenerationManager is Ownable, ReentrancyGuard {
     using Strings for uint256;
 
+    event AdjustAddressSettings(
+        address _stableAcceptor,
+        address _exchange,
+        address _dao,
+        address _distr
+    );
+
     address stableAcceptor;
     address exchange;
     address dao;
@@ -56,6 +63,12 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         exchange = _exchange;
         dao = _dao;
         distr = _distr;
+        emit AdjustAddressSettings(
+            _stableAcceptor,
+            _exchange,
+            _dao,
+            _distr
+        );
     }
 
     /*
