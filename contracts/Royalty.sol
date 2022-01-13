@@ -2,13 +2,14 @@
 pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./GenerationManager.sol";
 import "./DarkMatter.sol";
 import "./interfaces/IStackOsNFT.sol";
 import "./interfaces/IStackOsNFTBasic.sol";
 import "./Exchange.sol";
 
-contract Royalty is Ownable {
+contract Royalty is Ownable, ReentrancyGuard {
     using Counters for Counters.Counter;
 
     event SetFeeAddress(address payable _feeAddress);
@@ -196,7 +197,10 @@ contract Royalty is Ownable {
         uint256[] calldata _tokenIds,
         uint256 _mintNum,
         IERC20 _stablecoin 
-    ) external {
+    ) 
+        external 
+        nonReentrant 
+    {
         require(_generationId > 0, "Must be not first generation");
         _claim(_generationId, _tokenIds, _mintNum, true, _stablecoin, false);
     }
