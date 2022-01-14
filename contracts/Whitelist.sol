@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 abstract contract Whitelist is Ownable {
 
-    mapping(address => bool) _whitelist;
+    mapping(address => bool) public _whitelist;
  
     modifier onlyWhitelisted () {
         require(_whitelist[_msgSender()], "Not whitelisted for transfers");
