@@ -36,9 +36,9 @@ contract Royalty is Ownable, ReentrancyGuard {
         mapping(uint256 => mapping(uint256 => bool)) isClaimed; // whether reward for this token in this cycle is claimed
     }
 
-    mapping(uint256 => Cycle) private cycles; 
-    mapping(uint256 => mapping(uint256 => int256)) addedAt; // at which cycle the token were added
-    uint256 totalDelegated;
+    mapping(uint256 => Cycle) public cycles; 
+    mapping(uint256 => mapping(uint256 => int256)) public addedAt; // at which cycle the token were added
+    uint256 public totalDelegated;
 
     constructor(
         GenerationManager _generations,
