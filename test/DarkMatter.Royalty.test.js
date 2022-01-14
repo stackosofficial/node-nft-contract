@@ -14,10 +14,6 @@ describe("DarkMatter doesn't corrupt Royalty contract logic", function () {
       await hre.ethers.getSigners();
     
     CYCLE_DURATION = 60*60*24*31;
-    router = await ethers.getContractAt(
-      "IUniswapV2Router02",
-      "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D"
-    );
   });
  
   it("Deploy full SETUP", async function () {

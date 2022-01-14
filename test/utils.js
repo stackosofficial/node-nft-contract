@@ -113,9 +113,9 @@ async function setup() {
   console.log(darkMatter.address);
 
   STABLES = [
-    "0x17cec3137787067579F20994C019e993Bb173B4C",
-    "0xCb7F54729c739db4B88C012126caDaF57F3578D3",
-    "0x67d5d249D8526f654899BaFE0dD0B7d7D27B5Aa3",
+    "0x2f6f107D4Afd43c451B74DA41A6DDA53D2Bf24B1",
+    "0xb9b0c96e4E7181926D2A7ed331C9C346dfa59b4D",
+    "0x905Ad472d7eeB94ed1Fc29D8ff4B53FD4D5a5Eb4",
   ]
   const StableCoinAcceptor = await ethers.getContractFactory("StableCoinAcceptor");
   stableAcceptor = await StableCoinAcceptor.deploy(
@@ -124,6 +124,10 @@ async function setup() {
   await stableAcceptor.deployed();
   console.log(stableAcceptor.address);
 
+  router = await ethers.getContractAt(
+    "IUniswapV2Router02",
+    "0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff"
+  );
   const Exchange = await ethers.getContractFactory("Exchange");
   exchange = await Exchange.deploy(
     router.address,
@@ -227,7 +231,7 @@ async function setup() {
   VRF_COORDINATOR = coordinator.address;
   LINK_TOKEN = link.address;
   KEY_HASH =
-    "0x2ed0feb3e7fd2022120aa84fab1945545a9f2ffc9076fd6156fa96eaff4c1311";
+    "0xf86195cf7690c55907b2b611ebb7343a6f649bff128701cc542f0569e2c549da";
   SUBS_FEE = 1000;
   DAO_FEE = 500;
   DISTR_FEE = 500;
