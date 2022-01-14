@@ -273,7 +273,7 @@ contract Royalty is Ownable, ReentrancyGuard {
                 if (_mint == false) {
                     if(_claimWETH) {
                         uint256 wethReceived = exchange.swapExactETHForTokens{value: reward}(WETH);
-                        WETH.transfer(msg.sender, wethReceived);
+                        require(WETH.transfer(msg.sender, wethReceived), "WETH: transfer failed");
                     } else {
                         (bool success, ) = payable(msg.sender).call{value: reward}(
                             ""
@@ -290,7 +290,10 @@ contract Royalty is Ownable, ReentrancyGuard {
                         address(_stablecoin), 
                         msg.sender
                     );
-                    _stablecoin.transfer(msg.sender, usdReceived - spendAmount);
+                    require(
+                        _stablecoin.transfer(msg.sender, usdReceived - spendAmount), 
+                        "USD: transfer failed"
+                    );
                 }
             }
         }
