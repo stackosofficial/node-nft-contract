@@ -317,6 +317,7 @@ contract Subscription is Ownable, ReentrancyGuard {
      */
     function onReceiveStack(uint256 _amount) 
         external 
+        nonReentrant
         returns 
         (bool _isTransfered) 
     {
@@ -346,6 +347,7 @@ contract Subscription is Ownable, ReentrancyGuard {
         uint256[] calldata periods
     )
         external
+        nonReentrant
         restrictGeneration(generationId)
     {
         updatePeriod();
