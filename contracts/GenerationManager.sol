@@ -17,9 +17,9 @@ contract GenerationManager is Ownable, ReentrancyGuard {
     );
 
     address stableAcceptor;
-    address exchange;
-    address dao;
-    address distr;
+    address public exchange;
+    address public dao;
+    address public distr;
 
     IStackOsNFT[] private generations;
     mapping(address => uint256) private ids;
@@ -41,7 +41,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         address royaltyAddress;
         address market;
     }
-    Deployment deployment;
+    Deployment public deployment;
 
     modifier onlyOwnerOrStackContract() {
         require(owner() == _msgSender() || isAdded(_msgSender()), "Caller is not the owner or stack contract");
