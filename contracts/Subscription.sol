@@ -11,8 +11,6 @@ import "./interfaces/IStackOsNFTBasic.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-import "hardhat/console.sol";
-
 contract Subscription is Ownable, ReentrancyGuard {
 
     event SetOnlyFirstGeneration();
@@ -23,12 +21,12 @@ contract Subscription is Ownable, ReentrancyGuard {
     event SetTaxReductionAmount(uint256 _amount);
     event SetForgivenessPeriod(uint256 _seconds);
 
-    IERC20 internal stackToken;
-    GenerationManager internal generations;
-    DarkMatter internal darkMatter;
-    StableCoinAcceptor internal stableAcceptor;
-    Exchange internal exchange;
-    address internal taxAddress;
+    IERC20 internal immutable stackToken;
+    GenerationManager internal immutable generations;
+    DarkMatter internal immutable darkMatter;
+    StableCoinAcceptor internal immutable stableAcceptor;
+    Exchange internal immutable exchange;
+    address internal immutable taxAddress;
 
     uint256 internal constant HUNDRED_PERCENT = 10000;
     uint256 public constant MONTH = 28 days;
@@ -379,7 +377,7 @@ contract Subscription is Ownable, ReentrancyGuard {
         }
         stackToken.transfer(msg.sender, toWithdraw);
     }
-    
+
     /*
      *  @dev Calculate dripped amount and remove fully released bonuses from array.
      */
@@ -427,7 +425,6 @@ contract Subscription is Ownable, ReentrancyGuard {
             deposit.reward.pop();
         }
 
-        console.log("rewards: %s, overflow: %s", deposit.reward.length,  overflow[generationId][tokenId]);
     }
 
     /*

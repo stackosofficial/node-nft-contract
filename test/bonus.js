@@ -79,7 +79,7 @@ describe("Measure withdraw() and updateBonuses() gas", function () {
   });
 
   it("Subscribe", async function () {
-    TOKENS_NUM = 35;
+    TOKENS_NUM = 10;
     PERIODS_NUM = 25;
     await usdt.approve(subscription.address, ethers.constants.MaxUint256);
     for (let i = 0; i < PERIODS_NUM; i++) {
@@ -94,6 +94,7 @@ describe("Measure withdraw() and updateBonuses() gas", function () {
   it("Withdraw", async function () {
     // 10 tokens = 5569688 (~13$ gas)
     let tokens = [...Array(TOKENS_NUM).keys()];
+    console.log(formatEther(await subscription.estimateGas.withdraw(1, tokens)));
     await subscription.withdraw(1, tokens);
   });
 

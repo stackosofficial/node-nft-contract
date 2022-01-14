@@ -228,7 +228,6 @@ async function setup() {
   LINK_TOKEN = link.address;
   KEY_HASH =
     "0x2ed0feb3e7fd2022120aa84fab1945545a9f2ffc9076fd6156fa96eaff4c1311";
-  FEE = parseEther("0.1");
   SUBS_FEE = 1000;
   DAO_FEE = 500;
   DISTR_FEE = 500;
