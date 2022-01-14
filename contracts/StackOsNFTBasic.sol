@@ -1,7 +1,7 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
 
-import "./ERC721/extensions/CustomERC721URIStorage.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
@@ -14,8 +14,8 @@ import "./Royalty.sol";
 
 contract StackOsNFTBasic is
     Whitelist,
-    CustomERC721,
-    CustomERC721URIStorage
+    ERC721,
+    ERC721URIStorage
 {
     using Counters for Counters.Counter;
     using SafeMath for uint256;
@@ -31,6 +31,9 @@ contract StackOsNFTBasic is
     event StartSales();
     event Delegate(address delegator, address delegatee, uint256 tokenId);
     event AdminWithdraw(address admin, uint256 withdrawAmount);
+
+    string private _name;
+    string private _symbol;
 
     Counters.Counter private _tokenIdCounter;
     IERC20 private stackToken;
@@ -68,7 +71,7 @@ contract StackOsNFTBasic is
     /*
      * @title Must be deployed only by GenerationManager
      */
-    constructor() {
+    constructor() ERC721("Stack OS NFT", "STACK NFT") {
         
         require(Address.isContract(msg.sender), "Must be deployed by generation manager");
         generations = GenerationManager(msg.sender);
@@ -120,6 +123,20 @@ contract StackOsNFTBasic is
     function setSymbol(string memory symbol_) public onlyOwner {
         _symbol = symbol_;
         emit SetSymbol(symbol_);
+    }
+
+    /**
+     * @dev See {IERC721Metadata-name}.
+     */
+    function name() public view virtual override returns (string memory) {
+        return _name;
+    }
+
+    /**
+     * @dev See {IERC721Metadata-symbol}.
+     */
+    function symbol() public view virtual override returns (string memory) {
+        return _symbol;
     }
 
     /*
@@ -481,7 +498,7 @@ contract StackOsNFTBasic is
         uint256 tokenId
     ) 
         internal 
-        override(CustomERC721) 
+        override(ERC721) 
         onlyWhitelisted 
     {
         super._transfer(from, to, tokenId);
@@ -491,7 +508,7 @@ contract StackOsNFTBasic is
 
     function _burn(uint256 tokenId)
         internal
-        override(CustomERC721, CustomERC721URIStorage)
+        override(ERC721, ERC721URIStorage)
     {
         super._burn(tokenId);
     }
@@ -499,7 +516,7 @@ contract StackOsNFTBasic is
     function tokenURI(uint256 tokenId)
         public
         view
-        override(CustomERC721, CustomERC721URIStorage)
+        override(ERC721, ERC721URIStorage)
         returns (string memory)
     {
         return super.tokenURI(tokenId);

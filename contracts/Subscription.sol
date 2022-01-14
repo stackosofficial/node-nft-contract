@@ -317,7 +317,6 @@ contract Subscription is Ownable, ReentrancyGuard {
      */
     function onReceiveStack(uint256 _amount) 
         external 
-        nonReentrant
         returns 
         (bool _isTransfered) 
     {

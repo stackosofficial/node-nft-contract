@@ -41,7 +41,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         address royaltyAddress;
         address market;
     }
-    Deployment public deployment;
+    Deployment deployment;
 
     modifier onlyOwnerOrStackContract() {
         require(owner() == _msgSender() || isAdded(_msgSender()), "Caller is not the owner or stack contract");
@@ -49,6 +49,15 @@ contract GenerationManager is Ownable, ReentrancyGuard {
     }
 
     constructor() {}
+
+    function getDeployment() 
+        external 
+        view 
+        returns 
+        (Deployment memory) 
+    {
+        return deployment;
+    }
 
     function adjustAddressSettings(
         address _stableAcceptor,
