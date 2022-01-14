@@ -11,6 +11,8 @@ import "./interfaces/IStackOsNFTBasic.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
+import "hardhat/console.sol";
+
 contract Subscription is Ownable, ReentrancyGuard {
 
     event SetOnlyFirstGeneration();
@@ -377,6 +379,7 @@ contract Subscription is Ownable, ReentrancyGuard {
         }
         stackToken.transfer(msg.sender, toWithdraw);
     }
+    
     /*
      *  @dev Calculate dripped amount and remove fully released bonuses from array.
      */
@@ -386,7 +389,10 @@ contract Subscription is Ownable, ReentrancyGuard {
     ) private {
         Deposit storage deposit = deposits[generationId][tokenId];
         uint256 index;
-        for (uint256 i; i < deposit.reward.length; i++) {
+        uint256 len = deposit.reward.length;
+        uint256 drippedAmount;
+
+        for (uint256 i; i < len; i++) {
             Bonus storage bonus = deposit.reward[i];
 
             uint256 withdrawAmount = 
@@ -396,7 +402,7 @@ contract Subscription is Ownable, ReentrancyGuard {
             if (withdrawAmount > bonus.lockedAmount)
                 withdrawAmount = bonus.lockedAmount;
             
-            overflow[generationId][tokenId] += withdrawAmount;
+            drippedAmount += withdrawAmount;
             bonus.lockedAmount -= withdrawAmount;
             bonus.lastTxDate = block.timestamp;
 
@@ -414,11 +420,14 @@ contract Subscription is Ownable, ReentrancyGuard {
                 delete deposit.reward[i];
             }
         }
+        overflow[generationId][tokenId] += drippedAmount;
 
         for (uint256 i = deposit.reward.length; i > 0; i--) {
             if(deposit.reward[i - 1].lockedAmount > 0) break;
             deposit.reward.pop();
         }
+
+        console.log("rewards: %s, overflow: %s", deposit.reward.length,  overflow[generationId][tokenId]);
     }
 
     /*

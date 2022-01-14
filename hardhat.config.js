@@ -112,9 +112,14 @@ module.exports = {
         process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
   },
+  mocha: {
+    timeout: 600000,
+  },
   gasReporter: {
     enabled: process.env.REPORT_GAS !== undefined,
     currency: "USD",
+    gasPrice: 5,
+    coinmarketcap: process.env.CMC_KEY || undefined
   },
   etherscan: {
     apiKey: process.env.ETHERSCAN_API_KEY,
