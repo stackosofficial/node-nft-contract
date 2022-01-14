@@ -126,7 +126,11 @@ contract GenerationManager is Ownable, ReentrancyGuard {
      * @dev Could only be invoked by the last StackOsNFTBasic generation.
      * @dev Generation id is appended to the name. 
      */
-    function deployNextGenPreset() public returns (IStackOsNFTBasic) 
+    function deployNextGenPreset() 
+        public 
+        nonReentrant
+        returns 
+        (IStackOsNFTBasic) 
     {
         // Can only be called from StackNFT contracts
         uint256 callerGenerationId = getIDByAddress(msg.sender);
@@ -205,7 +209,13 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         uint256 _transferDiscount,
         uint256 _timeLock,
         address _royaltyAddress
-    ) public onlyOwner returns (IStackOsNFTBasic) {
+    ) 
+        public 
+        onlyOwner 
+        nonReentrant
+        returns 
+        (IStackOsNFTBasic) 
+    {
         StackOsNFTBasic stack = StackOsNFTBasic(
             address(
                 new StackOsNFTBasic()
