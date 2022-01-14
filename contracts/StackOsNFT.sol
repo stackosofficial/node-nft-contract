@@ -491,6 +491,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
     }
 
     function _delegate(address _delegatee, uint256 tokenId) private {
+        require(_delegatee != address(0), "Delegatee is zero-address");
         require(
             msg.sender ==
                 darkMatter.ownerOfStackOrDarkMatter(
