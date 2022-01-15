@@ -42,7 +42,7 @@ contract StackOsNFTBasic is
     Subscription private sub0;
     Royalty private royaltyAddress;
     StableCoinAcceptor stableAcceptor;
-    GenerationManager private generations;
+    GenerationManager private immutable generations;
     Exchange private exchange;
     address private daoAddress;
     address private royaltyDistrAddress;
