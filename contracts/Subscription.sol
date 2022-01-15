@@ -320,7 +320,6 @@ contract Subscription is Ownable, ReentrancyGuard {
         returns 
         (bool _isTransfered) 
     {
-
         updatePeriod();
 
         if(p[period - 1].subsNum == 0) {
