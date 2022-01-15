@@ -148,7 +148,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
     /*
      * @title Get max supply
      */
-    function getMaxSupply() public view returns (uint256) {
+    function getMaxSupply() external view returns (uint256) {
         return maxSupply;
     }
 
@@ -157,7 +157,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
      * @dev Returns zero-address if token not delegated.
      */
 
-    function getDelegatee(uint256 _tokenId) public view returns (address) {
+    function getDelegatee(uint256 _tokenId) external view returns (address) {
         return delegates[_tokenId];
     }
 
@@ -178,7 +178,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
      * @dev Don't try to get too much, you may encounter 'ran out of gas' error.
      */
 
-    function stakeForTickets(uint256 _ticketAmount) public {
+    function stakeForTickets(uint256 _ticketAmount) external {
         require(lotteryActive, "Lottery inactive");
         require(randomNumber == 0, "Random Number already assigned!");
         uint256 depositAmount = participationFee.mul(_ticketAmount);
@@ -197,7 +197,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
      * @dev Has to have more tickets than the prizes will be given.
      */
 
-    function announceLottery() public onlyOwner returns (bytes32 requestId) {
+    function announceLottery() external onlyOwner returns (bytes32 requestId) {
         require(randomNumber == 0, "Random Number already assigned!");
         require(participationTickets > prizes, "No enough participants.");
         requestId = getRandomNumber();
@@ -226,7 +226,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
      * @dev Could only be invoked by the contract owner.
      */
 
-    function announceWinners(uint256 _amount) public onlyOwner {
+    function announceWinners(uint256 _amount) external onlyOwner {
         require(randomNumber != 0, "No random number");
         uint256 i = participationTickets - 1 - winningTickets.length;
         for (; 0 < _amount; _amount--) {
@@ -253,7 +253,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
      */
 
     function mapOutWinningTickets(uint256 _startingIndex, uint256 _endingIndex)
-        public
+        external
         onlyOwner
     {
         require(winningTickets.length == prizes, "Not Decided Yet.");
@@ -270,7 +270,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
      * @dev Could only be invoked by the contract owner. All prizes have to be assigned.
      */
 
-    function changeTicketStatus() public onlyOwner {
+    function changeTicketStatus() external onlyOwner {
         require(ticketStatusAssigned == false, "Already Assigned.");
         require(winningTickets.length == prizes);
         ticketStatusAssigned = true;
@@ -283,7 +283,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
      * @param List of Ticket Numbers that were winners.
      */
 
-    function claimReward(uint256[] calldata _ticketID) public {
+    function claimReward(uint256[] calldata _ticketID) external {
         require(ticketStatusAssigned == true, "Not Assigned Yet!");
         for (uint256 i; i < _ticketID.length; i++) {
             require(
@@ -304,7 +304,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
      * @param List of Ticket Numbers that did not win.
      */
 
-    function returnStake(uint256[] calldata _ticketID) public {
+    function returnStake(uint256[] calldata _ticketID) external {
         require(ticketStatusAssigned == true, "Not Assigned Yet!");
         for (uint256 i; i < _ticketID.length; i++) {
             require(
@@ -334,7 +334,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
      */
 
     function transferTicket(uint256[] calldata _ticketID, address _address)
-        public
+        external
     {
         require(generations.isAdded(_address), "Wrong stack contract");
         require(ticketStatusAssigned == true, "Not Assigned Yet!");
@@ -367,7 +367,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
      */
 
     function whitelistPartner(address _address, uint256 _amount)
-        public
+        external
         onlyOwner
     {
         strategicPartner[_address] = _amount;
@@ -379,7 +379,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
      * @dev Could only be invoked by the contract owner.
      */
 
-    function startPartnerSales() public onlyOwner {
+    function startPartnerSales() external onlyOwner {
         salesStarted = true;
         emit StartPartnerSales();
     }
@@ -389,7 +389,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
      * @dev Could only be invoked by the contract owner.
      */
 
-    function activateLottery() public onlyOwner {
+    function activateLottery() external onlyOwner {
         lotteryActive = true;
         emit ActivateLottery();
     }
@@ -400,7 +400,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
      * @dev Could only be invoked by the contract owner and when the auction has not been finalized.
      */
 
-    function adjustAuctionCloseTime(uint256 _time) public onlyOwner {
+    function adjustAuctionCloseTime(uint256 _time) external onlyOwner {
         require(auctionFinalized == false, "Auction Already Finalized");
         auctionCloseTime = _time;
         emit AdjustAuctionCloseTime(_time);
@@ -413,7 +413,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
      * @dev Partner sales should be started before mint.
      */
 
-    function partnerMint(uint256 _nftAmount, IERC20 _stablecoin) public {
+    function partnerMint(uint256 _nftAmount, IERC20 _stablecoin) external {
         require(salesStarted, "Sales not started");
         require(stableAcceptor.supportsCoin(_stablecoin), "Unsupported stablecoin");
         require(strategicPartner[msg.sender] >= _nftAmount, "Amount Too Big");
@@ -446,7 +446,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
      * @dev Could only be invoked when the auction is open.
      */
 
-    function placeBid(uint256 _amount) public returns (uint256 i) {
+    function placeBid(uint256 _amount) external returns (uint256 i) {
         require(block.timestamp < auctionCloseTime, "Auction closed!");
         require(topBids[1] < _amount, "Bid too small");
         stackToken.transferFrom(msg.sender, address(this), _amount);
@@ -479,7 +479,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
      * @dev Could only be invoked by the contract owner, when auction out of time and not finalized.
      */
 
-    function finalizeAuction() public onlyOwner {
+    function finalizeAuction() external onlyOwner {
         require(block.timestamp > auctionCloseTime, "Auction still ongoing.");
         require(auctionFinalized == false, "Auction Already Finalized");
         auctionFinalized = true;
@@ -514,7 +514,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
      * @dev Delegation can be done only once.
      */
 
-    function delegate(address _delegatee, uint256[] calldata tokenIds) public {
+    function delegate(address _delegatee, uint256[] calldata tokenIds) external {
         for(uint256 i; i < tokenIds.length; i++) {
             _delegate(_delegatee, tokenIds[i]);
         }
@@ -569,7 +569,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
      * @dev Caller must be contract owner, timelock should be passed.
      * @dev Tickets statuses must be assigned.
      */
-    function adminWithdraw() public onlyOwner {
+    function adminWithdraw() external onlyOwner {
         require(block.timestamp > timeLock, "Locked!");
         require(ticketStatusAssigned == true, "Not Assigned.");
         stackToken.transfer(msg.sender, adminWithdrawableAmount);
