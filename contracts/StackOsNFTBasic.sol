@@ -71,7 +71,7 @@ contract StackOsNFTBasic is
     /*
      * @title Must be deployed only by GenerationManager
      */
-    constructor() ERC721("Stack OS NFT", "STACK NFT") {
+    constructor() ERC721("", "") {
         
         require(Address.isContract(msg.sender), "Must be deployed by generation manager");
         generations = GenerationManager(msg.sender);

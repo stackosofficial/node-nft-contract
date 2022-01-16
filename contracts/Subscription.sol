@@ -276,7 +276,7 @@ contract Subscription is Ownable, ReentrancyGuard {
             );
             stackToken.transferFrom(msg.sender, address(this), amount);
         } else {
-            _stablecoin.transferFrom(msg.sender, address(this), _price);
+            require(_stablecoin.transferFrom(msg.sender, address(this), _price), "USD: transfer failed");
             _stablecoin.approve(address(exchange), _price);
             amount = exchange.swapExactTokensForTokens(
                 _price, 
@@ -470,7 +470,7 @@ contract Subscription is Ownable, ReentrancyGuard {
         IERC20 _stablecoin
     ) 
         external 
-        nonReentrant 
+        nonReentrant
         restrictGeneration(withdrawGenerationId)
     {
         require(stableAcceptor.supportsCoin(_stablecoin), "Unsupported stablecoin");
