@@ -1,7 +1,7 @@
 const { ethers } = require("hardhat");
 const { use, expect } = require("chai");
 const { parseEther } = require("@ethersproject/units");
-const { print, setup, deployStackOSBasic, setupLiquidity } = require("./utils");
+const { print, setup } = require("./utils");
 
 describe("DarkMatter doesn't corrupt Subscription logic", function () {
 
@@ -13,10 +13,6 @@ describe("DarkMatter doesn't corrupt Subscription logic", function () {
     // General
     provider = ethers.provider;
     [owner, partner, joe, bank, bob, vera, tax, homer, van] = await hre.ethers.getSigners();
-    router = await ethers.getContractAt(
-      "IUniswapV2Router02",
-      "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D"
-    );
   });
 
   it("Deploy full SETUP", async function () {

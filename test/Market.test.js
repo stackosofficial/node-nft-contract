@@ -1,7 +1,7 @@
 const { ethers, upgrades } = require("hardhat");
 const { use, expect } = require("chai");
 const { parseEther } = require("@ethersproject/units");
-const { deployStackOS, setup, print, deployStackOSBasic } = require("./utils");
+const { deployStackOS, setup, print, deployStackOSBasic, setupDeployment } = require("./utils");
 
 describe("Market", function () {
   it("Snapshot EVM", async function () {
@@ -14,14 +14,11 @@ describe("Market", function () {
     [owner, partner, joe, bank, bob, vera, tax, homer, dao, royaltyDistribution] =
       await hre.ethers.getSigners();
     MONTH = 60 * 60 * 24 * 30;
-    router = await ethers.getContractAt(
-      "IUniswapV2Router02",
-      "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D"
-    );
   });
 
   it("Deploy full SETUP", async function () {
     await setup();
+    await setupDeployment();
   });
 
   it("Deploy Market", async function () {

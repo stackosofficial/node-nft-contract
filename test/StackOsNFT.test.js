@@ -1,7 +1,7 @@
 const { ethers } = require("hardhat");
 const { use, expect } = require("chai");
 const { parseEther, formatEther } = require("@ethersproject/units");
-const { deployStackOS, setup, print, deployStackOSBasic } = require("./utils");
+const { deployStackOS, setup, print, deployStackOSBasic, setupDeployment } = require("./utils");
 
 describe("StackOS NFT", function () {
   it("Snapshot EVM", async function () {
@@ -11,14 +11,11 @@ describe("StackOS NFT", function () {
     // General
     provider = ethers.provider;
     [owner, joe, tax, bank] = await hre.ethers.getSigners();
-    router = await ethers.getContractAt(
-      "IUniswapV2Router02",
-      "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D"
-    );
   });
 
   it("Deploy full SETUP", async function () {
     await setup()
+    await setupDeployment();
   });
 
   it("Stake for tickets", async function () {
@@ -306,6 +303,7 @@ describe("transferTickets and transferFromLastGen", function () {
 
   it("Setup 2", async function () {
     await setup();
+    await setupDeployment();
   });
   it("Add liquidity", async function () {
     await stackToken.approve(router.address, parseEther("100.0"));
@@ -472,9 +470,9 @@ describe("transferTickets and transferFromLastGen", function () {
     );
     
     expect(await stackAutoDeployed.owner()).to.be.equal(owner.address);
-    // didn't set growth percent, so max supply stay the same
+    // growth is set to 100% so multiply supply by 2
     expect(await stackAutoDeployed.getMaxSupply()).to.be.equal(
-      MAX_SUPPLY
+      MAX_SUPPLY * 2
     );
     await expect(generationManager.deployNextGenPreset()).to.be.revertedWith(
       "Not Correct Address"

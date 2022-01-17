@@ -1,7 +1,7 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
 
-import "./ERC721/extensions/CustomERC721URIStorage.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
@@ -14,11 +14,26 @@ import "./Royalty.sol";
 
 contract StackOsNFTBasic is
     Whitelist,
-    CustomERC721,
-    CustomERC721URIStorage
+    ERC721,
+    ERC721URIStorage
 {
     using Counters for Counters.Counter;
     using SafeMath for uint256;
+
+    event SetName(string name);
+    event SetSymbol(string symbol);
+    event AdjustAddressSettings(
+        address dao, 
+        address distr
+    );
+    event SetRewardDiscount(uint256 _rewardDiscount);
+    event SetFees(uint256 subs, uint256 dao, uint256 distr);
+    event StartSales();
+    event Delegate(address delegator, address delegatee, uint256 tokenId);
+    event AdminWithdraw(address admin, uint256 withdrawAmount);
+
+    string private _name;
+    string private _symbol;
 
     Counters.Counter private _tokenIdCounter;
     IERC20 private stackToken;
@@ -27,7 +42,7 @@ contract StackOsNFTBasic is
     Subscription private sub0;
     Royalty private royaltyAddress;
     StableCoinAcceptor stableAcceptor;
-    GenerationManager private generations;
+    GenerationManager private immutable generations;
     Exchange private exchange;
     address private daoAddress;
     address private royaltyDistrAddress;
@@ -56,7 +71,7 @@ contract StackOsNFTBasic is
     /*
      * @title Must be deployed only by GenerationManager
      */
-    constructor() {
+    constructor() ERC721("", "") {
         
         require(Address.isContract(msg.sender), "Must be deployed by generation manager");
         generations = GenerationManager(msg.sender);
@@ -74,7 +89,7 @@ contract StackOsNFTBasic is
         uint256 _maxSupply,
         uint256 _transferDiscount,
         uint256 _timeLock
-    ) public onlyOwner {
+    ) external onlyOwner {
         require(initialized == false, "Already initialized");
         initialized = true;
         
@@ -96,16 +111,32 @@ contract StackOsNFTBasic is
      * @title Set token name.
      * @dev Could only be invoked by the contract owner.
      */
-    function setName(string memory name_) public onlyOwner {
+    function setName(string memory name_) external onlyOwner {
         _name = name_;
+        emit SetName(name_);
     }
 
     /*
      * @title Set token symbol.
      * @dev Could only be invoked by the contract owner.
      */
-    function setSymbol(string memory symbol_) public onlyOwner {
+    function setSymbol(string memory symbol_) external onlyOwner {
         _symbol = symbol_;
+        emit SetSymbol(symbol_);
+    }
+
+    /**
+     * @dev Override so that it returns what we set with setName.
+     */
+    function name() public view virtual override returns (string memory) {
+        return _name;
+    }
+
+    /**
+     * @dev Override so that it returns what we set with setSybmol.
+     */
+    function symbol() public view virtual override returns (string memory) {
+        return _symbol;
     }
 
     /*
@@ -119,11 +150,12 @@ contract StackOsNFTBasic is
         address _dao, 
         address _distr
     )
-        public
+        external
         onlyOwner
     {
         daoAddress = _dao;
         royaltyDistrAddress = _distr;
+        emit AdjustAddressSettings(_dao, _distr);
     }
 
     /*
@@ -132,9 +164,10 @@ contract StackOsNFTBasic is
      * @dev Could only be invoked by the contract owner.
      */
 
-    function setRewardDiscount(uint256 _rewardDiscount) public onlyOwner {
+    function setRewardDiscount(uint256 _rewardDiscount) external onlyOwner {
         require(_rewardDiscount <= 10000, "invalid basis points");
         rewardDiscount = _rewardDiscount;
+        emit SetRewardDiscount(_rewardDiscount);
     }
 
     /*
@@ -146,19 +179,20 @@ contract StackOsNFTBasic is
      */
 
     function setFees(uint256 _subs, uint256 _dao, uint256 _distr)
-        public
+        external
         onlyOwner
     {
-        require(_subs <= 10000 && _dao <= 10000 && _distr <= 10000, "invalid fee basis points");
+        require(_subs + _dao + _distr <= 10000, "invalid fee basis points");
         subsFee = _subs;
         daoFee = _dao;
         distrFee = _distr;
+        emit SetFees(_subs, _dao, _distr);
     }
 
     /*
      * @title Get max supply
      */
-    function getMaxSupply() public view returns (uint256) {
+    function getMaxSupply() external view returns (uint256) {
         return maxSupply;
     }
 
@@ -167,7 +201,7 @@ contract StackOsNFTBasic is
      * @dev Returns zero-address if token not delegated.
      */
 
-    function getDelegatee(uint256 _tokenId) public view returns (address) {
+    function getDelegatee(uint256 _tokenId) external view returns (address) {
         return delegates[_tokenId];
     }
 
@@ -193,7 +227,7 @@ contract StackOsNFTBasic is
      * @dev Could only be invoked by the StackNFT contract.
      * @dev It receives stack token and use it to mint NFTs at a discount
      */
-    function transferFromLastGen(address _ticketOwner, uint256 _amount) public {
+    function transferFromLastGen(address _ticketOwner, uint256 _amount) external {
 
         // check that caller is generation 1 contract 
         require(
@@ -247,8 +281,9 @@ contract StackOsNFTBasic is
      * @dev Could only be invoked by the contract owner.
      */
 
-    function startSales() public onlyOwner {
+    function startSales() external onlyOwner {
         salesStarted = true;
+        emit StartSales();
     }
 
     /*
@@ -258,7 +293,7 @@ contract StackOsNFTBasic is
      * @dev Sales should be started before mint.
      */
 
-    function mint(uint256 _nftAmount, IERC20 _stablecoin) public {
+    function mint(uint256 _nftAmount, IERC20 _stablecoin) external {
         require(salesStarted, "Sales not started");
         require(stableAcceptor.supportsCoin(_stablecoin), "Unsupported stablecoin");
 
@@ -341,7 +376,7 @@ contract StackOsNFTBasic is
         address _stablecoin, 
         address _to
     ) 
-        public
+        external
         returns (uint256)
     {
         require(salesStarted, "Sales not started");
@@ -398,6 +433,7 @@ contract StackOsNFTBasic is
     }
 
     function _delegate(address _delegatee, uint256 tokenId) private {
+        require(_delegatee != address(0), "Delegatee is zero-address");
         require(
             msg.sender ==
                 darkMatter.ownerOfStackOrDarkMatter(
@@ -409,6 +445,7 @@ contract StackOsNFTBasic is
         require(delegates[tokenId] == address(0), "Already delegated");
         delegates[tokenId] = _delegatee;
         royaltyAddress.onDelegate(tokenId);
+        emit Delegate(msg.sender, _delegatee, tokenId);
     }
 
     /*
@@ -419,7 +456,7 @@ contract StackOsNFTBasic is
      * @dev Delegation can be done only once.
      */
 
-    function delegate(address _delegatee, uint256[] calldata tokenIds) public {
+    function delegate(address _delegatee, uint256[] calldata tokenIds) external {
         for (uint256 i; i < tokenIds.length; i++) {
             _delegate(_delegatee, tokenIds[i]);
         }
@@ -461,7 +498,7 @@ contract StackOsNFTBasic is
         uint256 tokenId
     ) 
         internal 
-        override(CustomERC721) 
+        override(ERC721) 
         onlyWhitelisted 
     {
         super._transfer(from, to, tokenId);
@@ -471,7 +508,7 @@ contract StackOsNFTBasic is
 
     function _burn(uint256 tokenId)
         internal
-        override(CustomERC721, CustomERC721URIStorage)
+        override(ERC721, ERC721URIStorage)
     {
         super._burn(tokenId);
     }
@@ -479,7 +516,7 @@ contract StackOsNFTBasic is
     function tokenURI(uint256 tokenId)
         public
         view
-        override(CustomERC721, CustomERC721URIStorage)
+        override(ERC721, ERC721URIStorage)
         returns (string memory)
     {
         return super.tokenURI(tokenId);
@@ -489,9 +526,10 @@ contract StackOsNFTBasic is
      * @title Contract owner can withdraw collected fees.
      * @dev Caller must be contract owner, timelock should be passed.
      */
-    function adminWithdraw() public onlyOwner {
+    function adminWithdraw() external onlyOwner {
         require(block.timestamp > timeLock, "Locked!");
         stackToken.transfer(msg.sender, adminWithdrawableAmount);
+        emit AdminWithdraw(msg.sender, adminWithdrawableAmount);
         adminWithdrawableAmount = 0;
     }
 

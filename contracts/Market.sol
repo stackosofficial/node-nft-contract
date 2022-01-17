@@ -9,6 +9,9 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeable {
 
+    event SetRoyaltyFee(uint256 _percent);
+    event SetDaoFee(uint256 _percent);
+
     event StackSale(
         address seller,
         address buyer,
@@ -91,6 +94,7 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeab
     function setDaoFee(uint256 _percent) public onlyOwner {
         require(_percent <= HUNDRED_PERCENT, "invalid fee basis points");
         daoFee = _percent;
+        emit SetDaoFee(_percent);
     }
 
     /*
@@ -101,6 +105,7 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeab
     function setRoyaltyFee(uint256 _percent) public onlyOwner {
         require(_percent <= HUNDRED_PERCENT, "invalid fee basis points");
         royaltyFee = _percent;
+        emit SetRoyaltyFee(_percent);
     }
 
     /*
@@ -198,9 +203,12 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeab
         uint256 royaltyPart = lot.price * royaltyFee / HUNDRED_PERCENT;
         uint256 sellerPart = lot.price - daoPart - royaltyPart;
 
-        daoAddress.call{value: daoPart}("");
-        royaltyAddress.call{value: royaltyPart}("");
-        payable(lot.seller).call{value: sellerPart}("");
+        (bool success, ) = daoAddress.call{value: daoPart}("");
+        require(success, "Transfer failed");
+        (success, ) = royaltyAddress.call{value: royaltyPart}("");
+        require(success, "Transfer failed");
+        (success, ) = payable(lot.seller).call{value: sellerPart}("");
+        require(success, "Transfer failed");
 
         generations.get(generationId).transferFrom(lot.seller, msg.sender, tokenId);
 
@@ -225,9 +233,12 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeab
         uint256 royaltyPart = lot.price * royaltyFee / HUNDRED_PERCENT;
         uint256 sellerPart = lot.price - daoPart - royaltyPart;
 
-        daoAddress.call{value: daoPart}("");
-        royaltyAddress.call{value: royaltyPart}("");
-        payable(lot.seller).call{value: sellerPart}("");
+        (bool success, ) = daoAddress.call{value: daoPart}("");
+        require(success, "Transfer failed");
+        (success, ) = royaltyAddress.call{value: royaltyPart}("");
+        require(success, "Transfer failed");
+        (success, ) = payable(lot.seller).call{value: sellerPart}("");
+        require(success, "Transfer failed");
 
         darkMatter.transferFrom(lot.seller, msg.sender, tokenId);
 

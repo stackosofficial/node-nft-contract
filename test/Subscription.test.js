@@ -1,7 +1,7 @@
 const { ethers } = require("hardhat");
 const { use, expect } = require("chai");
 const { parseEther } = require("@ethersproject/units");
-const { deployStackOSBasic, setup, print } = require("./utils");
+const { deployStackOSBasic, setup, print, setupDeployment } = require("./utils");
 
 describe("Subscription (generations above 1st)", function () {
   it("Snapshot EVM", async function () {
@@ -13,14 +13,12 @@ describe("Subscription (generations above 1st)", function () {
     provider = ethers.provider;
     [owner, partner, joe, bank, bob, vera, tax, homer, van] =
       await hre.ethers.getSigners();
-    router = await ethers.getContractAt(
-      "IUniswapV2Router02",
-      "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D"
-    );
+
   });
 
   it("Deploy full SETUP", async function () {
     await setup();
+    await setupDeployment();
     stackOsNFTBasic = await deployStackOSBasic();
   });
 

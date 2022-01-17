@@ -9,10 +9,17 @@ import "./StackOsNFTBasic.sol";
 contract GenerationManager is Ownable, ReentrancyGuard {
     using Strings for uint256;
 
-    address stableAcceptor;
-    address exchange;
-    address dao;
-    address distr;
+    event AdjustAddressSettings(
+        address _stableAcceptor,
+        address _exchange,
+        address _dao,
+        address _distr
+    );
+
+    address private stableAcceptor;
+    address private exchange;
+    address private dao;
+    address private distr;
 
     IStackOsNFT[] private generations;
     mapping(address => uint256) private ids;
@@ -34,7 +41,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         address royaltyAddress;
         address market;
     }
-    Deployment deployment;
+    Deployment private deployment;
 
     modifier onlyOwnerOrStackContract() {
         require(owner() == _msgSender() || isAdded(_msgSender()), "Caller is not the owner or stack contract");
@@ -42,6 +49,15 @@ contract GenerationManager is Ownable, ReentrancyGuard {
     }
 
     constructor() {}
+
+    function getDeployment() 
+        external 
+        view 
+        returns 
+        (Deployment memory) 
+    {
+        return deployment;
+    }
 
     function adjustAddressSettings(
         address _stableAcceptor,
@@ -56,6 +72,12 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         exchange = _exchange;
         dao = _dao;
         distr = _distr;
+        emit AdjustAddressSettings(
+            _stableAcceptor,
+            _exchange,
+            _dao,
+            _distr
+        );
     }
 
     /*
@@ -113,7 +135,11 @@ contract GenerationManager is Ownable, ReentrancyGuard {
      * @dev Could only be invoked by the last StackOsNFTBasic generation.
      * @dev Generation id is appended to the name. 
      */
-    function deployNextGenPreset() public returns (IStackOsNFTBasic) 
+    function deployNextGenPreset() 
+        public 
+        nonReentrant
+        returns 
+        (IStackOsNFTBasic) 
     {
         // Can only be called from StackNFT contracts
         uint256 callerGenerationId = getIDByAddress(msg.sender);
@@ -176,11 +202,8 @@ contract GenerationManager is Ownable, ReentrancyGuard {
 
     /*
      * @title Deploy new StackOsNFTBasic manually.
-     * @dev Additional setup is required after deploy: 
-     * @dev Whitelist DarkMatter and Market.
-     * @dev Call to setFees.
-     * @dev Adjust address settings.
-     * @dev Example of full setup can be seen in deployNextGenPreset.
+     * @dev Deployment structure must be filled prior to calling this.
+     * @dev adjustAddressSettings must be called in manager prior to calling this.
      */
 
     function deployNextGen(
@@ -195,7 +218,13 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         uint256 _transferDiscount,
         uint256 _timeLock,
         address _royaltyAddress
-    ) public onlyOwner returns (IStackOsNFTBasic) {
+    ) 
+        public 
+        onlyOwner 
+        nonReentrant
+        returns 
+        (IStackOsNFTBasic) 
+    {
         StackOsNFTBasic stack = StackOsNFTBasic(
             address(
                 new StackOsNFTBasic()
@@ -217,6 +246,10 @@ contract GenerationManager is Ownable, ReentrancyGuard {
             _timeLock
         );
         add(IStackOsNFT(address(stack)));
+        stack.setFees(deployment.subsFee, deployment.daoFee, deployment.distrFee);
+        stack.adjustAddressSettings(dao, distr);
+        stack.whitelist(address(deployment.darkMatter));
+        stack.whitelist(address(deployment.market));
         stack.transferOwnership(msg.sender);
         return IStackOsNFTBasic(address(stack));
     }

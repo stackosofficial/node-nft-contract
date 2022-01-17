@@ -12,9 +12,15 @@ import "./Whitelist.sol";
 contract DarkMatter is Whitelist, ERC721, ReentrancyGuard {
     using Counters for Counters.Counter;
 
+    event Deposit(
+        address _wallet, 
+        uint256 generationId,
+        uint256[] tokenIds
+    );
+
     Counters.Counter private _tokenIdCounter;
     
-    GenerationManager private generations;
+    GenerationManager private immutable generations;
 
     // total amount of NFT deposited from any generation
     mapping(address => uint256) private deposits; 
@@ -27,7 +33,6 @@ contract DarkMatter is Whitelist, ERC721, ReentrancyGuard {
 
     // DarkMatter id => generation => StackNFT ids 
     mapping(uint256 => mapping(uint256 => uint256[])) private darkMatterToStack; 
-    // mapping(address => bool) _whitelist;
     
     // number of StackNFTs that must be deposited in order to be able to mint a DarkMatter.
     uint256 immutable mintPrice; 
@@ -44,7 +49,7 @@ contract DarkMatter is Whitelist, ERC721, ReentrancyGuard {
      * @param DarkMatter token id.
      */
     function ID(uint256 _darkMatterId)
-        public
+        external 
         view
         returns (uint256[][] memory)
     {
@@ -65,7 +70,7 @@ contract DarkMatter is Whitelist, ERC721, ReentrancyGuard {
         address _wallet,
         uint256 generationId,
         uint256 tokenId
-    ) public view returns (bool) {
+    ) external view returns (bool) {
         if (
             _exists(stackToDarkMatter[generationId][tokenId]) &&
             ownerOf(generationId, tokenId) == _wallet
@@ -82,7 +87,7 @@ contract DarkMatter is Whitelist, ERC721, ReentrancyGuard {
      * @dev The returned address owns StackNFT or DarkMatter that owns this StackNFT. 
      */
     function ownerOfStackOrDarkMatter(IStackOsNFT _stackOsNFT, uint256 tokenId)
-        public
+        external
         view
         returns (address)
     {
@@ -139,13 +144,15 @@ contract DarkMatter is Whitelist, ERC721, ReentrancyGuard {
                 msg.sender
             ];
         }
+
+        emit Deposit(msg.sender, generationId, tokenIds);
     }
 
     /*
      *  @title Mints a DarkMatterNFT for the caller.
      *  @dev Caller must have deposited `mintPrice` number of StackNFT of any generation.
      */
-    function mint() public nonReentrant {
+    function mint() external nonReentrant {
         require(toBeMinted[msg.sender].length > 0, "Not enough deposited");
         while (toBeMinted[msg.sender].length > 0) {
             _mint(

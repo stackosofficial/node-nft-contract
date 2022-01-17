@@ -96,8 +96,8 @@ module.exports = {
   networks: {
     hardhat: {
         forking: {
-          url: process.env.RINKEBY_URL, // must be archive node for next line to work
-          blockNumber: 9808000, // block pinning gives x20 perfromance due to caching as stated on hardhat docs 
+          url: process.env.MATIC_URL, // must be archive node for next line to work
+          blockNumber: 23715560, // block pinning gives x20 perfromance due to caching as stated on hardhat docs 
           enabled: true
         },
     },
@@ -112,9 +112,14 @@ module.exports = {
         process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
   },
+  mocha: {
+    timeout: 600000,
+  },
   gasReporter: {
     enabled: process.env.REPORT_GAS !== undefined,
     currency: "USD",
+    gasPrice: 5,
+    coinmarketcap: process.env.CMC_KEY || undefined
   },
   etherscan: {
     apiKey: process.env.ETHERSCAN_API_KEY,

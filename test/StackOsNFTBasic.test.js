@@ -1,7 +1,7 @@
 const { ethers } = require("hardhat");
 const { expect } = require("chai");
 const { parseEther, formatEther } = require("@ethersproject/units");
-const { deployStackOS, setup, deployStackOSBasic, print } = require("./utils");
+const { deployStackOS, setup, deployStackOSBasic, print, setupDeployment } = require("./utils");
 
 describe("StackOS NFT Basic", function () {
   it("Snapshot EVM", async function () {
@@ -12,15 +12,11 @@ describe("StackOS NFT Basic", function () {
     provider = ethers.provider;
     [owner, joe, tax, bank] = await hre.ethers.getSigners();
 
-    router = await ethers.getContractAt(
-      "IUniswapV2Router02",
-      "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D"
-    );
   });
 
   it("Deploy full SETUP", async function () {
     await setup();
-
+    await setupDeployment();
     stackOsNFTBasic = await deployStackOSBasic();
   });
 
@@ -210,15 +206,15 @@ describe("StackOS NFT Basic", function () {
     await stackOsNFTBasicgen3.mint(9, usdt.address);
   });
 
-  it("Unable to transfer when not whitelisted", async function () {
-    await expect(
-      stackOsNFTBasic.transferFrom(owner.address, joe.address, 0)
-    ).to.be.revertedWith("Not whitelisted for transfers");
-  });
-
   it("Whitelist address and transfer from it", async function () {
     await stackOsNFTBasic.whitelist(owner.address);
     await stackOsNFTBasic.transferFrom(owner.address, joe.address, 0);
+  });
+
+  it("Unable to transfer when not whitelisted", async function () {
+    await expect(
+      stackOsNFTBasic.connect(joe).transferFrom(joe.address, owner.address, 0)
+    ).to.be.revertedWith("Not whitelisted for transfers");
   });
 
   it("Admin tried to withdraw before time lock expires.", async function () {

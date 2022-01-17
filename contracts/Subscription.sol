@@ -12,12 +12,21 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 contract Subscription is Ownable, ReentrancyGuard {
-    IERC20 internal stackToken;
-    GenerationManager internal generations;
-    DarkMatter internal darkMatter;
-    StableCoinAcceptor internal stableAcceptor;
-    Exchange internal exchange;
-    address internal taxAddress;
+
+    event SetOnlyFirstGeneration();
+    event SetDripPeriod(uint256 _seconds);
+    event SetPrice(uint256 price);
+    event SetMaxPrice(uint256 maxPrice);
+    event SetBonusPercent(uint256 _percent);
+    event SetTaxReductionAmount(uint256 _amount);
+    event SetForgivenessPeriod(uint256 _seconds);
+
+    IERC20 internal immutable stackToken;
+    GenerationManager internal immutable generations;
+    DarkMatter internal immutable darkMatter;
+    StableCoinAcceptor internal immutable stableAcceptor;
+    Exchange internal immutable exchange;
+    address internal immutable taxAddress;
 
     uint256 internal constant HUNDRED_PERCENT = 10000;
     uint256 public constant MONTH = 28 days;
@@ -101,6 +110,7 @@ contract Subscription is Ownable, ReentrancyGuard {
      */
     function setOnlyFirstGeneration() external onlyOwner {
         isOnlyFirstGeneration = true;
+        emit SetOnlyFirstGeneration();
     }
 
     /*
@@ -111,6 +121,7 @@ contract Subscription is Ownable, ReentrancyGuard {
     function setDripPeriod(uint256 _seconds) external onlyOwner {
         require(_seconds > 0, "Cant be zero");
         dripPeriod = _seconds;
+        emit SetDripPeriod(_seconds);
     }
 
     /*
@@ -121,6 +132,7 @@ contract Subscription is Ownable, ReentrancyGuard {
     function setPrice(uint256 _price) external onlyOwner {
         require(_price > 0, "Cant be zero");
         price = _price;
+        emit SetPrice(_price);
     }
 
     /*
@@ -131,6 +143,7 @@ contract Subscription is Ownable, ReentrancyGuard {
     function setMaxPrice(uint256 _maxPrice) external onlyOwner {
         require(_maxPrice > 0, "Cant be zero");
         maxPrice = _maxPrice;
+        emit SetMaxPrice(_maxPrice);
     }
 
     /*
@@ -141,6 +154,7 @@ contract Subscription is Ownable, ReentrancyGuard {
     function setBonusPercent(uint256 _percent) external onlyOwner {
         require(_percent <= HUNDRED_PERCENT, "invalid basis points");
         bonusPercent = _percent;
+        emit SetBonusPercent(_percent);
     }
 
     /*
@@ -151,6 +165,7 @@ contract Subscription is Ownable, ReentrancyGuard {
     function setTaxReductionAmount(uint256 _amount) external onlyOwner {
         require(_amount <= HUNDRED_PERCENT, "invalid basis points");
         taxReductionAmount = _amount;
+        emit SetTaxReductionAmount(_amount);
     }
 
     /*
@@ -161,6 +176,7 @@ contract Subscription is Ownable, ReentrancyGuard {
     function setForgivenessPeriod(uint256 _seconds) external onlyOwner {
         require(_seconds > 0, "Cant be zero");
         forgivenessPeriod = _seconds;
+        emit SetForgivenessPeriod(_seconds);
     }  
     
     /*
@@ -260,7 +276,7 @@ contract Subscription is Ownable, ReentrancyGuard {
             );
             stackToken.transferFrom(msg.sender, address(this), amount);
         } else {
-            _stablecoin.transferFrom(msg.sender, address(this), _price);
+            require(_stablecoin.transferFrom(msg.sender, address(this), _price), "USD: transfer failed");
             _stablecoin.approve(address(exchange), _price);
             amount = exchange.swapExactTokensForTokens(
                 _price, 
@@ -304,7 +320,6 @@ contract Subscription is Ownable, ReentrancyGuard {
         returns 
         (bool _isTransfered) 
     {
-
         updatePeriod();
 
         if(p[period - 1].subsNum == 0) {
@@ -330,6 +345,7 @@ contract Subscription is Ownable, ReentrancyGuard {
         uint256[] calldata periods
     )
         external
+        nonReentrant
         restrictGeneration(generationId)
     {
         updatePeriod();
@@ -361,6 +377,7 @@ contract Subscription is Ownable, ReentrancyGuard {
         }
         stackToken.transfer(msg.sender, toWithdraw);
     }
+
     /*
      *  @dev Calculate dripped amount and remove fully released bonuses from array.
      */
@@ -370,7 +387,10 @@ contract Subscription is Ownable, ReentrancyGuard {
     ) private {
         Deposit storage deposit = deposits[generationId][tokenId];
         uint256 index;
-        for (uint256 i; i < deposit.reward.length; i++) {
+        uint256 len = deposit.reward.length;
+        uint256 drippedAmount;
+
+        for (uint256 i; i < len; i++) {
             Bonus storage bonus = deposit.reward[i];
 
             uint256 withdrawAmount = 
@@ -380,7 +400,7 @@ contract Subscription is Ownable, ReentrancyGuard {
             if (withdrawAmount > bonus.lockedAmount)
                 withdrawAmount = bonus.lockedAmount;
             
-            overflow[generationId][tokenId] += withdrawAmount;
+            drippedAmount += withdrawAmount;
             bonus.lockedAmount -= withdrawAmount;
             bonus.lastTxDate = block.timestamp;
 
@@ -398,11 +418,13 @@ contract Subscription is Ownable, ReentrancyGuard {
                 delete deposit.reward[i];
             }
         }
+        overflow[generationId][tokenId] += drippedAmount;
 
         for (uint256 i = deposit.reward.length; i > 0; i--) {
             if(deposit.reward[i - 1].lockedAmount > 0) break;
             deposit.reward.pop();
         }
+
     }
 
     /*
@@ -448,7 +470,7 @@ contract Subscription is Ownable, ReentrancyGuard {
         IERC20 _stablecoin
     ) 
         external 
-        nonReentrant 
+        nonReentrant
         restrictGeneration(withdrawGenerationId)
     {
         require(stableAcceptor.supportsCoin(_stablecoin), "Unsupported stablecoin");

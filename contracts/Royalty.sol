@@ -2,14 +2,19 @@
 pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./GenerationManager.sol";
 import "./DarkMatter.sol";
 import "./interfaces/IStackOsNFT.sol";
 import "./interfaces/IStackOsNFTBasic.sol";
 import "./Exchange.sol";
 
-contract Royalty is Ownable {
+contract Royalty is Ownable, ReentrancyGuard {
     using Counters for Counters.Counter;
+
+    event SetFeeAddress(address payable _feeAddress);
+    event SetWETH(IERC20 WETH);
+    event SetFeePercent(uint256 _percent);
 
     Counters.Counter private counter; // counting cycles
 
@@ -31,9 +36,9 @@ contract Royalty is Ownable {
         mapping(uint256 => mapping(uint256 => bool)) isClaimed; // whether reward for this token in this cycle is claimed
     }
 
-    mapping(uint256 => Cycle) private cycles; 
-    mapping(uint256 => mapping(uint256 => int256)) addedAt; // at which cycle the token were added
-    uint256 totalDelegated;
+    mapping(uint256 => Cycle) public cycles; 
+    mapping(uint256 => mapping(uint256 => int256)) public addedAt; // at which cycle the token were added
+    uint256 public totalDelegated;
 
     constructor(
         GenerationManager _generations,
@@ -94,7 +99,8 @@ contract Royalty is Ownable {
             cycles[counter.current()].balance += msg.value - feePart;
         }
 
-        feeAddress.call{value: feePart}("");
+        (bool success, ) = feeAddress.call{value: feePart}("");
+        require(success, "Transfer failed.");
     }
 
     /**
@@ -129,6 +135,7 @@ contract Royalty is Ownable {
     function setFeeAddress(address payable _feeAddress) external onlyOwner {
         require(_feeAddress != address(0), "Must be not zero-address");
         feeAddress = _feeAddress;
+        emit SetFeeAddress(_feeAddress);
     }    
 
     /*
@@ -139,6 +146,7 @@ contract Royalty is Ownable {
     function setWETH(IERC20 _WETH) external onlyOwner {
         require(address(_WETH) != address(0), "Must be not zero-address");
         WETH = _WETH;
+        emit SetWETH(_WETH);
     }
 
     /*
@@ -149,6 +157,7 @@ contract Royalty is Ownable {
     function setFeePercent(uint256 _percent) external onlyOwner {
         require(feePercent <= HUNDRED_PERCENT, "invalid fee basis points");
         feePercent = _percent;
+        emit SetFeePercent(_percent);
     }
 
     /*
@@ -188,7 +197,10 @@ contract Royalty is Ownable {
         uint256[] calldata _tokenIds,
         uint256 _mintNum,
         IERC20 _stablecoin 
-    ) external {
+    ) 
+        external 
+        nonReentrant 
+    {
         require(_generationId > 0, "Must be not first generation");
         _claim(_generationId, _tokenIds, _mintNum, true, _stablecoin, false);
     }
@@ -261,7 +273,7 @@ contract Royalty is Ownable {
                 if (_mint == false) {
                     if(_claimWETH) {
                         uint256 wethReceived = exchange.swapExactETHForTokens{value: reward}(WETH);
-                        WETH.transfer(msg.sender, wethReceived);
+                        require(WETH.transfer(msg.sender, wethReceived), "WETH: transfer failed");
                     } else {
                         (bool success, ) = payable(msg.sender).call{value: reward}(
                             ""
@@ -278,7 +290,10 @@ contract Royalty is Ownable {
                         address(_stablecoin), 
                         msg.sender
                     );
-                    _stablecoin.transfer(msg.sender, usdReceived - spendAmount);
+                    require(
+                        _stablecoin.transfer(msg.sender, usdReceived - spendAmount), 
+                        "USD: transfer failed"
+                    );
                 }
             }
         }
