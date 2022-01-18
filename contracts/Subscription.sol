@@ -37,7 +37,7 @@ contract Subscription is Ownable, ReentrancyGuard {
     uint256 public maxPrice = 5000e18;
     uint256 public bonusPercent = 2000;
     uint256 public taxReductionAmount = 2500;
-    uint256 public period;
+    uint256 public currentPeriodId;
     bool public isOnlyFirstGeneration;
 
     enum withdrawStatus {
@@ -49,7 +49,7 @@ contract Subscription is Ownable, ReentrancyGuard {
         uint256 balance;
         uint256 subsNum;
         uint256 endAt;
-        mapping(uint256 => mapping(uint256 => PeriodTokenData)) pd; 
+        mapping(uint256 => mapping(uint256 => PeriodTokenData)) tokenData; 
     }
 
     struct PeriodTokenData {
@@ -71,9 +71,9 @@ contract Subscription is Ownable, ReentrancyGuard {
         uint256 nextPayDate; // you can subscribe after this date, but before deadline to reduce tax
     }
 
-    mapping(uint256 => Period) public p;
+    mapping(uint256 => Period) public periods;
     mapping(uint256 => mapping(uint256 => Deposit)) public deposits; // generationId => tokenId => Deposit
-    mapping(uint256 => mapping(uint256 => uint256)) public overflow; // generationId => tokenId => withdraw amount
+    mapping(uint256 => mapping(uint256 => uint256)) public bonusDripped; // generationId => tokenId => withdraw amount
 
     modifier restrictGeneration(uint256 generationId) {
         requireCorrectGeneration(generationId);
@@ -230,8 +230,8 @@ contract Subscription is Ownable, ReentrancyGuard {
 
         // active sub reward logic
         updatePeriod();
-        p[period].subsNum += 1;
-        p[period].pd[generationId][tokenId].isSub = true;
+        periods[currentPeriodId].subsNum += 1;
+        periods[currentPeriodId].tokenData[generationId][tokenId].isSub = true;
     }
 
     function _subscribe(
@@ -303,9 +303,9 @@ contract Subscription is Ownable, ReentrancyGuard {
      *  @dev Called automatically from other functions, but can be called manually
      */
     function updatePeriod() public {
-        if (p[period].endAt < block.timestamp) {
-            period += 1;
-            p[period].endAt = block.timestamp + MONTH;
+        if (periods[currentPeriodId].endAt < block.timestamp) {
+            currentPeriodId += 1;
+            periods[currentPeriodId].endAt = block.timestamp + MONTH;
         }
     }    
 
@@ -322,10 +322,10 @@ contract Subscription is Ownable, ReentrancyGuard {
     {
         updatePeriod();
 
-        if(p[period - 1].subsNum == 0) {
+        if(periods[currentPeriodId - 1].subsNum == 0) {
             return false;
         } else {
-            p[period - 1].balance += _amount;
+            periods[currentPeriodId - 1].balance += _amount;
             stackToken.transferFrom(msg.sender, address(this), _amount);
         }
         return true;
@@ -342,7 +342,7 @@ contract Subscription is Ownable, ReentrancyGuard {
     function withdraw2(
         uint256 generationId, 
         uint256[] calldata tokenIds,
-        uint256[] calldata periods
+        uint256[] calldata periodIds
     )
         external
         nonReentrant
@@ -361,18 +361,18 @@ contract Subscription is Ownable, ReentrancyGuard {
                 ),
                 "Not owner"
             );
-            for (uint256 o; o < periods.length; o++) {
-                require(periods[o] < period, "Period not ended");
-                Period storage pr = p[periods[o]];
-                require(pr.subsNum > 0, "No subs in period");
+            for (uint256 o; o < periodIds.length; o++) {
+                require(periodIds[o] < currentPeriodId, "Period not ended");
+                Period storage period = periods[periodIds[o]];
+                require(period.subsNum > 0, "No subs in period");
                 require(
-                    pr.pd[generationId][tokenId].isSub, 
+                    period.tokenData[generationId][tokenId].isSub, 
                     "Was not subscribed"
                 );
                         
-                uint256 share = pr.balance / pr.subsNum;
-                toWithdraw += (share - pr.pd[generationId][tokenId].withdrawn);
-                pr.pd[generationId][tokenId].withdrawn = share; 
+                uint256 share = period.balance / period.subsNum;
+                toWithdraw += (share - period.tokenData[generationId][tokenId].withdrawn);
+                period.tokenData[generationId][tokenId].withdrawn = share; 
             }
         }
         stackToken.transfer(msg.sender, toWithdraw);
@@ -418,7 +418,7 @@ contract Subscription is Ownable, ReentrancyGuard {
                 delete deposit.reward[i];
             }
         }
-        overflow[generationId][tokenId] += drippedAmount;
+        bonusDripped[generationId][tokenId] += drippedAmount;
 
         for (uint256 i = deposit.reward.length; i > 0; i--) {
             if(deposit.reward[i - 1].lockedAmount > 0) break;
@@ -516,8 +516,8 @@ contract Subscription is Ownable, ReentrancyGuard {
 
         uint256 amountWithdraw = deposit.balance;
         updateBonuses(generationId, tokenId);
-        uint256 bonusAmount = overflow[generationId][tokenId];
-        overflow[generationId][tokenId] = 0;
+        uint256 bonusAmount = bonusDripped[generationId][tokenId];
+        bonusDripped[generationId][tokenId] = 0;
 
         require(
             amountWithdraw + bonusAmount <= stackToken.balanceOf(address(this)),
@@ -559,7 +559,7 @@ contract Subscription is Ownable, ReentrancyGuard {
 
             // Add rest back to pending rewards
             amountWithdraw -= amountToConvert;
-            overflow[generationId][tokenId] = amountWithdraw;
+            bonusDripped[generationId][tokenId] = amountWithdraw;
         } else {
             stackToken.transfer(msg.sender, amountWithdraw);
             deposit.tax = HUNDRED_PERCENT;
@@ -593,7 +593,7 @@ contract Subscription is Ownable, ReentrancyGuard {
             totalPending += amount;
         }
 
-        return totalPending + overflow[_generationId][_tokenId];
+        return totalPending + bonusDripped[_generationId][_tokenId];
     }
     
     /*
