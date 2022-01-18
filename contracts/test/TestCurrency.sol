@@ -8,8 +8,15 @@ contract TestCurrency is ERC20 {
 
   using SafeMath for uint256;
 
-  constructor(uint256 _totalSupply) ERC20("ERC20test", "TST") {
+  uint8 public _decimals;
+
+  constructor(uint256 _totalSupply, uint8 decimals_) ERC20("ERC20test", "TST") {
     _mint(msg.sender, _totalSupply);
+    _decimals = decimals_;
+  }
+
+  function decimals() public view virtual override returns (uint8) {
+      return _decimals;
   }
 
 }

@@ -26,7 +26,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
     address private dao;
     address private distr;
 
-    IStackOsNFT[] private generations;
+    IStackOsNFT[] public generations;
     mapping(address => uint256) private ids;
 
     struct Deployment {

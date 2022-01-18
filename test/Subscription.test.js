@@ -1,6 +1,6 @@
 const { ethers } = require("hardhat");
 const { use, expect } = require("chai");
-const { parseEther } = require("@ethersproject/units");
+const { parseEther, parseUnits } = require("@ethersproject/units");
 const { deployStackOSBasic, setup, print, setupDeployment } = require("./utils");
 
 describe("Subscription (generations above 1st)", function () {
@@ -94,7 +94,11 @@ describe("Subscription (generations above 1st)", function () {
   });
   it("Subscribe with usdt token", async function () {
     await usdt.approve(subscription.address, parseEther("5000.0"));
+    print(await usdt.balanceOf(owner.address));
+    print(parseUnits((await usdt.balanceOf(owner.address)).toString(), 6));
     await subscription.subscribe(1, 0, parseEther("100"), usdt.address, false);
+    print(parseUnits((await usdt.balanceOf(owner.address)).toString(), 6));
+    // print(parseUnits(await usdt.balanceOf(owner.address), 6));
   });
   it("Subscribe with dai coin", async function () {
     await dai.approve(subscription.address, parseEther("5000.0"));
