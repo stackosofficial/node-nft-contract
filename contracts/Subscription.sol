@@ -66,7 +66,7 @@ contract Subscription is Ownable, ReentrancyGuard {
 
     struct Deposit {
         uint256 balance; // amount without bonus
-        Bonus[] reward; // bonuses
+        Bonus[] bonuses; // subscription bonuses
         uint256 tax; // tax percent on withdraw
         uint256 nextPayDate; // you can subscribe after this date, but before deadline to reduce tax
     }
@@ -290,7 +290,7 @@ contract Subscription is Ownable, ReentrancyGuard {
         // bonuses logic
         updateBonuses(generationId, tokenId);
         uint256 bonusAmount = amount * bonusPercent / HUNDRED_PERCENT;
-        deposit.reward.push(Bonus({
+        deposit.bonuses.push(Bonus({
             total: bonusAmount, 
             lastTxDate: block.timestamp, 
             releasePeriod: dripPeriod, 
@@ -387,11 +387,11 @@ contract Subscription is Ownable, ReentrancyGuard {
     ) private {
         Deposit storage deposit = deposits[generationId][tokenId];
         uint256 index;
-        uint256 len = deposit.reward.length;
+        uint256 len = deposit.bonuses.length;
         uint256 drippedAmount;
 
         for (uint256 i; i < len; i++) {
-            Bonus storage bonus = deposit.reward[i];
+            Bonus storage bonus = deposit.bonuses[i];
 
             uint256 withdrawAmount = 
                 (bonus.total / bonus.releasePeriod) * 
@@ -413,16 +413,16 @@ contract Subscription is Ownable, ReentrancyGuard {
             else if(index > 0) {
                 uint256 currentIndex = i - index;
 
-                deposit.reward[currentIndex] = 
-                    deposit.reward[i];
-                delete deposit.reward[i];
+                deposit.bonuses[currentIndex] = 
+                    deposit.bonuses[i];
+                delete deposit.bonuses[i];
             }
         }
         bonusDripped[generationId][tokenId] += drippedAmount;
 
-        for (uint256 i = deposit.reward.length; i > 0; i--) {
-            if(deposit.reward[i - 1].lockedAmount > 0) break;
-            deposit.reward.pop();
+        for (uint256 i = deposit.bonuses.length; i > 0; i--) {
+            if(deposit.bonuses[i - 1].lockedAmount > 0) break;
+            deposit.bonuses.pop();
         }
 
     }
@@ -581,8 +581,8 @@ contract Subscription is Ownable, ReentrancyGuard {
 
         uint256 totalPending;
 
-        for (uint256 i; i < deposit.reward.length; i++) {
-            Bonus memory bonus = deposit.reward[i];
+        for (uint256 i; i < deposit.bonuses.length; i++) {
+            Bonus memory bonus = deposit.bonuses[i];
 
             uint256 amount = 
                 (bonus.total / bonus.releasePeriod) * 
