@@ -19,9 +19,9 @@ contract Royalty is Ownable, ReentrancyGuard {
     Counters.Counter private counter; // counting cycles
 
     uint256 private constant HUNDRED_PERCENT = 10000;
-    GenerationManager private generations;
-    DarkMatter private darkMatter;
-    Exchange private exchange;
+    GenerationManager private immutable generations;
+    DarkMatter private immutable darkMatter;
+    Exchange private immutable exchange;
     IERC20 private WETH; // for Matic network
     address payable private feeAddress;
     uint256 private feePercent;
