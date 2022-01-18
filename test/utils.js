@@ -2,7 +2,7 @@ const { ethers } = require("hardhat");
 const { use, expect } = require("chai");
 const { solidity } = require("ethereum-waffle");
 const { BigNumber } = require("@ethersproject/bignumber");
-const { parseEther, formatEther } = require("@ethersproject/units");
+const { parseEther, formatEther, parseUnits } = require("@ethersproject/units");
 
 module.exports = { setup, setupLiquidity, deployStackOS, deployStackOSBasic, setupDeployment, print };
 
@@ -285,8 +285,10 @@ async function setupLiquidity() {
 
     await router.addLiquidityETH(
       usdt.address,
-      parseEther("4.3637"),
-      parseEther("4.3637"),
+      // parseEther("4.3637"),
+      // parseEther("4.3637"),
+      parseUnits("4.3637", await usdt.decimals()),
+      parseUnits("4.3637", await usdt.decimals()),
       parseEther("1.0"),
       joe.address,
       deadline,
@@ -295,8 +297,10 @@ async function setupLiquidity() {
 
     await router.addLiquidityETH(
       usdc.address,
-      parseEther("4.3637"),
-      parseEther("4.3637"),
+      // parseEther("4.3637"),
+      // parseEther("4.3637"),
+      parseUnits("4.3637", await usdc.decimals()),
+      parseUnits("4.3637", await usdc.decimals()),
       parseEther("1.0"),
       joe.address,
       deadline,

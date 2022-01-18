@@ -1,7 +1,7 @@
 const { ethers, upgrades } = require("hardhat");
 const { use, expect } = require("chai");
-const { parseEther } = require("@ethersproject/units");
-const { deployStackOS, setup, print, deployStackOSBasic, setupDeployment } = require("./utils");
+const { parseEther, parseUnits } = require("@ethersproject/units");
+const { deployStackOS, setup, print, deployStackOSBasic, setupDeployment, setupLiquidity } = require("./utils");
 
 describe("Market", function () {
   it("Snapshot EVM", async function () {
@@ -19,6 +19,7 @@ describe("Market", function () {
   it("Deploy full SETUP", async function () {
     await setup();
     await setupDeployment();
+    await setupLiquidity();
   });
 
   it("Deploy Market", async function () {
@@ -45,33 +46,6 @@ describe("Market", function () {
 
   it("Deploy StackOS NFT generation 2", async function () {
     stackOsNFTgen2 = await deployStackOSBasic();
-  });
-
-  it("Add liquidity", async function () {
-    await stackToken.approve(router.address, parseEther("100.0"));
-    await usdt.approve(router.address, parseEther("100.0"));
-    // await usdc.approve(router.address, parseEther("100.0"));
-    var deadline = Math.floor(Date.now() / 1000) + 1200;
-
-    await router.addLiquidityETH(
-      stackToken.address,
-      parseEther("100"),
-      parseEther("100"),
-      parseEther("3.77"),
-      joe.address,
-      deadline,
-      { value: parseEther("3.77") }
-    );
-
-    await router.addLiquidityETH(
-      usdt.address,
-      parseEther("4.3637"),
-      parseEther("4.3637"),
-      parseEther("1.0"),
-      joe.address,
-      deadline,
-      { value: parseEther("10.0") }
-    );
   });
 
   it("Mint some StackNFT", async function () {

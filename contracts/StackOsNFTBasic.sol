@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "./interfaces/IStackOsNFT.sol";
+import "./interfaces/IDecimals.sol";
 import "./Subscription.sol";
 import "./StableCoinAcceptor.sol";
 import "./Exchange.sol";
@@ -41,7 +42,7 @@ contract StackOsNFTBasic is
     Subscription private subscription;
     Subscription private sub0;
     Royalty private royaltyAddress;
-    StableCoinAcceptor stableAcceptor;
+    StableCoinAcceptor private stableAcceptor;
     GenerationManager private immutable generations;
     Exchange private exchange;
     address private daoAddress;
@@ -52,12 +53,14 @@ contract StackOsNFTBasic is
     uint256 public rewardDiscount;
     uint256 private maxSupply;
     uint256 private totalSupply;
-    uint256 private participationFee;
-    uint256 private transferDiscount;
-    uint256 internal subsFee;
-    uint256 internal daoFee;
-    uint256 internal distrFee;
-    uint256 constant maxMintRate = 10;
+    uint256 public mintPrice;
+    uint256 public transferDiscount;
+    uint256 private subsFee;
+    uint256 private daoFee;
+    uint256 private royaltyDistributionFee;
+    uint256 public constant maxMintRate = 10;
+
+    uint256 public constant PRICE_PRECISION = 1e18;
 
     mapping(uint256 => address) private delegates;
     mapping(address => uint256) private totalMinted;
@@ -73,7 +76,7 @@ contract StackOsNFTBasic is
      */
     constructor() ERC721("", "") {
         
-        require(Address.isContract(msg.sender), "Must be deployed by generation manager");
+        require(Address.isContract(msg.sender), "Only by generation manager");
         generations = GenerationManager(msg.sender);
     }
 
@@ -85,7 +88,7 @@ contract StackOsNFTBasic is
         address _royaltyAddress,
         address _stableAcceptor,
         address _exchange,
-        uint256 _participationFee,
+        uint256 _mintPrice,
         uint256 _maxSupply,
         uint256 _transferDiscount,
         uint256 _timeLock
@@ -101,7 +104,7 @@ contract StackOsNFTBasic is
         stableAcceptor = StableCoinAcceptor(_stableAcceptor);
         exchange = Exchange(_exchange);
 
-        participationFee = _participationFee;
+        mintPrice = _mintPrice;
         maxSupply = _maxSupply;
         transferDiscount = _transferDiscount;
         timeLock = block.timestamp + _timeLock;
@@ -165,7 +168,7 @@ contract StackOsNFTBasic is
      */
 
     function setRewardDiscount(uint256 _rewardDiscount) external onlyOwner {
-        require(_rewardDiscount <= 10000, "invalid basis points");
+        require(_rewardDiscount <= 10000);
         rewardDiscount = _rewardDiscount;
         emit SetRewardDiscount(_rewardDiscount);
     }
@@ -182,18 +185,19 @@ contract StackOsNFTBasic is
         external
         onlyOwner
     {
-        require(_subs + _dao + _distr <= 10000, "invalid fee basis points");
+        require(_subs + _dao + _distr <= 10000);
         subsFee = _subs;
         daoFee = _dao;
-        distrFee = _distr;
+        royaltyDistributionFee = _distr;
         emit SetFees(_subs, _dao, _distr);
     }
 
-    /*
-     * @title Get max supply
-     */
-    function getMaxSupply() external view returns (uint256) {
-        return maxSupply;
+    function _baseURI() internal pure override returns (string memory) {
+        return "";
+    }
+
+    function exists(uint256 tokenId) public view returns (bool) {
+        return _exists(tokenId);
     }
 
     /*
@@ -205,21 +209,13 @@ contract StackOsNFTBasic is
         return delegates[_tokenId];
     }
 
-    function _baseURI() internal pure override returns (string memory) {
-        return "";
-    }
-
-    function exists(uint256 tokenId) public view returns (bool) {
-        return _exists(tokenId);
+    /*
+     * @title Get max supply
+     */
+    function getMaxSupply() external view returns (uint256) {
+        return maxSupply;
     }
     
-    /*
-     * @title Get mint price in USD
-     */
-    function price() public view returns (uint256) {
-        return participationFee;
-    }
-
     /*
      * @title Called by 1st generation as part of `transferTickets`
      * @param Wallet to mint tokens to
@@ -243,14 +239,15 @@ contract StackOsNFTBasic is
             stablecoin
         );
 
-        uint256 participationFeeDiscount = participationFee
+        uint256 mintPriceDiscounted = mintPrice
             .mul(10000 - transferDiscount)
-            .div(10000);
+            .div(10000)
+            .mul(10 ** IDecimals(address(stablecoin)).decimals())
+            .div(PRICE_PRECISION);
 
-        uint256 ticketAmount = usdAmount.div(participationFeeDiscount);
-        uint256 depositAmount = participationFeeDiscount.mul(ticketAmount);
+        uint256 ticketAmount = usdAmount.div(mintPriceDiscounted);
+        uint256 depositAmount = mintPriceDiscounted.mul(ticketAmount);
 
-        // stablecoin.transferFrom(msg.sender, address(this), amount);
         stablecoin.approve(address(exchange), usdAmount);
         uint256 stackDepositAmount = exchange.swapExactTokensForTokens(
             depositAmount, 
@@ -297,7 +294,11 @@ contract StackOsNFTBasic is
         require(salesStarted, "Sales not started");
         require(stableAcceptor.supportsCoin(_stablecoin), "Unsupported stablecoin");
 
-        uint256 amountIn = participationFee.mul(_nftAmount);
+        uint256 amountIn = mintPrice
+            .mul(_nftAmount)
+            .mul(10 ** IDecimals(address(_stablecoin)).decimals())
+            .div(PRICE_PRECISION);
+
         _stablecoin.transferFrom(msg.sender, address(this), amountIn);
         _stablecoin.approve(address(exchange), amountIn);
         uint256 stackAmount = exchange.swapExactTokensForTokens(
@@ -317,8 +318,8 @@ contract StackOsNFTBasic is
     /*
      * @title Called when user want to mint and pay with bonuses from subscriptions.
      * @param Amount to mint
-     * @param Address of supported stablecoin
-     * @param Address to mint to
+     * @param Stack token amount to spend
+     * @param Address to receive minted tokens
      * @dev Can only be called by Subscription contract.
      * @dev Sales should be started before mint.
      */
@@ -346,23 +347,6 @@ contract StackOsNFTBasic is
     }
 
     /*
-     * @title Get how much stack token we need to sell to receive amount of USD needed to mint `_nftAmount`
-     * @param Amount to mint
-     * @param Address of supported stablecoin
-     */
-    function getFromRewardsPrice(uint256 _nftAmount, address _stablecoin)
-        external 
-        view
-        returns (uint256)
-    {
-        uint256 discountAmount = participationFee -
-            (participationFee * rewardDiscount) /
-            10000;
-        uint256 amountOut = discountAmount.mul(_nftAmount);
-        return exchange.getAmountIn(amountOut, IERC20(_stablecoin), stackToken);
-    }
-
-    /*
      * @title Called when user want to mint and pay with bonuses from royalties.
      * @param Amount to mint
      * @param Address of supported stablecoin
@@ -381,9 +365,12 @@ contract StackOsNFTBasic is
     {
         require(salesStarted, "Sales not started");
         require(msg.sender == address(royaltyAddress), "Not Royalty Address");
-        uint256 discountAmount = participationFee -
-            (participationFee * rewardDiscount) /
-            10000;
+        
+        uint256 discountAmount = mintPrice
+            .mul(10000 - rewardDiscount)
+            .div(10000)
+            .mul(10 ** IDecimals(address(_stablecoin)).decimals())
+            .div(PRICE_PRECISION);
             
         uint256 amountIn = discountAmount.mul(_mintNum);
         IERC20(_stablecoin).transferFrom(msg.sender, address(this), amountIn);
@@ -412,7 +399,7 @@ contract StackOsNFTBasic is
 
         uint256 subsPart = _amount * subsFee / 10000;
         uint256 daoPart = _amount * daoFee / 10000;
-        uint256 distrPart = _amount * distrFee / 10000;
+        uint256 distrPart = _amount * royaltyDistributionFee / 10000;
         _amount = _amount - subsPart - daoPart - distrPart;
 
         uint256 subsPartHalf = subsPart / 2;
@@ -433,7 +420,7 @@ contract StackOsNFTBasic is
     }
 
     function _delegate(address _delegatee, uint256 tokenId) private {
-        require(_delegatee != address(0), "Delegatee is zero-address");
+        require(_delegatee != address(0));
         require(
             msg.sender ==
                 darkMatter.ownerOfStackOrDarkMatter(

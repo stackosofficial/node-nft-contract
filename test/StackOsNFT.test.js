@@ -1,7 +1,7 @@
 const { ethers } = require("hardhat");
 const { use, expect } = require("chai");
-const { parseEther, formatEther } = require("@ethersproject/units");
-const { deployStackOS, setup, print, deployStackOSBasic, setupDeployment } = require("./utils");
+const { parseEther, formatEther, parseUnits } = require("@ethersproject/units");
+const { deployStackOS, setup, print, deployStackOSBasic, setupDeployment, setupLiquidity } = require("./utils");
 
 describe("StackOS NFT", function () {
   it("Snapshot EVM", async function () {
@@ -131,40 +131,7 @@ describe("StackOS NFT", function () {
     );
   });
   it("Add liquidity", async function () {
-    await stackToken.approve(router.address, parseEther("100.0"));
-    await usdt.approve(router.address, parseEther("100.0"));
-    await usdc.approve(router.address, parseEther("100.0"));
-    var deadline = Math.floor(Date.now() / 1000) + 1200;
-
-    await router.addLiquidityETH(
-      stackToken.address,
-      parseEther("100"),
-      parseEther("100"),
-      parseEther("3.77"),
-      joe.address,
-      deadline,
-      { value: parseEther("3.77") }
-    );
-
-    await router.addLiquidityETH(
-      usdt.address,
-      parseEther("4.3637"),
-      parseEther("4.3637"),
-      parseEther("1.0"),
-      joe.address,
-      deadline,
-      { value: parseEther("10.0") }
-    );
-
-    await router.addLiquidityETH(
-      usdc.address,
-      parseEther("4.3637"),
-      parseEther("4.3637"),
-      parseEther("1.0"),
-      joe.address,
-      deadline,
-      { value: parseEther("10.0") }
-    );
+    await setupLiquidity();
   });
 
   it("Partners mint", async function () {
@@ -179,7 +146,7 @@ describe("StackOS NFT", function () {
     await stackOsNFT.connect(joe).partnerMint(2, usdc.address);
     expect(await stackOsNFT.balanceOf(joe.address)).to.be.equal(2);
     expect(await stackToken.balanceOf(stackOsNFT.address)).to.be.equal(
-      parseEther("1.200000000000000008")
+      parseEther("1.200047530321643004")
     );
   });
 
@@ -323,8 +290,8 @@ describe("transferTickets and transferFromLastGen", function () {
 
     await router.addLiquidityETH(
       usdt.address,
-      parseEther("4.3637"),
-      parseEther("4.3637"),
+      parseUnits("4.3637", await usdt.decimals()),
+      parseUnits("4.3637", await usdt.decimals()),
       parseEther("1.0"),
       joe.address,
       deadline,
@@ -333,8 +300,8 @@ describe("transferTickets and transferFromLastGen", function () {
 
     await router.addLiquidityETH(
       usdc.address,
-      parseEther("4.3637"),
-      parseEther("4.3637"),
+      parseUnits("4.3637", await usdc.decimals()),
+      parseUnits("4.3637", await usdc.decimals()),
       parseEther("1.0"),
       joe.address,
       deadline,
@@ -412,7 +379,7 @@ describe("transferTickets and transferFromLastGen", function () {
       parseEther("1.0")
     );
     expect(await stackToken.balanceOf(stackOsNFTBasic.address)).to.be.equal(
-      parseEther("0.316130265511108283")
+      parseEther("0.315936871182511057")
     );
     print("Tickets transfered!");
     print(
@@ -461,7 +428,7 @@ describe("transferTickets and transferFromLastGen", function () {
     await expect(
       generationManager.connect(joe).add(joe.address)
     ).to.be.revertedWith(
-      "Caller is not the owner or stack contract"
+      "Not owner or StackNFT"
     );
 
     stackAutoDeployed = await ethers.getContractAt(

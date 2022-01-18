@@ -40,8 +40,8 @@ describe("Subscription (generations above 1st)", function () {
 
     await router.addLiquidityETH(
       usdt.address,
-      parseEther("43637.0"),
-      parseEther("43637.0"),
+      parseUnits("43637", await usdt.decimals()),
+      parseUnits("43637", await usdt.decimals()),
       parseEther("10.0"),
       joe.address,
       deadline,
@@ -50,8 +50,8 @@ describe("Subscription (generations above 1st)", function () {
 
     await router.addLiquidityETH(
       dai.address,
-      parseEther("43637.0"),
-      parseEther("43637.0"),
+      parseUnits("43637", await dai.decimals()),
+      parseUnits("43637", await dai.decimals()),
       parseEther("10.0"),
       joe.address,
       deadline,
@@ -102,7 +102,7 @@ describe("Subscription (generations above 1st)", function () {
   });
   it("Subscribe with dai coin", async function () {
     await dai.approve(subscription.address, parseEther("5000.0"));
-    await subscription.subscribe(1, 1, parseEther("100"), dai.address, false);
+    await subscription.subscribe(1, 1, 0, dai.address, false);
   });
   it("Take TAX for early withdrawal", async function () {
     await stackOsNFTBasic.whitelist(owner.address);
@@ -112,16 +112,20 @@ describe("Subscription (generations above 1st)", function () {
     print("bob: ", await stackToken.balanceOf(bob.address));
     print("tax: ", await stackToken.balanceOf(tax.address));
     // 599 Deposit. Withdraw 150 first month tax 75%
-    expect(await stackToken.balanceOf(bob.address)).to.be.gt(parseEther("149"));
-    expect(await stackToken.balanceOf(bob.address)).to.be.lt(parseEther("150"));
+    expect(await stackToken.balanceOf(bob.address)).to.be.gt(
+      parseEther("149")
+    );
+    expect(await stackToken.balanceOf(bob.address)).to.be.lt(
+      parseEther("150")
+    );
   });
 
   it("Subscribe 3 months in a row", async function () {
     await usdt.approve(subscription.address, parseEther("5000.0"));
     await provider.send("evm_increaseTime", [MONTH]);
-    await subscription.subscribe(1, 1, parseEther("100"), usdt.address, false);
+    await subscription.subscribe(1, 1, 0, usdt.address, false);
     await provider.send("evm_increaseTime", [MONTH]);
-    await subscription.subscribe(1, 1, parseEther("100"), usdt.address, false);
+    await subscription.subscribe(1, 1, 0, usdt.address, false);
   });
   it("Unable to withdraw when low balance on bonus wallet", async function () {
     await expect(subscription.withdraw(1, [1])).to.be.revertedWith(
@@ -416,7 +420,7 @@ describe("Subscription (generations above 1st)", function () {
       parseEther("15541"), parseEther("1")
     )
     expect(await usdt.balanceOf(owner.address)).to.be.closeTo(
-      parseEther("99948761"), parseEther("1")
+      "99999299999999949461976152", parseUnits("1", 6)
     )
   });
   it("Withdraw", async function () {

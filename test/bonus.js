@@ -1,6 +1,6 @@
 const { ethers } = require("hardhat");
 const { expect } = require("chai");
-const { parseEther, formatEther } = require("@ethersproject/units");
+const { parseEther, formatEther, parseUnits } = require("@ethersproject/units");
 const { deployStackOS, setup, deployStackOSBasic, print, setupDeployment, setupLiquidity } = require("./utils");
 
 describe("Measure withdraw() and updateBonuses() gas", function () {
@@ -40,8 +40,8 @@ describe("Measure withdraw() and updateBonuses() gas", function () {
 
     await router.addLiquidityETH(
       usdt.address,
-      parseEther("43637.0"),
-      parseEther("43637.0"),
+      parseUnits("43637", await usdt.decimals()),
+      parseUnits("43637", await usdt.decimals()),
       parseEther("10.0"),
       joe.address,
       deadline,
@@ -50,8 +50,8 @@ describe("Measure withdraw() and updateBonuses() gas", function () {
 
     await router.addLiquidityETH(
       usdc.address,
-      parseEther("43637.0"),
-      parseEther("43637.0"),
+      parseUnits("43637", await usdc.decimals()),
+      parseUnits("43637", await usdc.decimals()),
       parseEther("10.0"),
       joe.address,
       deadline,

@@ -8,6 +8,7 @@ import "./Exchange.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "./interfaces/IStackOsNFTBasic.sol";
+import "./interfaces/IDecimals.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
@@ -39,6 +40,8 @@ contract Subscription is Ownable, ReentrancyGuard {
     uint256 public taxReductionAmount = 2500;
     uint256 public currentPeriodId;
     bool public isOnlyFirstGeneration;
+
+    uint256 public constant PRICE_PRECISION = 1e18;
 
     enum withdrawStatus {
         withdraw,
@@ -195,8 +198,8 @@ contract Subscription is Ownable, ReentrancyGuard {
      *  @title Pay subscription
      *  @param Generation id
      *  @param Token id
-     *  @param Amount user wish to pay, used only in 1st generation
-     *  @param Address of supported stablecoin
+     *  @param Amount user wish to pay, used only in 1st generation subscription contract
+     *  @param Address of supported stablecoin, unused when pay with STACK
      *  @param Whether to pay with STACK token
      *  @dev Caller must approve us to spend `price` amount of `_stablecoin` or stack token.
      */
@@ -268,6 +271,10 @@ contract Subscription is Ownable, ReentrancyGuard {
         uint256 amount;
         if(_payWithStack) {
             _stablecoin = stableAcceptor.stablecoins(0);
+            // price has 18 decimals, convert to stablecoin decimals
+            _price = _price * 
+                10 ** IDecimals(address(_stablecoin)).decimals() /
+                PRICE_PRECISION;
             // get stack amount we need to sell to get `price` amount of usd
             amount = exchange.getAmountIn(
                 _price, 
@@ -276,7 +283,14 @@ contract Subscription is Ownable, ReentrancyGuard {
             );
             stackToken.transferFrom(msg.sender, address(this), amount);
         } else {
-            require(_stablecoin.transferFrom(msg.sender, address(this), _price), "USD: transfer failed");
+            // price has 18 decimals, convert to stablecoin decimals
+            _price = _price * 
+                10 ** IDecimals(address(_stablecoin)).decimals() /
+                PRICE_PRECISION;
+            require(
+                _stablecoin.transferFrom(msg.sender, address(this), _price), 
+                "USD: transfer failed"
+            );
             _stablecoin.approve(address(exchange), _price);
             amount = exchange.swapExactTokensForTokens(
                 _price, 
@@ -538,9 +552,21 @@ contract Subscription is Ownable, ReentrancyGuard {
 
         if (allocationStatus == withdrawStatus.purchase) {
 
-            uint256 amountToConvert = IStackOsNFTBasic(
+            IStackOsNFTBasic stack = IStackOsNFTBasic(
                 address(generations.get(purchaseGenerationId))
-            ).getFromRewardsPrice(amountToMint, address(_stablecoin));
+            );
+
+            uint256 amountToConvert = (
+                    (stack.mintPrice() * (10000 - stack.rewardDiscount()) / 10000)
+                ) * 
+                amountToMint * 10**IDecimals(address(_stablecoin)).decimals() /
+                stack.PRICE_PRECISION();
+
+            amountToConvert = exchange.getAmountIn(
+                amountToConvert, 
+                IERC20(_stablecoin), 
+                stackToken
+            );
 
             require(amountWithdraw > amountToConvert, "Not enough earnings");
 

@@ -5,7 +5,6 @@ import "./IStackOsNFT.sol";
 
 interface IStackOsNFTBasic is IStackOsNFT {
 
-
     function setName(
         string memory name_
     ) external;
@@ -25,14 +24,13 @@ interface IStackOsNFTBasic is IStackOsNFT {
         address _stablecoin,
         address _to
     ) external returns (uint256);
-    
 
-    function getFromRewardsPrice(uint256 _nftAmount, address _stablecoin)
+    function mintPrice()
         external
         view
         returns (uint256);
 
-    function price()
+    function PRICE_PRECISION()
         external
         view
         returns (uint256);

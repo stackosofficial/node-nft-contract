@@ -1,6 +1,6 @@
 const { ethers } = require("hardhat");
 const { use, expect } = require("chai");
-const { parseEther } = require("@ethersproject/units");
+const { parseEther, parseUnits } = require("@ethersproject/units");
 const { print, setup } = require("./utils");
 
 describe("DarkMatter doesn't corrupt Subscription logic", function () {
@@ -36,8 +36,8 @@ describe("DarkMatter doesn't corrupt Subscription logic", function () {
 
     await router.addLiquidityETH(
       usdt.address,
-      parseEther("43637.0"),
-      parseEther("43637.0"),
+      parseUnits("43637", await usdt.decimals()),
+      parseUnits("43637", await usdt.decimals()),
       parseEther("10.0"),
       joe.address,
       deadline,
@@ -46,8 +46,8 @@ describe("DarkMatter doesn't corrupt Subscription logic", function () {
 
     await router.addLiquidityETH(
       dai.address,
-      parseEther("43637.0"),
-      parseEther("43637.0"),
+      parseUnits("43637", await dai.decimals()),
+      parseUnits("43637", await dai.decimals()),
       parseEther("10.0"),
       joe.address,
       deadline,

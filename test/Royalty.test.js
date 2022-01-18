@@ -1,6 +1,6 @@
 const { ethers } = require("hardhat");
 const { use, expect } = require("chai");
-const { parseEther } = require("@ethersproject/units");
+const { parseEther, parseUnits } = require("@ethersproject/units");
 const { deployStackOS, setup, print, deployStackOSBasic, setupDeployment } = require("./utils");
 
 describe("Royalty", function () {
@@ -57,8 +57,8 @@ describe("Royalty", function () {
       .connect(pepe)
       .addLiquidityETH(
         usdt.address,
-        parseEther("100000.0"),
-        parseEther("100000.0"),
+        parseUnits("100000", await usdt.decimals()),
+        parseUnits("100000", await usdt.decimals()),
         parseEther("100.0"),
         pepe.address,
         deadline,
