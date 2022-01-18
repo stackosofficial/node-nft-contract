@@ -9,6 +9,11 @@ import "./StackOsNFTBasic.sol";
 contract GenerationManager is Ownable, ReentrancyGuard {
     using Strings for uint256;
 
+    event NextGenerationDeploy(
+        address StackNFT, 
+        address deployer, 
+        uint256 deployTimestamp
+    );
     event AdjustAddressSettings(
         address _stableAcceptor,
         address _exchange,
@@ -182,6 +187,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         stack.whitelist(address(deployment.darkMatter));
         stack.whitelist(address(deployment.market));
         stack.transferOwnership(Ownable(msg.sender).owner());
+        emit NextGenerationDeploy(address(stack), msg.sender, block.timestamp);
         return IStackOsNFTBasic(address(stack));
     }
 
@@ -251,6 +257,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         stack.whitelist(address(deployment.darkMatter));
         stack.whitelist(address(deployment.market));
         stack.transferOwnership(msg.sender);
+        emit NextGenerationDeploy(address(stack), msg.sender, block.timestamp);
         return IStackOsNFTBasic(address(stack));
     }
 
