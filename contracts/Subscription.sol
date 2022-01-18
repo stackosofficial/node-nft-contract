@@ -22,6 +22,40 @@ contract Subscription is Ownable, ReentrancyGuard {
     event SetTaxReductionAmount(uint256 _amount);
     event SetForgivenessPeriod(uint256 _seconds);
 
+    event Subscribe(
+        address subscriberWallet,
+        uint256 blockTimestamp,
+        uint256 generationId,
+        uint256 tokenId,
+        uint256 _price,
+        IERC20 _stablecoin,
+        bool _payWithStack
+    );
+
+    event WithdrawRewards(
+        address subscriberWallet,
+        uint256 amountWithdrawn,
+        uint256 generationId, 
+        uint256[] tokenIds,
+        uint256[] periodIds
+    );
+
+    event PurchaseNewNft(
+        address subscriberWallet,
+        uint256 generationId,
+        uint256 tokenId,
+        uint256 purchaseGenerationId,
+        uint256 amountToMint,
+        IERC20 _stablecoin
+    );
+
+    event Withdraw(
+        address subscriberWallet,
+        uint256 generationId,
+        uint256 tokenId,
+        uint256 amountToMint
+    );
+
     IERC20 internal immutable stackToken;
     GenerationManager internal immutable generations;
     DarkMatter internal immutable darkMatter;
@@ -310,6 +344,15 @@ contract Subscription is Ownable, ReentrancyGuard {
             releasePeriod: dripPeriod, 
             lockedAmount: bonusAmount
         }));
+        emit Subscribe(
+            msg.sender,
+            block.timestamp,
+            generationId,
+            tokenId,
+            _price,
+            _stablecoin,
+            _payWithStack
+        );
     }
 
     /*
@@ -390,6 +433,14 @@ contract Subscription is Ownable, ReentrancyGuard {
             }
         }
         stackToken.transfer(msg.sender, toWithdraw);
+
+        emit WithdrawRewards(
+            msg.sender,
+            toWithdraw,
+            generationId, 
+            tokenIds,
+            periodIds
+        );
     }
 
     /*
@@ -438,7 +489,6 @@ contract Subscription is Ownable, ReentrancyGuard {
             if(deposit.bonuses[i - 1].lockedAmount > 0) break;
             deposit.bonuses.pop();
         }
-
     }
 
     /*
@@ -586,9 +636,25 @@ contract Subscription is Ownable, ReentrancyGuard {
             // Add rest back to pending rewards
             amountWithdraw -= amountToConvert;
             bonusDripped[generationId][tokenId] = amountWithdraw;
+
+            emit PurchaseNewNft(
+                msg.sender,
+                generationId,
+                tokenId,
+                purchaseGenerationId,
+                amountToMint,
+                _stablecoin
+            );
         } else {
             stackToken.transfer(msg.sender, amountWithdraw);
             deposit.tax = HUNDRED_PERCENT;
+
+            emit Withdraw(
+                msg.sender,
+                generationId,
+                tokenId,
+                amountToMint
+            );
         }
     }
 
