@@ -46,15 +46,15 @@ contract Subscription is Ownable, ReentrancyGuard {
     }
 
     struct Period {
-        uint256 balance;
-        uint256 subsNum;
-        uint256 endAt;
-        mapping(uint256 => mapping(uint256 => PeriodTokenData)) tokenData; 
+        uint256 balance; // total fees collected from mint
+        uint256 subsNum; // total subscribed tokens during this period
+        uint256 endAt;   // when period ended, then subs can claim reward
+        mapping(uint256 => mapping(uint256 => PeriodTokenData)) tokenData; // tokens related data, see struct 
     }
 
     struct PeriodTokenData {
-        bool isSub;
-        uint256 withdrawn;
+        bool isSub;         // whether token is subscribed during period
+        uint256 withdrawn;  // this is probably unchanged once written, and is equal to token's share in period
     }
 
     struct Bonus {
