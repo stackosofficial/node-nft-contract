@@ -354,122 +354,29 @@ async function main() {
   console.log("Verification started, please wait for a minute!");
   await delay(46000);
 
-  try {
-    await hre.run("verify:verify", {
-      address: stableAcceptor.address,
-      constructorArguments: [STABLES],
-    });
-  } catch (error) {
-    console.log(error)
-  }
-  try {
-    await hre.run("verify:verify", {
-      address: exchange.address,
-      constructorArguments: [ROUTER_ADDRESS],
-    });
-  } catch (error) {
-    console.log(error)
-  }
-  try {
-    await hre.run("verify:verify", {
-      address: generationManager.address,
-      constructorArguments: [],
-    });
-  } catch (error) {
-    console.log(error)
-  }
-  try {
-    await hre.run("verify:verify", {
-      address: darkMatter.address,
-      constructorArguments: [
-        generationManager.address,
-        DARK_MATTER_PRICE
-      ],
-    });
-  } catch (error) {
-    console.log(error)
-  }
-  try {
-    await hre.run("verify:verify", {
-      address: marketImplementaionAddress,
-      constructorArguments: [ ],
-    });
-  } catch (error) {
-    console.log(error)
-  }
-  try {
-    await hre.run("verify:verify", {
-      address: subscription.address,
-      constructorArguments: [
-        STACK_TOKEN,
-        generationManager.address,
-        darkMatter.address,
-        stableAcceptor.address,
-        exchange.address,
-        TAX_ADDRESS,
-        FORGIVENESS_PERIOD,
-        SUBSCRIPTION_PRICE,
-        BONUS_PECENT,
-        TAX_REDUCTION_AMOUNT
-      ],
-    });
-  } catch (error) {
-    console.log(error)
-  }
-  try {
-    await hre.run("verify:verify", {
-      address: sub0.address,
-      constructorArguments: [
-        STACK_TOKEN,
-        generationManager.address,
-        darkMatter.address,
-        stableAcceptor.address,
-        exchange.address,
-        TAX_ADDRESS_2,
-        FORGIVENESS_PERIOD_2,
-        SUBSCRIPTION_PRICE_2,
-        BONUS_PECENT_2,
-        TAX_REDUCTION_AMOUNT_2
-      ],
-    });
-  } catch (error) {
-    console.log(error)
-  }
-  try {
-    await hre.run("verify:verify", {
-      address: stackOsNFT.address,
-      constructorArguments: [
-        NAME,
-        SYMBOL,
-        VRF_COORDINATOR,
-        LINK_TOKEN,
-        PRICE,
-        MAX_SUPPLY,
-        PRIZES,
-        AUCTIONED_NFTS,
-        KEY_HASH,
-        TIMELOCK,
-        royalty.address
-      ],
-    });
-  } catch (error) {
-    console.log(error)
-  }
-  try {
-    await hre.run("verify:verify", {
-      address: royalty.address,
-      constructorArguments: [
-        generationManager.address,
-        darkMatter.address,
-        exchange.address,
-        DEPOSIT_FEE_ADDRESS,
-        MIN_CYCLE_ETHER
-      ],
-    });
-  } catch (error) {
-    console.log(error)
-  }
+  let deployedContracts = [
+    stableAcceptor,
+    exchange,
+    generationManager,
+    darkMatter,
+    marketImplementaion,
+    subscription,
+    sub0,
+    royalty,
+    stackOsNFT
+  ];
 
+  for (let i = 0; i < deployedContracts.length; i++) {
+    try {
+      const contract = deployedContracts[i];
+      await hre.run("verify:verify", {
+        address: contract.address,
+        constructorArguments: contract.constructorArgs,
+      });
+    } catch (error) {
+      console.log(error)
+    }
+  }
 }
 
 main().catch((error) => {

@@ -15,6 +15,21 @@
       "address": "0xB14BC9f8af9b5C0f20E936b1B449996E0A70bD39",
       "txHash": "0x833807b131b47912dc6b16727a9c557a0dd09c433c47b67d5c9c26150930ef0e",
       "kind": "uups"
+    },
+    {
+      "address": "0xD4239eD27F0eD7F02760A6CCA7B6A45b2E0Ff53d",
+      "txHash": "0x9cdef835ece7f4040e79c8e5376feb5f4095ffcde3f814074b91bc6de192d951",
+      "kind": "uups"
+    },
+    {
+      "address": "0xF44f30A815f42dFa5dbEbf8F20bfe5b071CFc189",
+      "txHash": "0xbd38183a9aad4fda44a7cfa091b7e9de3932d7613685895faec7047893b1bf33",
+      "kind": "uups"
+    },
+    {
+      "address": "0xf4BB579d594E43bB5d2D6f0d50E9904C9C901C3D",
+      "txHash": "0x5825a76d512f98e702159a9269e87cdc7407784f88e78ef47bee535d0c447b2e",
+      "kind": "uups"
     }
   ],
   "impls": {
@@ -170,6 +185,186 @@
             "label": "mapping(uint256 => struct Market.DarkMatterLot)"
           },
           "t_struct(DarkMatterLot)6987_storage": {
+            "label": "struct Market.DarkMatterLot",
+            "members": [
+              {
+                "label": "price",
+                "type": "t_uint256"
+              },
+              {
+                "label": "tokenId",
+                "type": "t_uint256"
+              },
+              {
+                "label": "seller",
+                "type": "t_address"
+              }
+            ]
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]"
+          },
+          "t_bool": {
+            "label": "bool"
+          }
+        }
+      }
+    },
+    "6be368bbcf09d9a862eb6424f957cf0867e242ab3fe54da22caa6e3d2f695ebb": {
+      "address": "0xF1A2E3e8dd52dA31A703542061e55C121CFC4112",
+      "txHash": "0x0ef1b887b3400e2afbb0ea111866c0aedb22cdd4d3fad71981ad0ad0bfc653a1",
+      "layout": {
+        "storage": [
+          {
+            "contract": "Initializable",
+            "label": "_initialized",
+            "type": "t_bool",
+            "src": "@openzeppelin\\contracts-upgradeable\\proxy\\utils\\Initializable.sol:37"
+          },
+          {
+            "contract": "Initializable",
+            "label": "_initializing",
+            "type": "t_bool",
+            "src": "@openzeppelin\\contracts-upgradeable\\proxy\\utils\\Initializable.sol:42"
+          },
+          {
+            "contract": "ContextUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "@openzeppelin\\contracts-upgradeable\\utils\\ContextUpgradeable.sol:31"
+          },
+          {
+            "contract": "OwnableUpgradeable",
+            "label": "_owner",
+            "type": "t_address",
+            "src": "@openzeppelin\\contracts-upgradeable\\access\\OwnableUpgradeable.sol:22"
+          },
+          {
+            "contract": "OwnableUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)49_storage",
+            "src": "@openzeppelin\\contracts-upgradeable\\access\\OwnableUpgradeable.sol:82"
+          },
+          {
+            "contract": "ReentrancyGuardUpgradeable",
+            "label": "_status",
+            "type": "t_uint256",
+            "src": "@openzeppelin\\contracts-upgradeable\\security\\ReentrancyGuardUpgradeable.sol:38"
+          },
+          {
+            "contract": "ReentrancyGuardUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)49_storage",
+            "src": "@openzeppelin\\contracts-upgradeable\\security\\ReentrancyGuardUpgradeable.sol:68"
+          },
+          {
+            "contract": "ERC1967UpgradeUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "@openzeppelin\\contracts-upgradeable\\proxy\\ERC1967\\ERC1967UpgradeUpgradeable.sol:215"
+          },
+          {
+            "contract": "UUPSUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "@openzeppelin\\contracts-upgradeable\\proxy\\utils\\UUPSUpgradeable.sol:81"
+          },
+          {
+            "contract": "Market",
+            "label": "darkMatter",
+            "type": "t_contract(DarkMatter)5061",
+            "src": "contracts\\Market.sol:43"
+          },
+          {
+            "contract": "Market",
+            "label": "generations",
+            "type": "t_contract(GenerationManager)6117",
+            "src": "contracts\\Market.sol:44"
+          },
+          {
+            "contract": "Market",
+            "label": "daoAddress",
+            "type": "t_address",
+            "src": "contracts\\Market.sol:46"
+          },
+          {
+            "contract": "Market",
+            "label": "royaltyAddress",
+            "type": "t_address",
+            "src": "contracts\\Market.sol:47"
+          },
+          {
+            "contract": "Market",
+            "label": "daoFee",
+            "type": "t_uint256",
+            "src": "contracts\\Market.sol:51"
+          },
+          {
+            "contract": "Market",
+            "label": "royaltyFee",
+            "type": "t_uint256",
+            "src": "contracts\\Market.sol:52"
+          },
+          {
+            "contract": "Market",
+            "label": "stackToLot",
+            "type": "t_mapping(t_uint256,t_mapping(t_uint256,t_struct(StackLot)6204_storage))",
+            "src": "contracts\\Market.sol:67"
+          },
+          {
+            "contract": "Market",
+            "label": "darkMatterToLot",
+            "type": "t_mapping(t_uint256,t_struct(DarkMatterLot)6211_storage)",
+            "src": "contracts\\Market.sol:68"
+          }
+        ],
+        "types": {
+          "t_contract(DarkMatter)5061": {
+            "label": "contract DarkMatter"
+          },
+          "t_contract(GenerationManager)6117": {
+            "label": "contract GenerationManager"
+          },
+          "t_address": {
+            "label": "address"
+          },
+          "t_uint256": {
+            "label": "uint256"
+          },
+          "t_mapping(t_uint256,t_mapping(t_uint256,t_struct(StackLot)6204_storage))": {
+            "label": "mapping(uint256 => mapping(uint256 => struct Market.StackLot))"
+          },
+          "t_mapping(t_uint256,t_struct(StackLot)6204_storage)": {
+            "label": "mapping(uint256 => struct Market.StackLot)"
+          },
+          "t_struct(StackLot)6204_storage": {
+            "label": "struct Market.StackLot",
+            "members": [
+              {
+                "label": "price",
+                "type": "t_uint256"
+              },
+              {
+                "label": "generationId",
+                "type": "t_uint256"
+              },
+              {
+                "label": "tokenId",
+                "type": "t_uint256"
+              },
+              {
+                "label": "seller",
+                "type": "t_address"
+              }
+            ]
+          },
+          "t_mapping(t_uint256,t_struct(DarkMatterLot)6211_storage)": {
+            "label": "mapping(uint256 => struct Market.DarkMatterLot)"
+          },
+          "t_struct(DarkMatterLot)6211_storage": {
             "label": "struct Market.DarkMatterLot",
             "members": [
               {
