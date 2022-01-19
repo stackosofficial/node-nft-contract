@@ -138,6 +138,7 @@ describe("Active subs reward", function () {
     await expect(() => sub0.withdraw2(0, [0], [2]))
       .to.changeTokenBalance(stackToken, owner, "14573531838246132");
     await provider.send("evm_increaseTime", [MONTH]); // enter 4 period, should be able to withdraw for 2
+    expect(await sub0.pendingReward(0, [1], [2])).to.be.equal("14573531838246132");
     await expect(() => sub0.connect(joe).withdraw2(0, [1], [2]))
       .to.changeTokenBalance(stackToken, joe, "14573531838246132");
   });

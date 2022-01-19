@@ -663,7 +663,7 @@ contract Subscription is Ownable, ReentrancyGuard {
      * @returns Locked amount of bonuses
      */
     function pendingBonus(uint256 _generationId, uint256 _tokenId)
-        public
+        external
         view
         returns (uint256 withdrawable, uint256 locked)
     {
@@ -687,7 +687,46 @@ contract Subscription is Ownable, ReentrancyGuard {
 
         withdrawable = totalPending + bonusDripped[_generationId][_tokenId];
     }
-    
+
+    /*
+     *  @title Get active subs pending reward
+     *  @param Generation id
+     *  @param Token ids
+     *  @param Period ids
+     *  @dev Unsubscribed tokens in period are ignored
+     *  @dev Period ids that are bigger than `currentPeriodId` are ignored
+     */
+    function pendingReward(
+        uint256 generationId, 
+        uint256[] calldata tokenIds,
+        uint256[] calldata periodIds
+    )
+        external
+        view
+        returns(uint256 withdrawableAmount)
+    {
+        uint256 _currentPeriodId = currentPeriodId;
+        if (periods[_currentPeriodId].endAt < block.timestamp) {
+            _currentPeriodId += 1;
+        }
+
+        uint256 toWithdraw;
+        for (uint256 i; i < tokenIds.length; i++) {
+            uint256 tokenId = tokenIds[i];
+
+            for (uint256 o; o < periodIds.length; o++) {
+                if(periodIds[o] >= currentPeriodId) continue;
+                Period storage period = periods[periodIds[o]];
+                if(period.subsNum == 0) continue;
+                if(!period.tokenData[generationId][tokenId].isSub) continue;
+                        
+                uint256 share = period.balance / period.subsNum;
+                toWithdraw += (share - period.tokenData[generationId][tokenId].withdrawn);
+            }
+        }
+        return toWithdraw;
+    }
+
     /*
      *  @title Subtract function, on underflow returns zero.
      */
