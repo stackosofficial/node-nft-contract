@@ -314,7 +314,10 @@ describe("Subscription (generations above 1st)", function () {
       (await stackToken.balanceOf(owner.address))
     );
     oldpendingBonus = await subscription.pendingBonus(1, 5);
-    print("gen 1 token 5 pending bonus: ", oldpendingBonus.withdrawable,  oldpendingBonus.locked);
+    print("gen 1 token 5 pending bonus: ", 
+      oldpendingBonus.withdrawable,  
+      oldpendingBonus.locked,
+    );
 
     await subscription.withdraw(1, [5]);
 
@@ -360,7 +363,12 @@ describe("Subscription (generations above 1st)", function () {
     await provider.send("evm_mine"); 
 
     oldpendingBonus = await subscription.pendingBonus(2, 1);
-    print("gen 2 token 1 pending bonus: ", oldpendingBonus.withdrawable,  oldpendingBonus.locked);
+    print("gen 2 token 1 pending bonus: ", 
+      oldpendingBonus.withdrawable, 
+      oldpendingBonus.locked,
+      // oldpendingBonus.fullRelease
+    );
+    
     await subscription.withdraw(2, [1]);
 
     await provider.send("evm_increaseTime", [dripPeriod / 2]); 

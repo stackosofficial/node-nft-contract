@@ -661,17 +661,20 @@ contract Subscription is Ownable, ReentrancyGuard {
      * @param Token id
      * @returns Withdrawable amount of bonuses
      * @returns Locked amount of bonuses
+     * @returns Array contains seconds needed to fully release locked amount (so this is per bonus array)
      */
     function pendingBonus(uint256 _generationId, uint256 _tokenId)
         external
         view
-        returns (uint256 withdrawable, uint256 locked)
+        returns (uint256 withdrawable, uint256 locked, uint256[] memory fullRelease)
     {
         Deposit memory deposit = deposits[_generationId][_tokenId];
 
-        uint256 totalPending;
+        uint256 totalPending; 
+        uint256 len = deposit.bonuses.length;
+        fullRelease = new uint256[](len);
 
-        for (uint256 i; i < deposit.bonuses.length; i++) {
+        for (uint256 i; i < len; i++) {
             Bonus memory bonus = deposit.bonuses[i];
 
             uint256 amount = 
@@ -683,6 +686,9 @@ contract Subscription is Ownable, ReentrancyGuard {
             totalPending += amount;
             bonus.lockedAmount -= amount;
             locked += bonus.lockedAmount;
+
+            fullRelease[i] = 
+                (bonus.releasePeriod) * bonus.lockedAmount / bonus.total;
         }
 
         withdrawable = totalPending + bonusDripped[_generationId][_tokenId];
