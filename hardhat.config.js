@@ -5,6 +5,7 @@ require("@nomiclabs/hardhat-waffle");
 require("hardhat-gas-reporter");
 require("solidity-coverage");
 require('@openzeppelin/hardhat-upgrades');
+require('hardhat-contract-sizer');
 
 extendEnvironment((hre) => {
   // save deployment args in runtime, to simplify verification in deploy.js

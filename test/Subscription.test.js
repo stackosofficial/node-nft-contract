@@ -302,7 +302,7 @@ describe("Subscription (generations above 1st)", function () {
     print("owner: ", (await stackToken.balanceOf(owner.address)));
   });
 
-  it("Withdraw remaining reward", async function () {
+  it("Withdraw remaining bonus", async function () {
     // clear owner balance for simplicity
     await stackToken.transfer(
       subscription.address,
@@ -313,8 +313,8 @@ describe("Subscription (generations above 1st)", function () {
       "owner: ",
       (await stackToken.balanceOf(owner.address))
     );
-    oldPendingReward = await subscription.pendingReward(1, 5);
-    print("gen 0 token 5 pending reward: ", await subscription.pendingReward(1, 5));
+    oldpendingBonus = await subscription.pendingBonus(1, 5);
+    print("gen 1 token 5 pending bonus: ", oldpendingBonus.withdrawable,  oldpendingBonus.locked);
 
     await subscription.withdraw(1, [5]);
 
@@ -322,10 +322,15 @@ describe("Subscription (generations above 1st)", function () {
       "owner: ",
       (await stackToken.balanceOf(owner.address))
     );
-    print("gen 0 token 5 pending reward: ", await subscription.pendingReward(1, 5));
+    print("gen 1 token 5 pending bonus: ", 
+      (await subscription.pendingBonus(1, 5)).withdrawable,
+      (await subscription.pendingBonus(1, 5)).locked
+    );
     print("reward amount: ", (await subscription.deposits(1, 5)).reward);
 
-    expect(oldPendingReward).to.be.equal(await stackToken.balanceOf(owner.address));
+    expect(oldpendingBonus.withdrawable).to.be.equal(
+      await stackToken.balanceOf(owner.address)
+    );
   })
 
   it("mint 1 token", async function () {
@@ -354,8 +359,8 @@ describe("Subscription (generations above 1st)", function () {
     await provider.send("evm_increaseTime", [dripPeriod / 2]); 
     await provider.send("evm_mine"); 
 
-    oldPendingReward = await subscription.pendingReward(2, 1);
-    print("gen 0 token 5 pending reward: ", oldPendingReward);
+    oldpendingBonus = await subscription.pendingBonus(2, 1);
+    print("gen 2 token 1 pending bonus: ", oldpendingBonus.withdrawable,  oldpendingBonus.locked);
     await subscription.withdraw(2, [1]);
 
     await provider.send("evm_increaseTime", [dripPeriod / 2]); 
@@ -364,8 +369,13 @@ describe("Subscription (generations above 1st)", function () {
     await subscription.withdraw(2, [1]);
 
     print("owner: ", await stackToken.balanceOf(owner.address));
-    print("gen 0 token 5 pending reward: ", await subscription.pendingReward(2, 1));
-    expect(await subscription.pendingReward(2, 1)).to.be.equal(0);
+    print("gen 2 token 1 pending bonus: ", 
+      (await subscription.pendingBonus(2, 1)).withdrawable,
+      (await subscription.pendingBonus(2, 1)).locked
+    );
+    expect(
+      (await subscription.pendingBonus(2, 1)).withdrawable
+    ).to.be.equal(0);
   })
 
   it("Subscribe with STACK", async function () {

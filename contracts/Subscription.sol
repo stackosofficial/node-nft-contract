@@ -606,9 +606,8 @@ contract Subscription is Ownable, ReentrancyGuard {
                 address(generations.get(purchaseGenerationId))
             );
 
-            uint256 amountToConvert = (
-                    (stack.mintPrice() * (10000 - stack.rewardDiscount()) / 10000)
-                ) * 
+            uint256 amountToConvert = 
+                (stack.mintPrice() * (10000 - stack.rewardDiscount()) / 10000) * 
                 amountToMint * 10**IDecimals(address(_stablecoin)).decimals() /
                 stack.PRICE_PRECISION();
 
@@ -625,9 +624,7 @@ contract Subscription is Ownable, ReentrancyGuard {
                 amountToConvert
             );
 
-            IStackOsNFTBasic(
-                address(generations.get(purchaseGenerationId))
-            ).mintFromSubscriptionRewards(
+            stack.mintFromSubscriptionRewards(
                 amountToMint, 
                 amountToConvert, 
                 msg.sender
@@ -659,15 +656,16 @@ contract Subscription is Ownable, ReentrancyGuard {
     }
 
    /*
-     * @title Get pending reward amount
+     * @title Get pending bonus amount and locked amount
      * @param StackNFT generation id
      * @param Token id
-     * @dev Doesn't account deposit amount, only bonuses
+     * @returns Withdrawable amount of bonuses
+     * @returns Locked amount of bonuses
      */
-    function pendingReward(uint256 _generationId, uint256 _tokenId)
+    function pendingBonus(uint256 _generationId, uint256 _tokenId)
         public
         view
-        returns (uint256)
+        returns (uint256 withdrawable, uint256 locked)
     {
         Deposit memory deposit = deposits[_generationId][_tokenId];
 
@@ -683,9 +681,11 @@ contract Subscription is Ownable, ReentrancyGuard {
             if (amount > bonus.lockedAmount)
                 amount = bonus.lockedAmount;
             totalPending += amount;
+            bonus.lockedAmount -= amount;
+            locked += bonus.lockedAmount;
         }
 
-        return totalPending + bonusDripped[_generationId][_tokenId];
+        withdrawable = totalPending + bonusDripped[_generationId][_tokenId];
     }
     
     /*
