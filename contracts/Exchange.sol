@@ -17,7 +17,7 @@ contract Exchange {
      */
     function swapExactETHForTokens(
         IERC20 token
-    ) public payable returns (uint256) {
+    ) public payable returns (uint256 amountReceived) {
         uint256 deadline = block.timestamp + 1200;
         address[] memory path = new address[](2);
         path[0] = address(router.WETH());
@@ -43,7 +43,7 @@ contract Exchange {
         uint256 amountA, 
         IERC20 tokenA, 
         IERC20 tokenB
-    ) public returns (uint256) {
+    ) public returns (uint256 amountReceivedTokenB) {
 
         tokenA.transferFrom(msg.sender, address(this), amountA);
         tokenA.approve(address(router), amountA);
@@ -72,7 +72,7 @@ contract Exchange {
         uint256 amountOut, 
         IERC20 tokenOut, 
         IERC20 tokenIn
-    ) public view returns (uint256) {
+    ) public view returns (uint256 amountIn) {
         address[] memory path = new address[](3);
         path[0] = address(tokenIn);
         path[1] = address(router.WETH());

@@ -5,7 +5,17 @@ require("@nomiclabs/hardhat-waffle");
 require("hardhat-gas-reporter");
 require("solidity-coverage");
 require('@openzeppelin/hardhat-upgrades');
+require('hardhat-contract-sizer');
 
+extendEnvironment((hre) => {
+  // save deployment args in runtime, to simplify verification in deploy.js
+  let oldDeploy = hre.ethers.ContractFactory.prototype.deploy;
+  hre.ethers.ContractFactory.prototype.deploy = async function (...args) {
+    let contract = await oldDeploy.call(this, ...args);
+    contract.constructorArgs = args;
+    return contract;
+  }
+});
 
 /**
  * @type import('hardhat/config').HardhatUserConfig

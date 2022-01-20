@@ -1,7 +1,7 @@
 const { ethers } = require("hardhat");
 const { use, expect } = require("chai");
 const { print, setup, deployStackOS, setupLiquidity, deployStackOSBasic, setupDeployment } = require("./utils");
-const { parseEther } = require("ethers/lib/utils");
+const { parseEther, parseUnits } = require("ethers/lib/utils");
 
 describe("DarkMatter doesn't corrupt Royalty contract logic", function () {
   it("Snapshot EVM", async function () {

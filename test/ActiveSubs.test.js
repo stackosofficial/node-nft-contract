@@ -1,6 +1,6 @@
 const { ethers } = require("hardhat");
 const { expect } = require("chai");
-const { parseEther, formatEther } = require("@ethersproject/units");
+const { parseEther, formatEther, parseUnits } = require("@ethersproject/units");
 const { deployStackOS, setup, deployStackOSBasic, print, setupDeployment } = require("./utils");
 
 describe("Active subs reward", function () {
@@ -38,8 +38,10 @@ describe("Active subs reward", function () {
 
     await router.addLiquidityETH(
       usdt.address,
-      parseEther("43637.0"),
-      parseEther("43637.0"),
+      // parseEther("43637.0"),
+      // parseEther("43637.0"),
+      parseUnits("43637", await usdt.decimals()),
+      parseUnits("43637", await usdt.decimals()),
       parseEther("10.0"),
       joe.address,
       deadline,
@@ -48,8 +50,10 @@ describe("Active subs reward", function () {
 
     await router.addLiquidityETH(
       usdc.address,
-      parseEther("43637.0"),
-      parseEther("43637.0"),
+      // parseEther("43637.0"),
+      // parseEther("43637.0"),
+      parseUnits("43637", await usdc.decimals()),
+      parseUnits("43637", await usdc.decimals()),
       parseEther("10.0"),
       joe.address,
       deadline,
@@ -105,11 +109,11 @@ describe("Active subs reward", function () {
     await stackOsNFTBasic.mint(1, usdc.address); // send mint fee
     print("owner stack:", await stackToken.balanceOf(owner.address));
     await expect(() => sub0.withdraw2(0, [0], [1])) // 1 claimer receives all
-      .to.changeTokenBalance(stackToken, owner, "29847062325441287");
+      .to.changeTokenBalance(stackToken, owner, "29847062322930047");
 
     await stackOsNFTBasic.mint(1, usdc.address); // send mint fee
     await expect(() => sub0.withdraw2(0, [0], [1])) // again 1 claimer
-      .to.changeTokenBalance(stackToken, owner, "29846566704406135");
+      .to.changeTokenBalance(stackToken, owner, "29846566701894951");
     await expect(() => sub0.withdraw2(0, [0], [1])) // claim 0 as no fees
       .to.changeTokenBalance(stackToken, owner, "0");
     print("owner stack:", await stackToken.balanceOf(owner.address));
@@ -132,10 +136,11 @@ describe("Active subs reward", function () {
     await provider.send("evm_increaseTime", [MONTH]);
     await stackOsNFTBasic.mint(1, usdc.address); // send fee
     await expect(() => sub0.withdraw2(0, [0], [2]))
-      .to.changeTokenBalance(stackToken, owner, "14573531839446835");
+      .to.changeTokenBalance(stackToken, owner, "14573531838246132");
     await provider.send("evm_increaseTime", [MONTH]); // enter 4 period, should be able to withdraw for 2
+    expect(await sub0.pendingReward(0, [1], [2])).to.be.equal("14573531838246132");
     await expect(() => sub0.connect(joe).withdraw2(0, [1], [2]))
-      .to.changeTokenBalance(stackToken, joe, "14573531839446835");
+      .to.changeTokenBalance(stackToken, joe, "14573531838246132");
   });
   it("Unable to withdraw foreign reward", async function () {
     await expect(sub0.withdraw2(0, [1], [2])).to.be.revertedWith(

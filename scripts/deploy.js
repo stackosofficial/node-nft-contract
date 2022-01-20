@@ -12,9 +12,10 @@ async function main() {
 
   // This address will be owner of all contracts plus market proxy owner
   // Leave empty if you want the deployer to be owner, you will be able to transfer ownership later
-  OWNERSHIP = ""; // Example: "0xeb2198ba8047B20aC84fBfB78af33f5A9690F674"
+  OWNERSHIP = "";
 
   // Stablecoins supported by the protocol
+  // Make sure first address has the most liquidity, as it is used by default in some places
   STABLES = [
     "0xeb8f08a975Ab53E34D8a0330E0D34de942C95926"
   ]
@@ -29,7 +30,7 @@ async function main() {
   ROUTER_ADDRESS = "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D";
   // Address to receive tax of early withdraw subscription
   TAX_ADDRESS = "0xF90fF6d484331399f4eAa13f73D03b8B18eA1373";
-  // Subscription price in USD
+  // Subscription price in USD, should be 18 decimals!
   SUBSCRIPTION_PRICE = parseEther("100.0");
   // Subscription bonus percent
   BONUS_PECENT = 2000;
@@ -43,9 +44,9 @@ async function main() {
 
   // Address to receive tax of early withdraw subscription
   TAX_ADDRESS_2 = "0xF90fF6d484331399f4eAa13f73D03b8B18eA1373";
-  // Subscription min price in USD
+  // Subscription min price in USD, should be 18 decimals!
   SUBSCRIPTION_PRICE_2 = parseEther("100.0");
-  // Subscription max price in USD
+  // Subscription max price in USD, should be 18 decimals!
   SUBSCRIPTION_MAX_PRICE_2 = parseEther("100.0");
   // Subscription bonus percent
   BONUS_PECENT_2 = 2000;
@@ -119,7 +120,7 @@ async function main() {
   NAME_2 = "STACK OS NFT";
   // Token symbol
   SYMBOL_2 = "STACK NFT";
-  // Mint price in USD
+  // Mint price in USD, should be 18 decimals!
   PRICE_2 = parseEther("100");
   // Mint fee percent for active subs
   SUBS_FEE_2 = 2000;
@@ -353,122 +354,29 @@ async function main() {
   console.log("Verification started, please wait for a minute!");
   await delay(46000);
 
-  try {
-    await hre.run("verify:verify", {
-      address: stableAcceptor.address,
-      constructorArguments: [STABLES],
-    });
-  } catch (error) {
-    console.log(error)
-  }
-  try {
-    await hre.run("verify:verify", {
-      address: exchange.address,
-      constructorArguments: [ROUTER_ADDRESS],
-    });
-  } catch (error) {
-    console.log(error)
-  }
-  try {
-    await hre.run("verify:verify", {
-      address: generationManager.address,
-      constructorArguments: [],
-    });
-  } catch (error) {
-    console.log(error)
-  }
-  try {
-    await hre.run("verify:verify", {
-      address: darkMatter.address,
-      constructorArguments: [
-        generationManager.address,
-        DARK_MATTER_PRICE
-      ],
-    });
-  } catch (error) {
-    console.log(error)
-  }
-  try {
-    await hre.run("verify:verify", {
-      address: marketImplementaionAddress,
-      constructorArguments: [ ],
-    });
-  } catch (error) {
-    console.log(error)
-  }
-  try {
-    await hre.run("verify:verify", {
-      address: subscription.address,
-      constructorArguments: [
-        STACK_TOKEN,
-        generationManager.address,
-        darkMatter.address,
-        stableAcceptor.address,
-        exchange.address,
-        TAX_ADDRESS,
-        FORGIVENESS_PERIOD,
-        SUBSCRIPTION_PRICE,
-        BONUS_PECENT,
-        TAX_REDUCTION_AMOUNT
-      ],
-    });
-  } catch (error) {
-    console.log(error)
-  }
-  try {
-    await hre.run("verify:verify", {
-      address: sub0.address,
-      constructorArguments: [
-        STACK_TOKEN,
-        generationManager.address,
-        darkMatter.address,
-        stableAcceptor.address,
-        exchange.address,
-        TAX_ADDRESS_2,
-        FORGIVENESS_PERIOD_2,
-        SUBSCRIPTION_PRICE_2,
-        BONUS_PECENT_2,
-        TAX_REDUCTION_AMOUNT_2
-      ],
-    });
-  } catch (error) {
-    console.log(error)
-  }
-  try {
-    await hre.run("verify:verify", {
-      address: stackOsNFT.address,
-      constructorArguments: [
-        NAME,
-        SYMBOL,
-        VRF_COORDINATOR,
-        LINK_TOKEN,
-        PRICE,
-        MAX_SUPPLY,
-        PRIZES,
-        AUCTIONED_NFTS,
-        KEY_HASH,
-        TIMELOCK,
-        royalty.address
-      ],
-    });
-  } catch (error) {
-    console.log(error)
-  }
-  try {
-    await hre.run("verify:verify", {
-      address: royalty.address,
-      constructorArguments: [
-        generationManager.address,
-        darkMatter.address,
-        exchange.address,
-        DEPOSIT_FEE_ADDRESS,
-        MIN_CYCLE_ETHER
-      ],
-    });
-  } catch (error) {
-    console.log(error)
-  }
+  let deployedContracts = [
+    stableAcceptor,
+    exchange,
+    generationManager,
+    darkMatter,
+    marketImplementaion,
+    subscription,
+    sub0,
+    royalty,
+    stackOsNFT
+  ];
 
+  for (let i = 0; i < deployedContracts.length; i++) {
+    try {
+      const contract = deployedContracts[i];
+      await hre.run("verify:verify", {
+        address: contract.address,
+        constructorArguments: contract.constructorArgs,
+      });
+    } catch (error) {
+      console.log(error)
+    }
+  }
 }
 
 main().catch((error) => {

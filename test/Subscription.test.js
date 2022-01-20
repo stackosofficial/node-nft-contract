@@ -1,6 +1,6 @@
 const { ethers } = require("hardhat");
 const { use, expect } = require("chai");
-const { parseEther } = require("@ethersproject/units");
+const { parseEther, parseUnits } = require("@ethersproject/units");
 const { deployStackOSBasic, setup, print, setupDeployment } = require("./utils");
 
 describe("Subscription (generations above 1st)", function () {
@@ -40,8 +40,8 @@ describe("Subscription (generations above 1st)", function () {
 
     await router.addLiquidityETH(
       usdt.address,
-      parseEther("43637.0"),
-      parseEther("43637.0"),
+      parseUnits("43637", await usdt.decimals()),
+      parseUnits("43637", await usdt.decimals()),
       parseEther("10.0"),
       joe.address,
       deadline,
@@ -50,8 +50,8 @@ describe("Subscription (generations above 1st)", function () {
 
     await router.addLiquidityETH(
       dai.address,
-      parseEther("43637.0"),
-      parseEther("43637.0"),
+      parseUnits("43637", await dai.decimals()),
+      parseUnits("43637", await dai.decimals()),
       parseEther("10.0"),
       joe.address,
       deadline,
@@ -94,11 +94,15 @@ describe("Subscription (generations above 1st)", function () {
   });
   it("Subscribe with usdt token", async function () {
     await usdt.approve(subscription.address, parseEther("5000.0"));
+    print(await usdt.balanceOf(owner.address));
+    print(parseUnits((await usdt.balanceOf(owner.address)).toString(), 6));
     await subscription.subscribe(1, 0, parseEther("100"), usdt.address, false);
+    print(parseUnits((await usdt.balanceOf(owner.address)).toString(), 6));
+    // print(parseUnits(await usdt.balanceOf(owner.address), 6));
   });
   it("Subscribe with dai coin", async function () {
     await dai.approve(subscription.address, parseEther("5000.0"));
-    await subscription.subscribe(1, 1, parseEther("100"), dai.address, false);
+    await subscription.subscribe(1, 1, 0, dai.address, false);
   });
   it("Take TAX for early withdrawal", async function () {
     await stackOsNFTBasic.whitelist(owner.address);
@@ -108,16 +112,20 @@ describe("Subscription (generations above 1st)", function () {
     print("bob: ", await stackToken.balanceOf(bob.address));
     print("tax: ", await stackToken.balanceOf(tax.address));
     // 599 Deposit. Withdraw 150 first month tax 75%
-    expect(await stackToken.balanceOf(bob.address)).to.be.gt(parseEther("149"));
-    expect(await stackToken.balanceOf(bob.address)).to.be.lt(parseEther("150"));
+    expect(await stackToken.balanceOf(bob.address)).to.be.gt(
+      parseEther("149")
+    );
+    expect(await stackToken.balanceOf(bob.address)).to.be.lt(
+      parseEther("150")
+    );
   });
 
   it("Subscribe 3 months in a row", async function () {
     await usdt.approve(subscription.address, parseEther("5000.0"));
     await provider.send("evm_increaseTime", [MONTH]);
-    await subscription.subscribe(1, 1, parseEther("100"), usdt.address, false);
+    await subscription.subscribe(1, 1, 0, usdt.address, false);
     await provider.send("evm_increaseTime", [MONTH]);
-    await subscription.subscribe(1, 1, parseEther("100"), usdt.address, false);
+    await subscription.subscribe(1, 1, 0, usdt.address, false);
   });
   it("Unable to withdraw when low balance on bonus wallet", async function () {
     await expect(subscription.withdraw(1, [1])).to.be.revertedWith(
@@ -294,7 +302,7 @@ describe("Subscription (generations above 1st)", function () {
     print("owner: ", (await stackToken.balanceOf(owner.address)));
   });
 
-  it("Withdraw remaining reward", async function () {
+  it("Withdraw remaining bonus", async function () {
     // clear owner balance for simplicity
     await stackToken.transfer(
       subscription.address,
@@ -305,8 +313,11 @@ describe("Subscription (generations above 1st)", function () {
       "owner: ",
       (await stackToken.balanceOf(owner.address))
     );
-    oldPendingReward = await subscription.pendingReward(1, 5);
-    print("gen 0 token 5 pending reward: ", await subscription.pendingReward(1, 5));
+    oldpendingBonus = await subscription.pendingBonus(1, 5);
+    print("gen 1 token 5 pending bonus: ", 
+      oldpendingBonus.withdrawable,  
+      oldpendingBonus.locked,
+    );
 
     await subscription.withdraw(1, [5]);
 
@@ -314,10 +325,15 @@ describe("Subscription (generations above 1st)", function () {
       "owner: ",
       (await stackToken.balanceOf(owner.address))
     );
-    print("gen 0 token 5 pending reward: ", await subscription.pendingReward(1, 5));
+    print("gen 1 token 5 pending bonus: ", 
+      (await subscription.pendingBonus(1, 5)).withdrawable,
+      (await subscription.pendingBonus(1, 5)).locked
+    );
     print("reward amount: ", (await subscription.deposits(1, 5)).reward);
 
-    expect(oldPendingReward).to.be.equal(await stackToken.balanceOf(owner.address));
+    expect(oldpendingBonus.withdrawable).to.be.equal(
+      await stackToken.balanceOf(owner.address)
+    );
   })
 
   it("mint 1 token", async function () {
@@ -346,8 +362,13 @@ describe("Subscription (generations above 1st)", function () {
     await provider.send("evm_increaseTime", [dripPeriod / 2]); 
     await provider.send("evm_mine"); 
 
-    oldPendingReward = await subscription.pendingReward(2, 1);
-    print("gen 0 token 5 pending reward: ", oldPendingReward);
+    oldpendingBonus = await subscription.pendingBonus(2, 1);
+    print("gen 2 token 1 pending bonus: ", 
+      oldpendingBonus.withdrawable, 
+      oldpendingBonus.locked,
+      // oldpendingBonus.fullRelease
+    );
+    
     await subscription.withdraw(2, [1]);
 
     await provider.send("evm_increaseTime", [dripPeriod / 2]); 
@@ -356,8 +377,13 @@ describe("Subscription (generations above 1st)", function () {
     await subscription.withdraw(2, [1]);
 
     print("owner: ", await stackToken.balanceOf(owner.address));
-    print("gen 0 token 5 pending reward: ", await subscription.pendingReward(2, 1));
-    expect(await subscription.pendingReward(2, 1)).to.be.equal(0);
+    print("gen 2 token 1 pending bonus: ", 
+      (await subscription.pendingBonus(2, 1)).withdrawable,
+      (await subscription.pendingBonus(2, 1)).locked
+    );
+    expect(
+      (await subscription.pendingBonus(2, 1)).withdrawable
+    ).to.be.equal(0);
   })
 
   it("Subscribe with STACK", async function () {
@@ -412,7 +438,7 @@ describe("Subscription (generations above 1st)", function () {
       parseEther("15541"), parseEther("1")
     )
     expect(await usdt.balanceOf(owner.address)).to.be.closeTo(
-      parseEther("99948761"), parseEther("1")
+      "99999299999999949461976152", parseUnits("1", 6)
     )
   });
   it("Withdraw", async function () {

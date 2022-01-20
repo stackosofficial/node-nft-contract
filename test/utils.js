@@ -2,7 +2,7 @@ const { ethers } = require("hardhat");
 const { use, expect } = require("chai");
 const { solidity } = require("ethereum-waffle");
 const { BigNumber } = require("@ethersproject/bignumber");
-const { parseEther, formatEther } = require("@ethersproject/units");
+const { parseEther, formatEther, parseUnits } = require("@ethersproject/units");
 
 module.exports = { setup, setupLiquidity, deployStackOS, deployStackOSBasic, setupDeployment, print };
 
@@ -68,20 +68,20 @@ async function deployStackOS() {
 }
 
 async function setup() {
-  ERC20 = await ethers.getContractFactory("TestCurrency");
-  stackToken = await ERC20.deploy(parseEther("100000000.0"));
+  TestCurrency = await ethers.getContractFactory("TestCurrency");
+  stackToken = await TestCurrency.deploy(parseEther("100000000.0"), 18);
   await stackToken.deployed();
   console.log("stackToken", stackToken.address);
 
-  usdt = await ERC20.deploy(parseEther("100000000.0"));
+  usdt = await TestCurrency.deploy(parseEther("100000000.0"), 6);
   await usdt.deployed();
   console.log("usdt", usdt.address);
 
-  usdc = await ERC20.deploy(parseEther("100000000.0"));
+  usdc = await TestCurrency.deploy(parseEther("100000000.0"), 6);
   await usdc.deployed();
   console.log("usdc", usdc.address);
 
-  dai = await ERC20.deploy(parseEther("100000000.0"));
+  dai = await TestCurrency.deploy(parseEther("100000000.0"), 18);
   await dai.deployed();
   console.log("dai", dai.address);
 
@@ -197,7 +197,7 @@ async function setup() {
   await sub0.setOnlyFirstGeneration();
   console.log("sub0", sub0.address);
 
-  weth = await ERC20.deploy(parseEther("100000000.0"));
+  weth = await TestCurrency.deploy(parseEther("100000000.0"), 18);
   await weth.deployed();
   console.log("weth", weth.address);
 
@@ -285,8 +285,10 @@ async function setupLiquidity() {
 
     await router.addLiquidityETH(
       usdt.address,
-      parseEther("4.3637"),
-      parseEther("4.3637"),
+      // parseEther("4.3637"),
+      // parseEther("4.3637"),
+      parseUnits("4.3637", await usdt.decimals()),
+      parseUnits("4.3637", await usdt.decimals()),
       parseEther("1.0"),
       joe.address,
       deadline,
@@ -295,8 +297,10 @@ async function setupLiquidity() {
 
     await router.addLiquidityETH(
       usdc.address,
-      parseEther("4.3637"),
-      parseEther("4.3637"),
+      // parseEther("4.3637"),
+      // parseEther("4.3637"),
+      parseUnits("4.3637", await usdc.decimals()),
+      parseUnits("4.3637", await usdc.decimals()),
       parseEther("1.0"),
       joe.address,
       deadline,

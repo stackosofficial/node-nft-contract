@@ -9,6 +9,11 @@ import "./StackOsNFTBasic.sol";
 contract GenerationManager is Ownable, ReentrancyGuard {
     using Strings for uint256;
 
+    event NextGenerationDeploy(
+        address StackNFT, 
+        address deployer, 
+        uint256 deployTimestamp
+    );
     event AdjustAddressSettings(
         address _stableAcceptor,
         address _exchange,
@@ -21,7 +26,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
     address private dao;
     address private distr;
 
-    IStackOsNFT[] private generations;
+    IStackOsNFT[] public generations;
     mapping(address => uint256) private ids;
 
     struct Deployment {
@@ -42,11 +47,6 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         address market;
     }
     Deployment private deployment;
-
-    modifier onlyOwnerOrStackContract() {
-        require(owner() == _msgSender() || isAdded(_msgSender()), "Caller is not the owner or stack contract");
-        _;
-    }
 
     constructor() {}
 
@@ -99,7 +99,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         uint256 _timeLock,
         address _royaltyAddress
     ) public onlyOwner {
-        require(_maxSupplyGrowthPercent <= 10000, "invalid basis points");
+        require(_maxSupplyGrowthPercent <= 10000);
         deployment.name = _name;
         deployment.symbol = _symbol;
         deployment.stackToken = _stackToken;
@@ -145,7 +145,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         uint256 callerGenerationId = getIDByAddress(msg.sender);
         // Cannot deploy next generation if it's already exists
         require(callerGenerationId == generations.length - 1, 
-            "Next generation already deployed"
+            "Already deployed"
         );
 
         IStackOsNFT caller = get(callerGenerationId);
@@ -182,6 +182,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         stack.whitelist(address(deployment.darkMatter));
         stack.whitelist(address(deployment.market));
         stack.transferOwnership(Ownable(msg.sender).owner());
+        emit NextGenerationDeploy(address(stack), msg.sender, block.timestamp);
         return IStackOsNFTBasic(address(stack));
     }
 
@@ -191,10 +192,11 @@ contract GenerationManager is Ownable, ReentrancyGuard {
      * @dev Could only be invoked by the contract owner or StackNFT contract.
      * @dev Address should be unique.
      */
-    function add(IStackOsNFT _stackOS) public onlyOwnerOrStackContract {
-        require(address(_stackOS) != address(0), "Must be not zero-address");
+    function add(IStackOsNFT _stackOS) public {
+        require(owner() == _msgSender() || isAdded(_msgSender()), "Not owner or StackNFT");
+        require(address(_stackOS) != address(0), "Zero-address");
         for (uint256 i; i < generations.length; i++) {
-            require(generations[i] != _stackOS, "Address already added");
+            require(generations[i] != _stackOS, "Duplicate");
         }
         ids[address(_stackOS)] = generations.length;
         generations.push(_stackOS);
@@ -251,6 +253,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         stack.whitelist(address(deployment.darkMatter));
         stack.whitelist(address(deployment.market));
         stack.transferOwnership(msg.sender);
+        emit NextGenerationDeploy(address(stack), msg.sender, block.timestamp);
         return IStackOsNFTBasic(address(stack));
     }
 

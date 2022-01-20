@@ -1,6 +1,6 @@
 const { ethers } = require("hardhat");
 const { use, expect } = require("chai");
-const { parseEther } = require("@ethersproject/units");
+const { parseEther, parseUnits } = require("@ethersproject/units");
 const { deployStackOS, setup, print, deployStackOSBasic, setupDeployment } = require("./utils");
 
 describe("Royalty", function () {
@@ -57,8 +57,8 @@ describe("Royalty", function () {
       .connect(pepe)
       .addLiquidityETH(
         usdt.address,
-        parseEther("100000.0"),
-        parseEther("100000.0"),
+        parseUnits("100000", await usdt.decimals()),
+        parseUnits("100000", await usdt.decimals()),
         parseEther("100.0"),
         pepe.address,
         deadline,
@@ -150,6 +150,7 @@ describe("Royalty", function () {
       await partner.getBalance(),
       await provider.getBalance(royalty.address)
     );
+    expect(await royalty.pendingRoyalty(0, [0])).to.be.equal(parseEther("1.8"));
     await expect(royalty.connect(partner).claim(0, [0])).to.be.not.reverted; //(claim 5.4 eth) third cycle starts, it counts 2 delegated tokens
     print(
       await partner.getBalance(),
@@ -364,6 +365,10 @@ describe("Royalty", function () {
     await royalty.connect(vera).claim(1, [1]);
     await royalty.claim(1, [2]);
 
+    expect(
+      await royalty.pendingRoyalty(0, [0, 1, 2, 3, 4, 5])
+    ).to.be.equal(parseEther("450.0"));
+
     await royalty.claim(0, [5]);
     await royalty.connect(bob).claim(0, [3]);
     await royalty.connect(vera).claim(0, [4]);
@@ -374,6 +379,11 @@ describe("Royalty", function () {
     expect(await provider.getBalance(royalty.address)).to.be.equal(
       parseEther("0.0")
     );
+
+    expect(
+      await royalty.pendingRoyalty(0, [0, 1, 2, 3, 4, 5])
+    ).to.be.equal(parseEther("0.0"));
+
     print(
       await owner.getBalance(),
       await partner.getBalance(),

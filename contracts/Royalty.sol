@@ -19,9 +19,9 @@ contract Royalty is Ownable, ReentrancyGuard {
     Counters.Counter private counter; // counting cycles
 
     uint256 private constant HUNDRED_PERCENT = 10000;
-    GenerationManager private generations;
-    DarkMatter private darkMatter;
-    Exchange private exchange;
+    GenerationManager private immutable generations;
+    DarkMatter private immutable darkMatter;
+    Exchange private immutable exchange;
     IERC20 private WETH; // for Matic network
     address payable private feeAddress;
     uint256 private feePercent;
@@ -296,6 +296,54 @@ contract Royalty is Ownable, ReentrancyGuard {
                     );
                 }
             }
+        }
+    }
+
+    /*
+     * @title Get pending royalty for NFT
+     * @param StackOS generation id 
+     * @param Token ids
+     * @dev Not delegated tokens are ignored
+     */
+    function pendingRoyalty(
+        uint256 generationId,
+        uint256[] calldata tokenIds
+    ) external view returns (uint256 withdrawableRoyalty) {
+        IStackOsNFT stack = generations.get(generationId);
+
+        uint256 _counterCurrent = counter.current();
+        if (
+            cycles[counter.current()].startTimestamp + CYCLE_DURATION <
+            block.timestamp
+        ) {
+            if (cycles[counter.current()].balance >= minEthToStartCycle) {
+                _counterCurrent += 1;
+            }
+        }
+
+        if (_counterCurrent > 0) {
+            uint256 reward;
+
+            // iterate over tokens from args
+            for (uint256 i; i < tokenIds.length; i++) {
+                uint256 tokenId = tokenIds[i];
+
+                if(stack.getDelegatee(tokenId) == address(0))
+                    continue;
+
+                for (uint256 o; o < _counterCurrent; o++) {
+                    if (
+                        // should be able to claim only once for cycle
+                        cycles[o].isClaimed[generationId][tokenId] == false
+                        // is this token delegated before this cycle start?
+                        && addedAt[generationId][tokenId] < int256(o)
+                    ) {
+                        reward += cycles[o].balance / cycles[o].delegatedCount;
+                    }
+                }
+            }
+
+            withdrawableRoyalty = reward;
         }
     }
 }
