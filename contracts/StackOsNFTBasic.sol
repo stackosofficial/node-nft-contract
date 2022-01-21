@@ -50,7 +50,7 @@ contract StackOsNFTBasic is
     uint256 public adminWithdrawableAmount;
     uint256 public rewardDiscount;
     uint256 private maxSupply;
-    uint256 private totalSupply;
+    uint256 public totalSupply;
     uint256 public mintPrice;
     uint256 public transferDiscount;
     uint256 private subsFee;
@@ -74,7 +74,7 @@ contract StackOsNFTBasic is
      */
     constructor() ERC721("", "") {
         
-        require(Address.isContract(msg.sender), "Only by generation manager");
+        require(Address.isContract(msg.sender));
         generations = GenerationManager(msg.sender);
     }
 
@@ -239,6 +239,11 @@ contract StackOsNFTBasic is
             .div(PRICE_PRECISION);
 
         uint256 ticketAmount = usdAmount.div(mintPriceDiscounted);
+
+        // protection in case someone frontrunned
+        if (ticketAmount > maxSupply - totalSupply)
+            ticketAmount = maxSupply - totalSupply;
+
         uint256 depositAmount = mintPriceDiscounted.mul(ticketAmount);
 
         stablecoin.approve(address(exchange), usdAmount);
@@ -287,6 +292,10 @@ contract StackOsNFTBasic is
         require(salesStarted, "Sales not started");
         require(stableAcceptor.supportsCoin(_stablecoin), "Unsupported stablecoin");
 
+        // protection in case someone frontrunned
+        if (_nftAmount > maxSupply - totalSupply)
+            _nftAmount = maxSupply - totalSupply;
+
         uint256 amountIn = mintPrice
             .mul(_nftAmount)
             .mul(10 ** IDecimals(address(_stablecoin)).decimals())
@@ -331,6 +340,7 @@ contract StackOsNFTBasic is
 
         adminWithdrawableAmount += _stackAmount;
         for (uint256 i; i < _nftAmount; i++) {
+            // frontrun protection is in Subscription contract
             _mint(_to);
         }
 
@@ -351,7 +361,7 @@ contract StackOsNFTBasic is
         address _to
     ) 
         external
-        returns (uint256)
+        returns (uint256 amountSpend)
     {
         require(salesStarted, "Sales not started");
         require(msg.sender == address(royaltyAddress));
@@ -361,7 +371,11 @@ contract StackOsNFTBasic is
             .div(10000)
             .mul(10 ** IDecimals(address(_stablecoin)).decimals())
             .div(PRICE_PRECISION);
-            
+
+        // frontrun protection
+        if (_mintNum > maxSupply - totalSupply)
+            _mintNum = maxSupply - totalSupply;
+
         uint256 amountIn = discountAmount.mul(_mintNum);
         IERC20(_stablecoin).transferFrom(msg.sender, address(this), amountIn);
         IERC20(_stablecoin).approve(address(exchange), amountIn);

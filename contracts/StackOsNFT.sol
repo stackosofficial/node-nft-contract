@@ -62,7 +62,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
     uint256 public auctionCloseTime;
     uint256 public adminWithdrawableAmount;
     uint256 private immutable maxSupply;
-    uint256 private totalSupply;
+    uint256 public totalSupply;
     uint256 private immutable participationFee;
     uint256 private participationTickets;
     uint256 private immutable prizes;

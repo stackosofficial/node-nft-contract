@@ -606,6 +606,12 @@ contract Subscription is Ownable, ReentrancyGuard {
                 address(generations.get(purchaseGenerationId))
             );
 
+            // protection in case someone frontrunned
+            if (amountToMint > stack.getMaxSupply() - stack.totalSupply())
+                amountToMint = stack.getMaxSupply() - stack.totalSupply();
+
+            // this should be inside mintFromSubscriptionRewards
+            // BUT then GenerationManager exceeds size limit
             uint256 amountToConvert = 
                 (stack.mintPrice() * (10000 - stack.rewardDiscount()) / 10000) * 
                 amountToMint * 10**IDecimals(address(_stablecoin)).decimals() /
