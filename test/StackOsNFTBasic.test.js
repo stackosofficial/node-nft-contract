@@ -151,9 +151,13 @@ describe("StackOS NFT Basic", function () {
     await provider.send("evm_increaseTime", [60 * 60]); 
     await stackAutoDeployed.mint(10, usdt.address);
     await provider.send("evm_increaseTime", [60 * 60]); 
-    await stackAutoDeployed.mint(10, usdt.address);
+    // test frontrun protection
+    await stackAutoDeployed.mint(100, usdt.address);
+    await expect(stackAutoDeployed.mint(1, usdt.address)).to.be.reverted;
 
-    // await stackAutoDeployed.mint(50, usdt.address);
+    expect(await stackAutoDeployed.tokenURI(0)).to.be.equal(
+      "site.com"
+    );
     expect(await generationManager.count()).to.be.equal(
       oldGenerationsCount + 1
     );

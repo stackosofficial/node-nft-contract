@@ -16,6 +16,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
     using Counters for Counters.Counter;
     using SafeMath for uint256;
 
+    event SetURI(string uri);
     event AdjustAddressSettings(
         address genManager, 
         address stableAcceptor,
@@ -146,8 +147,9 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
     }
 
     // Set URI that is used for new tokens
-    function setUri(string calldata _uri) external onlyOwner {
+    function setUri(string memory _uri) external onlyOwner {
         URI = _uri;
+        emit SetURI(_uri);
     }
 
     /*

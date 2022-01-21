@@ -119,6 +119,9 @@ describe("StackOS NFT", function () {
     await stackOsNFT.claimReward(winningTickets);
     expect(await stackOsNFT.balanceOf(owner.address)).to.be.equal(
       winningTickets.length
+    );  
+    expect(await stackOsNFT.tokenURI(0)).to.be.equal(
+      "site.com"
     );
   });
   it("Partners can't mint", async function () {

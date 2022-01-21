@@ -21,6 +21,7 @@ contract StackOsNFTBasic is
     using Counters for Counters.Counter;
     using SafeMath for uint256;
 
+    event SetURI(string uri);
     event SetName(string name);
     event SetSymbol(string symbol);
     event AdjustAddressSettings(
@@ -109,8 +110,9 @@ contract StackOsNFTBasic is
     }
 
     // Set URI that is used for new tokens
-    function setUri(string calldata _uri) external onlyOwner {
+    function setUri(string memory _uri) external onlyOwner {
         URI = _uri;
+        emit SetURI(_uri);
     }
 
     /*
