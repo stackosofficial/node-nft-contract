@@ -24,11 +24,10 @@ contract StackOsNFTBasic is
     event SetName(string name);
     event SetSymbol(string symbol);
     event AdjustAddressSettings(
-        address dao, 
-        address distr
+        address dao 
     );
     event SetRewardDiscount(uint256 _rewardDiscount);
-    event SetFees(uint256 subs, uint256 dao, uint256 distr);
+    event SetFees(uint256 subs, uint256 dao, uint256 royaltyDistribution);
     event StartSales();
     event Delegate(address delegator, address delegatee, uint256 tokenId);
     event AdminWithdraw(address admin, uint256 withdrawAmount);
@@ -46,7 +45,6 @@ contract StackOsNFTBasic is
     GenerationManager private immutable generations;
     Exchange private exchange;
     address private daoAddress;
-    address private royaltyDistrAddress;
 
     uint256 public timeLock;
     uint256 public adminWithdrawableAmount;
@@ -150,15 +148,13 @@ contract StackOsNFTBasic is
      */
 
     function adjustAddressSettings(
-        address _dao, 
-        address _distr
+        address _dao 
     )
         external
         onlyOwner
     {
         daoAddress = _dao;
-        royaltyDistrAddress = _distr;
-        emit AdjustAddressSettings(_dao, _distr);
+        emit AdjustAddressSettings(_dao);
     }
 
     /*
@@ -226,10 +222,7 @@ contract StackOsNFTBasic is
     function transferFromLastGen(address _ticketOwner, uint256 _amount) external {
 
         // check that caller is generation 1 contract 
-        require(
-            address(generations.get(0)) == msg.sender, 
-            "Not Correct Address"
-        );
+        require(address(generations.get(0)) == msg.sender);
         IERC20 stablecoin = stableAcceptor.stablecoins(0);
         stackToken.transferFrom(msg.sender, address(this), _amount);
         stackToken.approve(address(exchange), _amount);
@@ -330,10 +323,7 @@ contract StackOsNFTBasic is
         address _to
     ) external {
         require(salesStarted, "Sales not started");
-        require(
-            msg.sender == address(subscription),
-            "Not Subscription Address"
-        );
+        require(msg.sender == address(subscription));
 
         stackToken.transferFrom(msg.sender, address(this), _stackAmount);
 
@@ -364,7 +354,7 @@ contract StackOsNFTBasic is
         returns (uint256)
     {
         require(salesStarted, "Sales not started");
-        require(msg.sender == address(royaltyAddress), "Not Royalty Address");
+        require(msg.sender == address(royaltyAddress));
         
         uint256 discountAmount = mintPrice
             .mul(10000 - rewardDiscount)
@@ -395,12 +385,12 @@ contract StackOsNFTBasic is
      * @dev Take fees out of `_amount`
      */
 
-    function sendFees(uint256 _amount) internal returns (uint256) {
+    function sendFees(uint256 _amount) internal returns (uint256 amountAfterFees) {
 
         uint256 subsPart = _amount * subsFee / 10000;
         uint256 daoPart = _amount * daoFee / 10000;
-        uint256 distrPart = _amount * royaltyDistributionFee / 10000;
-        _amount = _amount - subsPart - daoPart - distrPart;
+        uint256 royaltyPart = _amount * royaltyDistributionFee / 10000;
+        amountAfterFees = _amount - subsPart - daoPart - royaltyPart;
 
         uint256 subsPartHalf = subsPart / 2;
 
@@ -414,9 +404,13 @@ contract StackOsNFTBasic is
             daoPart += (subsPartHalf);
         }
         stackToken.transfer(address(daoAddress), daoPart);
-        stackToken.transfer(address(royaltyDistrAddress), distrPart);
 
-        return _amount;
+        stackToken.approve(address(exchange), royaltyPart);
+        exchange.swapExactTokensForETH(
+            stackToken, 
+            royaltyPart, 
+            address(royaltyAddress)
+        );
     }
 
     function _delegate(address _delegatee, uint256 tokenId) private {

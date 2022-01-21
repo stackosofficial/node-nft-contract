@@ -57,8 +57,6 @@ async function main() {
   
   // Market dao fee address
   DAO_ADDRESS = "0xF90fF6d484331399f4eAa13f73D03b8B18eA1373";
-  // Market royalty distribution fee address
-  ROYALTY_DISTRIBUTION_ADDRESS = "0xF90fF6d484331399f4eAa13f73D03b8B18eA1373";
   // Market dao fee percent
   DAO_FEE = 1000;
   // Market royalty distribution fee percent
@@ -167,40 +165,7 @@ async function main() {
   );
   await darkMatter.deployed();
   console.log("DarkMatter", darkMatter.address);
-
-  const Market = await ethers.getContractFactory("Market");
-  marketProxy = await upgrades.deployProxy(
-    Market,
-    [
-      generationManager.address,
-      darkMatter.address,
-      DAO_ADDRESS,
-      ROYALTY_DISTRIBUTION_ADDRESS,
-      DAO_FEE,
-      ROYALTY_FEE
-    ],
-    { kind: "uups" }
-  );
-  await marketProxy.deployed();
-  const marketImplementaionAddress = await getImplementationAddress(ethers.provider, marketProxy.address);
-  const marketImplementaion = await hre.ethers.getContractAt(
-    "Market",
-    marketImplementaionAddress
-  );
-  try {
-    // params here doesn't matter, as we only wan't to set the owner
-    await marketImplementaion.initialize(
-      ethers.constants.AddressZero,
-      ethers.constants.AddressZero,
-      ethers.constants.AddressZero,
-      ethers.constants.AddressZero,
-      666,
-      666 
-    );
-  } catch (error) { }
-  console.log("Market Proxy", marketProxy.address);
-  console.log("Market Implementation", marketImplementaionAddress);
-  
+ 
   const Subscription = await ethers.getContractFactory("Subscription");
   let subscription = await Subscription.deploy(
     STACK_TOKEN,
@@ -244,6 +209,40 @@ async function main() {
 
   await royalty.deployed();
   console.log("Royalty", royalty.address);
+
+  const Market = await ethers.getContractFactory("Market");
+  marketProxy = await upgrades.deployProxy(
+    Market,
+    [
+      generationManager.address,
+      darkMatter.address,
+      DAO_ADDRESS,
+      royalty.address,
+      DAO_FEE,
+      ROYALTY_FEE
+    ],
+    { kind: "uups" }
+  );
+  await marketProxy.deployed();
+  const marketImplementaionAddress = await getImplementationAddress(ethers.provider, marketProxy.address);
+  const marketImplementaion = await hre.ethers.getContractAt(
+    "Market",
+    marketImplementaionAddress
+  );
+  try {
+    // params here doesn't matter, as we only wan't to set the owner
+    await marketImplementaion.initialize(
+      ethers.constants.AddressZero,
+      ethers.constants.AddressZero,
+      ethers.constants.AddressZero,
+      ethers.constants.AddressZero,
+      666,
+      666 
+    );
+  } catch (error) { }
+  console.log("Market Proxy", marketProxy.address);
+  console.log("Market Implementation", marketImplementaionAddress);
+
   let StackOS = await ethers.getContractFactory("StackOsNFT");
   let stackOsNFT = await StackOS.deploy(
     NAME,
@@ -267,7 +266,6 @@ async function main() {
     stableAcceptor.address,
     exchange.address,
     DAO_ADDRESS,
-    ROYALTY_DISTRIBUTION_ADDRESS
   )
 
   // Allow Market to transfer DarkMatter

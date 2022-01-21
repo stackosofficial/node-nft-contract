@@ -377,7 +377,7 @@ describe("Royalty", function () {
     // should be zero + last cycle unclaimed
     print(await provider.getBalance(royalty.address));
     expect(await provider.getBalance(royalty.address)).to.be.equal(
-      parseEther("0.0")
+      5
     );
 
     expect(
@@ -459,7 +459,7 @@ describe("Royalty", function () {
 
     print(await provider.getBalance(royalty.address));
     expect(await provider.getBalance(royalty.address)).to.be.equal(
-      parseEther("0.0")
+      5
     );
     print(
       await owner.getBalance(),
@@ -551,7 +551,7 @@ describe("Royalty", function () {
 
     print(await provider.getBalance(royalty.address));
     expect(await provider.getBalance(royalty.address)).to.be.equal(
-      parseEther("0.0")
+      10
     );
     print("owner weth:", await weth.balanceOf(owner.address));
     print("vera:", await weth.balanceOf(vera.address));

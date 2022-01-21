@@ -91,12 +91,12 @@ contract Royalty is Ownable, ReentrancyGuard {
                 cycles[counter.current()].delegatedCount = totalDelegated;
                 cycles[counter.current()].startTimestamp = block.timestamp;
 
-                cycles[counter.current()].balance += msg.value - feePart;
+                cycles[counter.current()].balance += (msg.value - feePart);
             } else {
-                cycles[counter.current()].balance += msg.value - feePart;
+                cycles[counter.current()].balance += (msg.value - feePart);
             }
         } else {
-            cycles[counter.current()].balance += msg.value - feePart;
+            cycles[counter.current()].balance += (msg.value - feePart);
         }
 
         (bool success, ) = feeAddress.call{value: feePart}("");

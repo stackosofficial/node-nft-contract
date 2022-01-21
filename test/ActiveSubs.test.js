@@ -109,11 +109,11 @@ describe("Active subs reward", function () {
     await stackOsNFTBasic.mint(1, usdc.address); // send mint fee
     print("owner stack:", await stackToken.balanceOf(owner.address));
     await expect(() => sub0.withdraw2(0, [0], [1])) // 1 claimer receives all
-      .to.changeTokenBalance(stackToken, owner, "29847062322930047");
+      .to.changeTokenBalance(stackToken, owner, "29847133918755550");
 
     await stackOsNFTBasic.mint(1, usdc.address); // send mint fee
     await expect(() => sub0.withdraw2(0, [0], [1])) // again 1 claimer
-      .to.changeTokenBalance(stackToken, owner, "29846566701894951");
+      .to.changeTokenBalance(stackToken, owner, "29846656193854609");
     await expect(() => sub0.withdraw2(0, [0], [1])) // claim 0 as no fees
       .to.changeTokenBalance(stackToken, owner, "0");
     print("owner stack:", await stackToken.balanceOf(owner.address));
@@ -136,11 +136,11 @@ describe("Active subs reward", function () {
     await provider.send("evm_increaseTime", [MONTH]);
     await stackOsNFTBasic.mint(1, usdc.address); // send fee
     await expect(() => sub0.withdraw2(0, [0], [2]))
-      .to.changeTokenBalance(stackToken, owner, "14573531838246132");
+      .to.changeTokenBalance(stackToken, owner, "14573583657589650");
     await provider.send("evm_increaseTime", [MONTH]); // enter 4 period, should be able to withdraw for 2
-    expect(await sub0.pendingReward(0, [1], [2])).to.be.equal("14573531838246132");
+    expect(await sub0.pendingReward(0, [1], [2])).to.be.equal("14573583657589650");
     await expect(() => sub0.connect(joe).withdraw2(0, [1], [2]))
-      .to.changeTokenBalance(stackToken, joe, "14573531838246132");
+      .to.changeTokenBalance(stackToken, joe, "14573583657589650");
   });
   it("Unable to withdraw foreign reward", async function () {
     await expect(sub0.withdraw2(0, [1], [2])).to.be.revertedWith(

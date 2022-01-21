@@ -138,8 +138,7 @@ async function setup() {
   await generationManager.adjustAddressSettings(
     stableAcceptor.address,
     exchange.address,
-    bank.address, // fake dao & royalty distr addresses
-    bank.address,
+    bank.address // fake dao
   )
 
   STACK_TOKEN = stackToken.address;
@@ -262,9 +261,6 @@ async function setupDeployment() {
       DAO_FEE,
       DISTR_FEE
     )
-    // already called
-    // await generationManager.adjustAddressSettings(
-    // )
 }
 
 async function setupLiquidity() {

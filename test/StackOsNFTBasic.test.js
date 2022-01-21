@@ -137,9 +137,7 @@ describe("StackOS NFT Basic", function () {
     expect(await stackAutoDeployed.getMaxSupply()).to.be.equal(
       MAX_SUPPLY * 2
     );
-    await expect(generationManager.deployNextGenPreset()).to.be.revertedWith(
-      "Not Correct Address"
-    );
+    await expect(generationManager.deployNextGenPreset()).to.be.reverted;
   });
 
   it("Trigger auto deploy of the next generation 2", async function () {
@@ -184,7 +182,7 @@ describe("StackOS NFT Basic", function () {
   it("Try to buy directly using transferFromLastGen", async function () {
     await expect(
       stackOsNFTBasicgen3.transferFromLastGen(owner.address, parseEther("10.0"))
-    ).to.be.revertedWith("Not Correct Address");
+    ).to.be.reverted;
   });
 
   it("Dripping tokens", async function () {

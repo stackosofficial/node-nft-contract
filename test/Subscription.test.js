@@ -142,7 +142,7 @@ describe("Subscription (generations above 1st)", function () {
 
     await subscription.connect(vera).withdraw(1, [1]);
     expect(await stackToken.balanceOf(vera.address)).closeTo(
-      parseEther("1324.628391"), 
+      parseEther("1324.632328"), 
       parseEther("0.000009")
     );
 
@@ -152,7 +152,7 @@ describe("Subscription (generations above 1st)", function () {
     );
     await subscription.connect(vera).withdraw(1, [1]);
     expect(await stackToken.balanceOf(vera.address)).closeTo(
-      parseEther("1324.628396"), 
+      parseEther("1324.632333"), 
       parseEther("0.000009")
     );
     print(
@@ -190,7 +190,7 @@ describe("Subscription (generations above 1st)", function () {
     // Restart tax because skipped subs.
     await subscription.withdraw(1, [5]);
     expect(await stackToken.balanceOf(owner.address)).closeTo(
-      parseEther("291.224531"), 
+      parseEther("291.226063"), 
       parseEther("0.000009")
     ); // withdraw for 2 months, tax 75% (282 + 9)
     print("owner: ", await stackToken.balanceOf(owner.address));
@@ -200,7 +200,7 @@ describe("Subscription (generations above 1st)", function () {
     await subscription.subscribe(1, 5, parseEther("100"), dai.address, false); // tax max, 600, bonus
     await subscription.withdraw(1, [5]);
     expect(await stackToken.balanceOf(owner.address)).closeTo(
-      parseEther("437.941755"),
+      parseEther("437.944053"),
       parseEther("0.000009")
     ); // withdraw for 1 month
 
@@ -254,7 +254,7 @@ describe("Subscription (generations above 1st)", function () {
       parseEther("601.0")
     );
     expect(await stackToken.balanceOf(tax.address)).to.be.lt(
-      parseEther("1596.0")
+      parseEther("1614.0")
     );
   });
 

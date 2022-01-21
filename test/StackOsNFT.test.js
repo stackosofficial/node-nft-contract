@@ -359,7 +359,7 @@ describe("transferTickets and transferFromLastGen", function () {
   it("Try to buy directly using transferFromLastGen", async function () {
     await expect(
       stackOsNFTBasic.transferFromLastGen(owner.address, parseEther("10.0"))
-    ).to.be.revertedWith("Not Correct Address");
+    ).to.be.reverted;
   });
 
   it("Transfer tickets that did not win from gen 1 to gen 2", async function () {
@@ -441,9 +441,7 @@ describe("transferTickets and transferFromLastGen", function () {
     expect(await stackAutoDeployed.getMaxSupply()).to.be.equal(
       MAX_SUPPLY * 2
     );
-    await expect(generationManager.deployNextGenPreset()).to.be.revertedWith(
-      "Not Correct Address"
-    );
+    await expect(generationManager.deployNextGenPreset()).to.be.reverted;
   });
   it("Revert EVM state", async function () {
     await ethers.provider.send("evm_revert", [snapshotId]);

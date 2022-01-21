@@ -17,14 +17,12 @@ contract GenerationManager is Ownable, ReentrancyGuard {
     event AdjustAddressSettings(
         address _stableAcceptor,
         address _exchange,
-        address _dao,
-        address _distr
+        address _dao
     );
 
     address private stableAcceptor;
     address private exchange;
     address private dao;
-    address private distr;
 
     IStackOsNFT[] public generations;
     mapping(address => uint256) private ids;
@@ -39,7 +37,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         uint256 participationFee;
         uint256 subsFee;
         uint256 daoFee;
-        uint256 distrFee;
+        uint256 royaltyFee;
         uint256 maxSupplyGrowthPercent;
         uint256 transferDiscount;
         uint256 timeLock;
@@ -62,8 +60,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
     function adjustAddressSettings(
         address _stableAcceptor,
         address _exchange,
-        address _dao,
-        address _distr
+        address _dao
     )
         public
         onlyOwner
@@ -71,12 +68,10 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         stableAcceptor = _stableAcceptor;
         exchange = _exchange;
         dao = _dao;
-        distr = _distr;
         emit AdjustAddressSettings(
             _stableAcceptor,
             _exchange,
-            _dao,
-            _distr
+            _dao
         );
     }
 
@@ -123,11 +118,11 @@ contract GenerationManager is Ownable, ReentrancyGuard {
     function setupDeploy2(
         address _market,
         uint256 _daoFee,
-        uint256 _distrFee
+        uint256 _royaltyFee
     ) public onlyOwner {
         deployment.market = _market;
         deployment.daoFee = _daoFee;
-        deployment.distrFee = _distrFee;
+        deployment.royaltyFee = _royaltyFee;
     }
 
     /*
@@ -177,8 +172,8 @@ contract GenerationManager is Ownable, ReentrancyGuard {
             deployment.timeLock
         );
         add(IStackOsNFT(address(stack)));
-        stack.setFees(deployment.subsFee, deployment.daoFee, deployment.distrFee);
-        stack.adjustAddressSettings(dao, distr);
+        stack.setFees(deployment.subsFee, deployment.daoFee, deployment.royaltyFee);
+        stack.adjustAddressSettings(dao);
         stack.whitelist(address(deployment.darkMatter));
         stack.whitelist(address(deployment.market));
         stack.transferOwnership(Ownable(msg.sender).owner());
@@ -248,8 +243,8 @@ contract GenerationManager is Ownable, ReentrancyGuard {
             _timeLock
         );
         add(IStackOsNFT(address(stack)));
-        stack.setFees(deployment.subsFee, deployment.daoFee, deployment.distrFee);
-        stack.adjustAddressSettings(dao, distr);
+        stack.setFees(deployment.subsFee, deployment.daoFee, deployment.royaltyFee);
+        stack.adjustAddressSettings(dao);
         stack.whitelist(address(deployment.darkMatter));
         stack.whitelist(address(deployment.market));
         stack.transferOwnership(msg.sender);

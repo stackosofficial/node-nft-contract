@@ -33,6 +33,32 @@ contract Exchange {
     }
 
     /*
+     *  @title Swap exact tokens for ETH
+     *  @param Address of token to swap
+     */
+    function swapExactTokensForETH(
+        IERC20 token,
+        uint256 amount,
+        address to
+    ) public payable returns (uint256 amountReceived) {
+        token.transferFrom(msg.sender, address(this), amount);
+        token.approve(address(router), amount);
+        uint256 deadline = block.timestamp + 1200;
+        address[] memory path = new address[](2);
+        path[0] = address(token);
+        path[1] = address(router.WETH());
+        uint256[] memory amountOutMin = router.getAmountsOut(amount, path);
+        uint256[] memory amounts = router.swapExactTokensForETH(
+            amount,
+            amountOutMin[1],
+            path,
+            to,
+            deadline
+        );
+        return amounts[1];
+    }
+
+    /*
      *  @title Swap exact tokens for tokens using path tokenA > WETH > tokenB
      *  @param Amount of tokenA to spend
      *  @param Address of tokenA to spend
