@@ -68,6 +68,8 @@ async function main() {
   NAME = "STACK OS NFT";
   // Token symbol
   SYMBOL = "SON";
+  // Set uri for newly minted tokens
+  URI = "google.com";
   // Mint price in STACK
   PRICE = parseEther("0.1");
   // Max amount of NFT in this generation
@@ -126,6 +128,8 @@ async function main() {
   DAO_FEE_2 = 500;
   // Mint fee percent royalty distribution
   DISTR_FEE_2 = 500;
+  // Set uri for newly minted tokens
+  URI_2 = "google.com";
   // How much to grow max supply in percents.
   // For example value of 25% will increase max supply from 100 to 125.
   MAX_SUPPLY_GROWTH = 10000;
@@ -275,6 +279,7 @@ async function main() {
   await generationManager.add(stackOsNFT.address);
 
   // Additional settings for StackNFT
+  await stackOsNFT.setUri(URI);
   await stackOsNFT.adjustAddressSettings(
     generationManager.address,
     stableAcceptor.address,
@@ -327,7 +332,8 @@ async function main() {
   await generationManager.setupDeploy2(
     marketProxy.address,
     DAO_FEE_2,
-    DISTR_FEE_2
+    DISTR_FEE_2,
+    URI_2
   )
 
   // TRANSFER OWNERSHIP

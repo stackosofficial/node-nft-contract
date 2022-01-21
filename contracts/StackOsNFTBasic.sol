@@ -65,7 +65,7 @@ contract StackOsNFTBasic is
     mapping(address => uint256) private lastMintAt;
 
     bool private salesStarted;
-    string private URI = "https://google.com/";
+    string private URI;
 
     bool private initialized;
 
@@ -91,7 +91,7 @@ contract StackOsNFTBasic is
         uint256 _transferDiscount,
         uint256 _timeLock
     ) external onlyOwner {
-        require(initialized == false, "Already initialized");
+        require(initialized == false);
         initialized = true;
         
         stackToken = IERC20(_stackToken);
@@ -106,6 +106,11 @@ contract StackOsNFTBasic is
         maxSupply = _maxSupply;
         transferDiscount = _transferDiscount;
         timeLock = block.timestamp + _timeLock;
+    }
+
+    // Set URI that is used for new tokens
+    function setUri(string calldata _uri) external onlyOwner {
+        URI = _uri;
     }
 
     /*
@@ -289,8 +294,8 @@ contract StackOsNFTBasic is
      */
 
     function mint(uint256 _nftAmount, IERC20 _stablecoin) external {
-        require(salesStarted, "Sales not started");
-        require(stableAcceptor.supportsCoin(_stablecoin), "Unsupported stablecoin");
+        require(salesStarted);
+        require(stableAcceptor.supportsCoin(_stablecoin));
 
         // protection in case someone frontrunned
         if (_nftAmount > maxSupply - totalSupply)
@@ -331,7 +336,7 @@ contract StackOsNFTBasic is
         uint256 _stackAmount,
         address _to
     ) external {
-        require(salesStarted, "Sales not started");
+        require(salesStarted);
         require(msg.sender == address(subscription));
 
         stackToken.transferFrom(msg.sender, address(this), _stackAmount);
@@ -363,7 +368,7 @@ contract StackOsNFTBasic is
         external
         returns (uint256 amountSpend)
     {
-        require(salesStarted, "Sales not started");
+        require(salesStarted);
         require(msg.sender == address(royaltyAddress));
         
         uint256 discountAmount = mintPrice
@@ -434,10 +439,9 @@ contract StackOsNFTBasic is
                 darkMatter.ownerOfStackOrDarkMatter(
                     IStackOsNFT(address(this)),
                     tokenId
-                ),
-            "Not owner"
+                )
         );
-        require(delegates[tokenId] == address(0), "Already delegated");
+        require(delegates[tokenId] == address(0));
         delegates[tokenId] = _delegatee;
         royaltyAddress.onDelegate(tokenId);
         emit Delegate(msg.sender, _delegatee, tokenId);
@@ -458,7 +462,7 @@ contract StackOsNFTBasic is
     }
 
     function _mint(address _address) internal {
-        require(totalSupply < maxSupply, "Max supply reached");
+        require(totalSupply < maxSupply);
 
         uint256 timeSinceLastMint = block.timestamp - lastMintAt[_address];
         uint256 unlocked = timeSinceLastMint / 1 minutes;
@@ -469,8 +473,7 @@ contract StackOsNFTBasic is
         lastMintAt[_address] = block.timestamp;
 
         require(
-            totalMinted[_address] < maxMintRate,
-            "Minting too fast"
+            totalMinted[_address] < maxMintRate
         );
 
         totalMinted[_address] += 1;
@@ -521,7 +524,7 @@ contract StackOsNFTBasic is
      * @dev Caller must be contract owner, timelock should be passed.
      */
     function adminWithdraw() external onlyOwner {
-        require(block.timestamp > timeLock, "Locked!");
+        require(block.timestamp > timeLock);
         stackToken.transfer(msg.sender, adminWithdrawableAmount);
         emit AdminWithdraw(msg.sender, adminWithdrawableAmount);
         adminWithdrawableAmount = 0;

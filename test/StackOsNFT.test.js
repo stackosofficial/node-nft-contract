@@ -427,9 +427,7 @@ describe("transferTickets and transferFromLastGen", function () {
 
     await expect(
       generationManager.connect(joe).add(joe.address)
-    ).to.be.revertedWith(
-      "Not owner or StackNFT"
-    );
+    ).to.be.reverted;
 
     stackAutoDeployed = await ethers.getContractAt(
       "StackOsNFTBasic",

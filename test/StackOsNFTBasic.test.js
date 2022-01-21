@@ -72,9 +72,7 @@ describe("StackOS NFT Basic", function () {
   });
 
   it("Unable to mint for unsupported coin", async function () {
-    await expect(stackOsNFTBasic.mint(1, stackToken.address)).to.be.revertedWith(
-      "Unsupported stablecoin"
-    );
+    await expect(stackOsNFTBasic.mint(1, stackToken.address)).to.be.reverted;
   });
 
   it("Owners can delegate their NFTs", async function () {
@@ -105,7 +103,8 @@ describe("StackOS NFT Basic", function () {
     await generationManager.setupDeploy2(
       owner.address, // fake market address
       DAO_FEE,
-      DISTR_FEE
+      DISTR_FEE,
+      URI
     )
   });
 
@@ -124,9 +123,7 @@ describe("StackOS NFT Basic", function () {
 
     await expect(
       generationManager.connect(joe).add(joe.address)
-    ).to.be.revertedWith(
-      "Not owner or StackNFT"
-    );
+    ).to.be.reverted;
 
     stackAutoDeployed = await ethers.getContractAt(
       "StackOsNFTBasic",
@@ -188,18 +185,12 @@ describe("StackOS NFT Basic", function () {
   it("Dripping tokens", async function () {
     await usdt.approve(stackOsNFTBasicgen3.address, parseEther("100.0"));
     await stackOsNFTBasicgen3.startSales();
-    await expect(stackOsNFTBasicgen3.mint(11, usdt.address)).to.be.revertedWith(
-      "Minting too fast"
-    )
+    await expect(stackOsNFTBasicgen3.mint(11, usdt.address)).to.be.reverted;
     await stackOsNFTBasicgen3.mint(10, usdt.address)
     await provider.send("evm_increaseTime", [60 * 1]); 
-    await expect(stackOsNFTBasicgen3.mint(2, usdt.address)).to.be.revertedWith(
-      "Minting too fast"
-    )
+    await expect(stackOsNFTBasicgen3.mint(2, usdt.address)).to.be.reverted;
     await stackOsNFTBasicgen3.mint(1, usdt.address);
-    await expect(stackOsNFTBasicgen3.mint(9, usdt.address)).to.be.revertedWith(
-      "Minting too fast"
-    )
+    await expect(stackOsNFTBasicgen3.mint(9, usdt.address)).to.be.reverted;
     await provider.send("evm_increaseTime", [60 * 9]); 
     await stackOsNFTBasicgen3.mint(9, usdt.address);
   });
@@ -218,7 +209,7 @@ describe("StackOS NFT Basic", function () {
   it("Admin tried to withdraw before time lock expires.", async function () {
     var adminWithdrawableAmount = await stackOsNFTBasic.adminWithdrawableAmount();
     print(adminWithdrawableAmount);
-    await expect(stackOsNFTBasic.adminWithdraw()).to.be.revertedWith("Locked!");
+    await expect(stackOsNFTBasic.adminWithdraw()).to.be.reverted;
   });
 
   it("Admin withdraws after time lock.", async function () {

@@ -80,7 +80,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
     bool private ticketStatusAssigned;
     bool private salesStarted;
     bool private lotteryActive;
-    string private URI = "https://google.com/";
+    string private URI;
     bytes32 internal immutable keyHash;
 
     constructor(
@@ -143,6 +143,11 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
             _darkMatter,
             _exchange
         );
+    }
+
+    // Set URI that is used for new tokens
+    function setUri(string calldata _uri) external onlyOwner {
+        URI = _uri;
     }
 
     /*
