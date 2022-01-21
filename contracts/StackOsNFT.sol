@@ -290,12 +290,12 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
                 ticketOwner[_ticketID[i]] == msg.sender,
                 "Not your ticket."
             );
-            if (ticketStatus[_ticketID[i]] == TicketStatus.Won) {
-                ticketStatus[_ticketID[i]] = TicketStatus.Rewarded;
-                mint(msg.sender);
-            } else {
-                revert("Awarded Or Not Won");
-            }
+            require(
+                ticketStatus[_ticketID[i]] == TicketStatus.Won, 
+                "Awarded Or Not Won"
+            );
+            ticketStatus[_ticketID[i]] = TicketStatus.Rewarded;
+            mint(msg.sender);
         }
     }
 
@@ -343,15 +343,11 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
                 ticketOwner[_ticketID[i]] == msg.sender,
                 "Not your ticket."
             );
-            if (
-                ticketStatus[_ticketID[i]] == TicketStatus.Rewarded ||
-                ticketStatus[_ticketID[i]] == TicketStatus.Withdrawn ||
-                ticketStatus[_ticketID[i]] == TicketStatus.Won
-            ) {
-                revert("Stake Not Returnable");
-            } else {
-                ticketStatus[_ticketID[i]] = TicketStatus.Withdrawn;
-            }
+            require(
+                ticketStatus[_ticketID[i]] == TicketStatus.None,
+                "Stake Not Returnable"
+            );
+            ticketStatus[_ticketID[i]] = TicketStatus.Withdrawn;
         }
         uint256 amount = _ticketID.length.mul(participationFee);
         stackToken.approve(_address, stackToken.balanceOf(address(this)));
@@ -520,7 +516,6 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
         }
     }
 
-    // is reentrancy attack possible?
     function mint(address _address) internal {
         require(totalSupply < maxSupply, "Max supply reached");
         uint256 _current = _tokenIdCounter.current();

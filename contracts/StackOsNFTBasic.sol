@@ -449,7 +449,6 @@ contract StackOsNFTBasic is
         }
     }
 
-    // is reentrancy attack possible?
     function _mint(address _address) internal {
         require(totalSupply < maxSupply, "Max supply reached");
 
