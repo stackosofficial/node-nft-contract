@@ -57,8 +57,6 @@ async function main() {
   
   // Market dao fee address
   DAO_ADDRESS = "0xF90fF6d484331399f4eAa13f73D03b8B18eA1373";
-  // Market royalty distribution fee address
-  ROYALTY_DISTRIBUTION_ADDRESS = "0xF90fF6d484331399f4eAa13f73D03b8B18eA1373";
   // Market dao fee percent
   DAO_FEE = 1000;
   // Market royalty distribution fee percent
@@ -70,6 +68,8 @@ async function main() {
   NAME = "STACK OS NFT";
   // Token symbol
   SYMBOL = "SON";
+  // Set uri for newly minted tokens
+  URI = "google.com";
   // Mint price in STACK
   PRICE = parseEther("0.1");
   // Max amount of NFT in this generation
@@ -128,6 +128,8 @@ async function main() {
   DAO_FEE_2 = 500;
   // Mint fee percent royalty distribution
   DISTR_FEE_2 = 500;
+  // Set uri for newly minted tokens
+  URI_2 = "google.com";
   // How much to grow max supply in percents.
   // For example value of 25% will increase max supply from 100 to 125.
   MAX_SUPPLY_GROWTH = 10000;
@@ -167,40 +169,7 @@ async function main() {
   );
   await darkMatter.deployed();
   console.log("DarkMatter", darkMatter.address);
-
-  const Market = await ethers.getContractFactory("Market");
-  marketProxy = await upgrades.deployProxy(
-    Market,
-    [
-      generationManager.address,
-      darkMatter.address,
-      DAO_ADDRESS,
-      ROYALTY_DISTRIBUTION_ADDRESS,
-      DAO_FEE,
-      ROYALTY_FEE
-    ],
-    { kind: "uups" }
-  );
-  await marketProxy.deployed();
-  const marketImplementaionAddress = await getImplementationAddress(ethers.provider, marketProxy.address);
-  const marketImplementaion = await hre.ethers.getContractAt(
-    "Market",
-    marketImplementaionAddress
-  );
-  try {
-    // params here doesn't matter, as we only wan't to set the owner
-    await marketImplementaion.initialize(
-      ethers.constants.AddressZero,
-      ethers.constants.AddressZero,
-      ethers.constants.AddressZero,
-      ethers.constants.AddressZero,
-      666,
-      666 
-    );
-  } catch (error) { }
-  console.log("Market Proxy", marketProxy.address);
-  console.log("Market Implementation", marketImplementaionAddress);
-  
+ 
   const Subscription = await ethers.getContractFactory("Subscription");
   let subscription = await Subscription.deploy(
     STACK_TOKEN,
@@ -244,6 +213,40 @@ async function main() {
 
   await royalty.deployed();
   console.log("Royalty", royalty.address);
+
+  const Market = await ethers.getContractFactory("Market");
+  marketProxy = await upgrades.deployProxy(
+    Market,
+    [
+      generationManager.address,
+      darkMatter.address,
+      DAO_ADDRESS,
+      royalty.address,
+      DAO_FEE,
+      ROYALTY_FEE
+    ],
+    { kind: "uups" }
+  );
+  await marketProxy.deployed();
+  const marketImplementaionAddress = await getImplementationAddress(ethers.provider, marketProxy.address);
+  const marketImplementaion = await hre.ethers.getContractAt(
+    "Market",
+    marketImplementaionAddress
+  );
+  try {
+    // params here doesn't matter, as we only wan't to set the owner
+    await marketImplementaion.initialize(
+      ethers.constants.AddressZero,
+      ethers.constants.AddressZero,
+      ethers.constants.AddressZero,
+      ethers.constants.AddressZero,
+      666,
+      666 
+    );
+  } catch (error) { }
+  console.log("Market Proxy", marketProxy.address);
+  console.log("Market Implementation", marketImplementaionAddress);
+
   let StackOS = await ethers.getContractFactory("StackOsNFT");
   let stackOsNFT = await StackOS.deploy(
     NAME,
@@ -267,7 +270,6 @@ async function main() {
     stableAcceptor.address,
     exchange.address,
     DAO_ADDRESS,
-    ROYALTY_DISTRIBUTION_ADDRESS
   )
 
   // Allow Market to transfer DarkMatter
@@ -277,6 +279,7 @@ async function main() {
   await generationManager.add(stackOsNFT.address);
 
   // Additional settings for StackNFT
+  await stackOsNFT.setUri(URI);
   await stackOsNFT.adjustAddressSettings(
     generationManager.address,
     stableAcceptor.address,
@@ -329,7 +332,8 @@ async function main() {
   await generationManager.setupDeploy2(
     marketProxy.address,
     DAO_FEE_2,
-    DISTR_FEE_2
+    DISTR_FEE_2,
+    URI_2
   )
 
   // TRANSFER OWNERSHIP

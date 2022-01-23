@@ -119,6 +119,9 @@ describe("StackOS NFT", function () {
     await stackOsNFT.claimReward(winningTickets);
     expect(await stackOsNFT.balanceOf(owner.address)).to.be.equal(
       winningTickets.length
+    );  
+    expect(await stackOsNFT.tokenURI(0)).to.be.equal(
+      "site.com"
     );
   });
   it("Partners can't mint", async function () {
@@ -359,7 +362,7 @@ describe("transferTickets and transferFromLastGen", function () {
   it("Try to buy directly using transferFromLastGen", async function () {
     await expect(
       stackOsNFTBasic.transferFromLastGen(owner.address, parseEther("10.0"))
-    ).to.be.revertedWith("Not Correct Address");
+    ).to.be.reverted;
   });
 
   it("Transfer tickets that did not win from gen 1 to gen 2", async function () {
@@ -427,9 +430,7 @@ describe("transferTickets and transferFromLastGen", function () {
 
     await expect(
       generationManager.connect(joe).add(joe.address)
-    ).to.be.revertedWith(
-      "Not owner or StackNFT"
-    );
+    ).to.be.reverted;
 
     stackAutoDeployed = await ethers.getContractAt(
       "StackOsNFTBasic",
@@ -441,9 +442,7 @@ describe("transferTickets and transferFromLastGen", function () {
     expect(await stackAutoDeployed.getMaxSupply()).to.be.equal(
       MAX_SUPPLY * 2
     );
-    await expect(generationManager.deployNextGenPreset()).to.be.revertedWith(
-      "Not Correct Address"
-    );
+    await expect(generationManager.deployNextGenPreset()).to.be.reverted;
   });
   it("Revert EVM state", async function () {
     await ethers.provider.send("evm_revert", [snapshotId]);

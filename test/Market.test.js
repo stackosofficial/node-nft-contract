@@ -26,7 +26,6 @@ describe("Market", function () {
     GENERATION_MANAGER_ADDRESS = generationManager.address;
     DARK_MATTER_ADDRESS = darkMatter.address;
     DAO_ADDRESS = dao.address;
-    ROYALTY_DISTRIBUTION_ADDRESS = royaltyDistribution.address;
     DAO_FEE = 1000;
     ROYALTY_FEE = 1000;
     const Market = await ethers.getContractFactory("Market");
@@ -36,7 +35,7 @@ describe("Market", function () {
         GENERATION_MANAGER_ADDRESS,
         DARK_MATTER_ADDRESS,
         DAO_ADDRESS,
-        ROYALTY_DISTRIBUTION_ADDRESS,
+        royalty.address,
         DAO_FEE,
         ROYALTY_FEE
       ]
@@ -110,7 +109,10 @@ describe("Market", function () {
 
     await expect(await market.connect(partner)
       .buyDarkMatter(0, { value: parseEther("100.0") }))
-      .to.changeEtherBalances([owner, dao, royaltyDistribution], [parseEther("80"), parseEther("10"), parseEther("10")]);
+      .to.changeEtherBalances(
+        [owner, dao, royalty], 
+        [parseEther("80"), parseEther("10"), parseEther("9")] // royalty also take fee, that's why 9
+      );
 
     expect(await darkMatter.balanceOf(market.address)).to.be.equal(0);
     print("owner balance: ", await owner.getBalance());
@@ -156,7 +158,10 @@ describe("Market", function () {
 
     await expect(await market.connect(partner)
       .buyStack(0, 5, { value: parseEther("100.0") }))
-      .to.changeEtherBalances([joe, dao, royaltyDistribution], [parseEther("80"), parseEther("10"), parseEther("10")]);
+      .to.changeEtherBalances(
+        [joe, dao, royalty], 
+        [parseEther("80"), parseEther("10"), parseEther("9")]
+      );
 
     expect(await stackOsNFT.balanceOf(market.address)).to.be.equal(0);
     print("owner balance: ", await owner.getBalance());

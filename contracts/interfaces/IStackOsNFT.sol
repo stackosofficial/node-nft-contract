@@ -8,10 +8,14 @@ interface IStackOsNFT is IERC721 {
 
     function getMaxSupply() external view returns (uint256);
 
+    function totalSupply() external view returns (uint256);
+
     function getDelegatee(uint256 _tokenId) external view returns (address);
 
     function transferOwnership(address newOwner) external;
 
     function exists(uint256 _tokenId) external returns (bool);
+
+    function setUri(string calldata _uri) external;
 
 }

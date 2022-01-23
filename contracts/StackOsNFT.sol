@@ -16,6 +16,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
     using Counters for Counters.Counter;
     using SafeMath for uint256;
 
+    event SetURI(string uri);
     event AdjustAddressSettings(
         address genManager, 
         address stableAcceptor,
@@ -62,7 +63,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
     uint256 public auctionCloseTime;
     uint256 public adminWithdrawableAmount;
     uint256 private immutable maxSupply;
-    uint256 private totalSupply;
+    uint256 public totalSupply;
     uint256 private immutable participationFee;
     uint256 private participationTickets;
     uint256 private immutable prizes;
@@ -80,7 +81,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
     bool private ticketStatusAssigned;
     bool private salesStarted;
     bool private lotteryActive;
-    string private URI = "https://google.com/";
+    string private URI;
     bytes32 internal immutable keyHash;
 
     constructor(
@@ -143,6 +144,12 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
             _darkMatter,
             _exchange
         );
+    }
+
+    // Set URI that is used for new tokens
+    function setUri(string memory _uri) external onlyOwner {
+        URI = _uri;
+        emit SetURI(_uri);
     }
 
     /*
@@ -290,12 +297,12 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
                 ticketOwner[_ticketID[i]] == msg.sender,
                 "Not your ticket."
             );
-            if (ticketStatus[_ticketID[i]] == TicketStatus.Won) {
-                ticketStatus[_ticketID[i]] = TicketStatus.Rewarded;
-                mint(msg.sender);
-            } else {
-                revert("Awarded Or Not Won");
-            }
+            require(
+                ticketStatus[_ticketID[i]] == TicketStatus.Won, 
+                "Awarded Or Not Won"
+            );
+            ticketStatus[_ticketID[i]] = TicketStatus.Rewarded;
+            mint(msg.sender);
         }
     }
 
@@ -343,15 +350,11 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
                 ticketOwner[_ticketID[i]] == msg.sender,
                 "Not your ticket."
             );
-            if (
-                ticketStatus[_ticketID[i]] == TicketStatus.Rewarded ||
-                ticketStatus[_ticketID[i]] == TicketStatus.Withdrawn ||
-                ticketStatus[_ticketID[i]] == TicketStatus.Won
-            ) {
-                revert("Stake Not Returnable");
-            } else {
-                ticketStatus[_ticketID[i]] = TicketStatus.Withdrawn;
-            }
+            require(
+                ticketStatus[_ticketID[i]] == TicketStatus.None,
+                "Stake Not Returnable"
+            );
+            ticketStatus[_ticketID[i]] = TicketStatus.Withdrawn;
         }
         uint256 amount = _ticketID.length.mul(participationFee);
         stackToken.approve(_address, stackToken.balanceOf(address(this)));
@@ -520,7 +523,6 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
         }
     }
 
-    // is reentrancy attack possible?
     function mint(address _address) internal {
         require(totalSupply < maxSupply, "Max supply reached");
         uint256 _current = _tokenIdCounter.current();

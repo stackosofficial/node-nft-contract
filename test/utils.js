@@ -138,8 +138,7 @@ async function setup() {
   await generationManager.adjustAddressSettings(
     stableAcceptor.address,
     exchange.address,
-    bank.address, // fake dao & royalty distr addresses
-    bank.address,
+    bank.address // fake dao
   )
 
   STACK_TOKEN = stackToken.address;
@@ -235,6 +234,7 @@ async function setup() {
   SUBS_FEE = 1000;
   DAO_FEE = 500;
   DISTR_FEE = 500;
+  URI = "site.com";
   TIMELOCK = 6442850;
   let StackOS = await ethers.getContractFactory("StackOsNFT");
   stackOsNFT = await deployStackOS();
@@ -260,11 +260,9 @@ async function setupDeployment() {
     await generationManager.setupDeploy2(
       owner.address, // fake market address
       DAO_FEE,
-      DISTR_FEE
+      DISTR_FEE,
+      URI
     )
-    // already called
-    // await generationManager.adjustAddressSettings(
-    // )
 }
 
 async function setupLiquidity() {
