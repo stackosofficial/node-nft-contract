@@ -530,7 +530,12 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
         totalSupply += 1;
         _safeMint(_address, _current);
         _setTokenURI(_current, URI);
-        if(totalSupply == maxSupply) {
+        if(
+            totalSupply == maxSupply &&
+            // This is to allow safe manual deploy of next generation before max supply reached
+            // so if current contract is not last gen, then we dont do auto-deploy as next generation already exists
+            generations.getIDByAddress(address(this)) == generations.count()-1
+        ) {
             generations.deployNextGenPreset();
         }
     }

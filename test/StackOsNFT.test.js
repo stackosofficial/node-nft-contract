@@ -265,7 +265,7 @@ describe("StackOS NFT", function () {
   });
 });
 
-describe("transferTickets and transferFromLastGen", function () {
+describe("Test transferTickets and transferFromLastGen", function () {
 
   it("Snapshot EVM", async function () {
     snapshotId = await ethers.provider.send("evm_snapshot");
@@ -444,6 +444,118 @@ describe("transferTickets and transferFromLastGen", function () {
     );
     await expect(generationManager.deployNextGenPreset()).to.be.reverted;
   });
+  it("Revert EVM state", async function () {
+    await ethers.provider.send("evm_revert", [snapshotId]);
+  });
+});
+
+describe("Test manual deploy before max supply reached", function () {
+
+  it("Snapshot EVM", async function () {
+    snapshotId = await ethers.provider.send("evm_snapshot");
+  });
+
+  it("Setup 2", async function () {
+    await setup();
+    await setupDeployment();
+  });
+  it("Add liquidity", async function () {
+    await stackToken.approve(router.address, parseEther("100.0"));
+    await usdt.approve(router.address, parseEther("100.0"));
+    await usdc.approve(router.address, parseEther("100.0"));
+    var deadline = Math.floor(Date.now() / 1000) + 1200;
+
+    await router.addLiquidityETH(
+      stackToken.address,
+      parseEther("100"),
+      parseEther("100"),
+      parseEther("3.77"),
+      joe.address,
+      deadline,
+      { value: parseEther("3.77") }
+    );
+
+    await router.addLiquidityETH(
+      usdt.address,
+      parseUnits("4.3637", await usdt.decimals()),
+      parseUnits("4.3637", await usdt.decimals()),
+      parseEther("1.0"),
+      joe.address,
+      deadline,
+      { value: parseEther("10.0") }
+    );
+
+    await router.addLiquidityETH(
+      usdc.address,
+      parseUnits("4.3637", await usdc.decimals()),
+      parseUnits("4.3637", await usdc.decimals()),
+      parseEther("1.0"),
+      joe.address,
+      deadline,
+      { value: parseEther("10.0") }
+    );
+  });
+  it("Get 'not winning' tickets", async function () {
+    await stackToken.approve(stackOsNFT.address, parseEther("10.0"));
+
+    await expect(stackOsNFT.stakeForTickets(2)).to.be.revertedWith(
+      "Lottery inactive"
+    );
+    await stackOsNFT.activateLottery();
+    await stackOsNFT.stakeForTickets(14);
+
+    //"Start lottery"
+    await link.transfer(stackOsNFT.address, parseEther("10.0"));
+    // print(await link.balanceOf(stackOsNFT.address));
+    requestID = await stackOsNFT.callStatic.announceLottery();
+    await stackOsNFT.callStatic.announceLottery();
+    // print(requestID);
+    expect(await stackOsNFT.ticketOwner(1)).to.be.equal(owner.address);
+
+    //"Start lottery"
+    await coordinator.callBackWithRandomness(
+      requestID,
+      89765,
+      stackOsNFT.address
+    );
+    var randomNumber = await stackOsNFT.randomNumber();
+    // print(randomNumber);
+
+    await stackOsNFT.announceWinners(100);
+
+    winningTickets = [];
+    for (let i = 0; i < PRIZES; i++) {
+      winningTickets.push((await stackOsNFT.winningTickets(i)).toNumber());
+    }
+    // get NOT winning tickets
+    notWinning = [...Array(14).keys()].filter(
+      (e) => winningTickets.indexOf(e) == -1
+    );
+    // print(notWinning);
+
+    await stackOsNFT.mapOutWinningTickets(0, PRIZES);
+
+    await stackOsNFT.changeTicketStatus();
+  });
+
+  it("Deploy stackOsNFTBasic", async function () {
+    PRICE = parseEther("0.001626");
+    stackOsNFTBasic = await deployStackOSBasic();
+  });
+
+  it("Mint max supply in generation 1 while 2nd deployed manually", async function () {
+    await stackOsNFT.startPartnerSales();
+    await stackOsNFT.whitelistPartner(owner.address, 100);
+    await usdc.approve(stackOsNFT.address, parseEther("10000.0"));
+    await stackOsNFT.partnerMint(15, usdc.address);
+    await stackOsNFT.claimReward(winningTickets);
+
+    expect(await generationManager.count()).to.be.equal(2);
+    expect(await stackOsNFT.totalSupply()).to.be.equal(
+      await stackOsNFT.getMaxSupply()
+    );
+  });
+
   it("Revert EVM state", async function () {
     await ethers.provider.send("evm_revert", [snapshotId]);
   });
