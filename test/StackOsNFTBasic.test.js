@@ -193,7 +193,15 @@ describe("StackOS NFT Basic", function () {
     await stackOsNFTBasicgen3.mint(1);
     await expect(stackOsNFTBasicgen3.mint(9)).to.be.reverted;
     await provider.send("evm_increaseTime", [60 * 9]); 
-    await stackOsNFTBasicgen3.mint(9);
+    await stackOsNFTBasicgen3.mint(8);
+  });
+
+  it("Mint for USD", async function () {
+    await usdc.approve(stackOsNFTBasicgen3.address, parseEther("1"));
+    let oldBalance = await stackToken.balanceOf(stackOsNFTBasicgen3.address);
+    await stackOsNFTBasicgen3.mintForUsd(1, usdc.address);
+    let newBalance = await stackToken.balanceOf(stackOsNFTBasicgen3.address);
+    expect(newBalance.sub(oldBalance)).to.be.closeTo(parseEther("0.08"), parseEther("0.001"))
   });
 
   it("Whitelist address and transfer from it", async function () {

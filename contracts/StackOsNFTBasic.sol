@@ -13,8 +13,6 @@ import "./Exchange.sol";
 import "./Whitelist.sol";
 import "./Royalty.sol";
 
-import "hardhat/console.sol";
-
 contract StackOsNFTBasic is
     Whitelist,
     ERC721,
@@ -60,7 +58,7 @@ contract StackOsNFTBasic is
     uint256 private subsFee;
     uint256 private daoFee;
     uint256 private royaltyDistributionFee;
-    // drip 1 token per minute, this is max amount to drip
+    // this is max amount to drip, dripping is 1 per minute
     uint256 public constant maxMintRate = 10;
 
     mapping(uint256 => address) private delegates;
@@ -247,12 +245,10 @@ contract StackOsNFTBasic is
 
         uint256 ticketAmount = _amount.div(mintPriceDiscounted);
 
-        console.log("ta", ticketAmount, mintPriceDiscounted, _amount);
-        // protection in case someone frontrunned
+        // frontrun protection
         if (ticketAmount > maxSupply - totalSupply)
             ticketAmount = maxSupply - totalSupply;
 
-        console.log("ta", ticketAmount);
         uint256 stackToSpend = mintPriceDiscounted.mul(ticketAmount);
 
         // transfer left over amount to user
@@ -288,13 +284,51 @@ contract StackOsNFTBasic is
     function mint(uint256 _nftAmount) external {
         require(salesStarted);
 
-        // protection in case someone frontrunned
+        // frontrun protection
         if (_nftAmount > maxSupply - totalSupply)
             _nftAmount = maxSupply - totalSupply;
 
         uint256 stackAmount = mintPrice.mul(_nftAmount);
 
         stackToken.transferFrom(msg.sender, address(this), stackAmount);
+
+        stackAmount = sendFees(stackAmount);
+
+        adminWithdrawableAmount += stackAmount;
+        for (uint256 i; i < _nftAmount; i++) {
+            _mint(msg.sender);
+        }
+    }
+
+    /*
+     * @title User mint a token amount for stablecoin.
+     * @param Number of tokens to mint.
+     * @param Supported stablecoin.
+     * @dev Sales should be started before mint.
+     */
+
+    function mintForUsd(uint256 _nftAmount, IERC20 _stablecoin) external {
+        require(salesStarted);
+        require(stableAcceptor.supportsCoin(_stablecoin));
+
+        // frontrun protection
+        if (_nftAmount > maxSupply - totalSupply)
+            _nftAmount = maxSupply - totalSupply;
+
+        uint256 stackToReceive = mintPrice.mul(_nftAmount);
+        uint256 usdToSpend = exchange.getAmountIn(
+            stackToReceive, 
+            stackToken,
+            _stablecoin
+        );
+
+        _stablecoin.transferFrom(msg.sender, address(this), usdToSpend);
+        _stablecoin.approve(address(exchange), usdToSpend);
+        uint256 stackAmount = exchange.swapExactTokensForTokens(
+            usdToSpend, 
+            _stablecoin,
+            stackToken
+        );
 
         stackAmount = sendFees(stackAmount);
 
@@ -443,7 +477,6 @@ contract StackOsNFTBasic is
         totalMinted[_address] -= unlocked;
 
         lastMintAt[_address] = block.timestamp;
-        console.log(            totalMinted[_address] , maxMintRate);
 
         require(
             totalMinted[_address] < maxMintRate

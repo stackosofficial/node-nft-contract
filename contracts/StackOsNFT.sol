@@ -358,7 +358,6 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
         }
         uint256 amount = _ticketID.length.mul(participationFee);
         stackToken.approve(_address, amount);
-        console.log("tr", amount);
         IStackOsNFTBasic(_address).transferFromLastGen(msg.sender, amount);
         emit TransferTicket(msg.sender, _ticketID, _address, amount);
     }

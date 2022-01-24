@@ -606,7 +606,7 @@ contract Subscription is Ownable, ReentrancyGuard {
                 address(generations.get(purchaseGenerationId))
             );
 
-            // protection in case someone frontrunned
+            // frontrun protection
             if (amountToMint > stack.getMaxSupply() - stack.totalSupply())
                 amountToMint = stack.getMaxSupply() - stack.totalSupply();
 
