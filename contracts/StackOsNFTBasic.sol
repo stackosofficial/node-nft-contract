@@ -21,6 +21,7 @@ contract StackOsNFTBasic is
     using Counters for Counters.Counter;
     using SafeMath for uint256;
 
+    event SetPrice(uint256 _price);
     event SetURI(string uri);
     event SetName(string name);
     event SetSymbol(string symbol);
@@ -107,6 +108,12 @@ contract StackOsNFTBasic is
         maxSupply = _maxSupply;
         transferDiscount = _transferDiscount;
         timeLock = block.timestamp + _timeLock;
+    }
+
+    // Set mint price
+    function setPrice(uint256 _price) external onlyOwner {
+        mintPrice = _price;
+        emit SetPrice(_price);
     }
 
     // Set URI that is used for new tokens

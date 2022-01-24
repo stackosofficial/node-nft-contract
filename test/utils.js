@@ -64,6 +64,7 @@ async function deployStackOS() {
     exchange.address
   );
   await stackOsNFT.whitelist(darkMatter.address);
+  await stackOsNFT.setUri(URI);
   return stackOsNFT;
 }
 
@@ -238,6 +239,7 @@ async function setup() {
   TIMELOCK = 6442850;
   let StackOS = await ethers.getContractFactory("StackOsNFT");
   stackOsNFT = await deployStackOS();
+  
 }
 
 async function setupDeployment() {
