@@ -355,7 +355,6 @@ describe("Test transferTickets and transferFromLastGen", function () {
   });
 
   it("Deploy stackOsNFTBasic", async function () {
-    PRICE = parseEther("0.001626");
     stackOsNFTBasic = await deployStackOSBasic();
   });
 
@@ -377,12 +376,13 @@ describe("Test transferTickets and transferFromLastGen", function () {
     );
     // Pass some time to drip some tokens
     await provider.send("evm_increaseTime", [60 * 60]); 
+    await provider.send("evm_mine"); 
     await stackOsNFT.transferTicket(notWinning, stackOsNFTBasic.address);
     expect(await stackToken.balanceOf(stackOsNFT.address)).to.be.equal(
       parseEther("1.0")
     );
     expect(await stackToken.balanceOf(stackOsNFTBasic.address)).to.be.equal(
-      parseEther("0.315936871182511057")
+      parseEther("0.32")
     );
     print("Tickets transfered!");
     print(

@@ -612,32 +612,25 @@ contract Subscription is Ownable, ReentrancyGuard {
 
             // this should be inside mintFromSubscriptionRewards
             // BUT then GenerationManager exceeds size limit
-            uint256 amountToConvert = 
+            uint256 stackToSpend = 
                 (stack.mintPrice() * (10000 - stack.rewardDiscount()) / 10000) * 
-                amountToMint * 10**IDecimals(address(_stablecoin)).decimals() /
-                stack.PRICE_PRECISION();
+                amountToMint;
 
-            amountToConvert = exchange.getAmountIn(
-                amountToConvert, 
-                IERC20(_stablecoin), 
-                stackToken
-            );
-
-            require(amountWithdraw > amountToConvert, "Not enough earnings");
+            require(amountWithdraw > stackToSpend, "Not enough earnings");
 
             stackToken.approve(
                 address(generations.get(purchaseGenerationId)), 
-                amountToConvert
+               stackToSpend 
             );
 
             stack.mintFromSubscriptionRewards(
                 amountToMint, 
-                amountToConvert, 
+                stackToSpend, 
                 msg.sender
             );
 
             // Add rest back to pending rewards
-            amountWithdraw -= amountToConvert;
+            amountWithdraw -= stackToSpend;
             bonusDripped[generationId][tokenId] = amountWithdraw;
 
             emit PurchaseNewNft(

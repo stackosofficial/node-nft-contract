@@ -66,11 +66,11 @@ describe("Measure withdraw() and updateBonuses() gas", function () {
   it("Mint", async function () {
     await stackOsNFTBasic.startSales();
 
-    await usdc.approve(stackOsNFTBasic.address, parseEther("100000.0"));
+    await stackToken.approve(stackOsNFTBasic.address, parseEther("100000.0"));
     for (let i = 0; i < 10; i++) {
       await provider.send("evm_mine"); 
       await provider.send("evm_increaseTime", [60 * 60]); 
-      await stackOsNFTBasic.mint(10, usdc.address);
+      await stackOsNFTBasic.mint(10);
     }
   });
 

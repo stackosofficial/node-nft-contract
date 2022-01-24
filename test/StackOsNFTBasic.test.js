@@ -57,22 +57,19 @@ describe("StackOS NFT Basic", function () {
     );
   });
 
-  it("Mint for usdc", async function () {
+  it("Mint", async function () {
     await stackOsNFTBasic.startSales();
 
-    await usdc.approve(stackOsNFTBasic.address, parseEther("100.0"));
+    await stackToken.approve(stackOsNFTBasic.address, parseEther("100.0"));
     // pass some time, so that enough tokens dripped
     await provider.send("evm_increaseTime", [60 * 60]); 
-    await stackOsNFTBasic.mint(4, usdc.address);
+    await provider.send("evm_mine"); 
+    await stackOsNFTBasic.mint(4);
   });
 
   it("Mint for usdt", async function () {
     await usdt.approve(stackOsNFTBasic.address, parseEther("100.0"));
-    await stackOsNFTBasic.mint(1, usdt.address);
-  });
-
-  it("Unable to mint for unsupported coin", async function () {
-    await expect(stackOsNFTBasic.mint(1, stackToken.address)).to.be.reverted;
+    await stackOsNFTBasic.mint(1);
   });
 
   it("Owners can delegate their NFTs", async function () {
@@ -109,13 +106,13 @@ describe("StackOS NFT Basic", function () {
   });
 
   it("Trigger auto deploy of the next generation", async function () {
-    await usdt.approve(stackOsNFTBasic.address, parseEther("100.0"));
+    await stackToken.approve(stackOsNFTBasic.address, parseEther("100.0"));
     let oldGenerationsCount = (await generationManager.count()).toNumber();
 
     await provider.send("evm_increaseTime", [60 * 60]); 
-    await stackOsNFTBasic.mint(10, usdt.address);
+    await stackOsNFTBasic.mint(10);
     await provider.send("evm_increaseTime", [60 * 60]); 
-    await stackOsNFTBasic.mint(10, usdt.address);
+    await stackOsNFTBasic.mint(10);
 
     expect(await generationManager.count()).to.be.equal(
       oldGenerationsCount + 1
@@ -138,22 +135,22 @@ describe("StackOS NFT Basic", function () {
   });
 
   it("Trigger auto deploy of the next generation 2", async function () {
-    await usdt.approve(stackAutoDeployed.address, parseEther("100.0"));
+    await stackToken.approve(stackAutoDeployed.address, parseEther("100.0"));
     let oldGenerationsCount = (await generationManager.count()).toNumber();
     
     await stackAutoDeployed.startSales();
     await provider.send("evm_increaseTime", [60 * 60]); 
-    await stackAutoDeployed.mint(10, usdt.address);
+    await stackAutoDeployed.mint(10);
     await provider.send("evm_increaseTime", [60 * 60]); 
-    await stackAutoDeployed.mint(10, usdt.address);
+    await stackAutoDeployed.mint(10);
     await provider.send("evm_increaseTime", [60 * 60]); 
-    await stackAutoDeployed.mint(10, usdt.address);
+    await stackAutoDeployed.mint(10);
     await provider.send("evm_increaseTime", [60 * 60]); 
-    await stackAutoDeployed.mint(10, usdt.address);
+    await stackAutoDeployed.mint(10);
     await provider.send("evm_increaseTime", [60 * 60]); 
     // test frontrun protection
-    await stackAutoDeployed.mint(100, usdt.address);
-    await expect(stackAutoDeployed.mint(1, usdt.address)).to.be.reverted;
+    await stackAutoDeployed.mint(100);
+    await expect(stackAutoDeployed.mint(1)).to.be.reverted;
 
     expect(await stackAutoDeployed.tokenURI(0)).to.be.equal(
       "site.com"
@@ -187,16 +184,16 @@ describe("StackOS NFT Basic", function () {
   });
 
   it("Dripping tokens", async function () {
-    await usdt.approve(stackOsNFTBasicgen3.address, parseEther("100.0"));
+    await stackToken.approve(stackOsNFTBasicgen3.address, parseEther("100.0"));
     await stackOsNFTBasicgen3.startSales();
-    await expect(stackOsNFTBasicgen3.mint(11, usdt.address)).to.be.reverted;
-    await stackOsNFTBasicgen3.mint(10, usdt.address)
+    await expect(stackOsNFTBasicgen3.mint(11)).to.be.reverted;
+    await stackOsNFTBasicgen3.mint(10);
     await provider.send("evm_increaseTime", [60 * 1]); 
-    await expect(stackOsNFTBasicgen3.mint(2, usdt.address)).to.be.reverted;
-    await stackOsNFTBasicgen3.mint(1, usdt.address);
-    await expect(stackOsNFTBasicgen3.mint(9, usdt.address)).to.be.reverted;
+    await expect(stackOsNFTBasicgen3.mint(2)).to.be.reverted;
+    await stackOsNFTBasicgen3.mint(1);
+    await expect(stackOsNFTBasicgen3.mint(9)).to.be.reverted;
     await provider.send("evm_increaseTime", [60 * 9]); 
-    await stackOsNFTBasicgen3.mint(9, usdt.address);
+    await stackOsNFTBasicgen3.mint(9);
   });
 
   it("Whitelist address and transfer from it", async function () {

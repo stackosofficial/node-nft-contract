@@ -13,6 +13,8 @@ import "./Exchange.sol";
 import "./Whitelist.sol";
 import "./Royalty.sol";
 
+import "hardhat/console.sol";
+
 contract StackOsNFTBasic is
     Whitelist,
     ERC721,
@@ -58,9 +60,8 @@ contract StackOsNFTBasic is
     uint256 private subsFee;
     uint256 private daoFee;
     uint256 private royaltyDistributionFee;
+    // drip 1 token per minute, this is max amount to drip
     uint256 public constant maxMintRate = 10;
-
-    uint256 public constant PRICE_PRECISION = 1e18;
 
     mapping(uint256 => address) private delegates;
     mapping(address => uint256) private totalMinted;
@@ -110,7 +111,7 @@ contract StackOsNFTBasic is
         timeLock = block.timestamp + _timeLock;
     }
 
-    // Set mint price
+    // Set mint price in STACK tokens
     function setPrice(uint256 _price) external onlyOwner {
         mintPrice = _price;
         emit SetPrice(_price);
@@ -237,49 +238,32 @@ contract StackOsNFTBasic is
 
         // check that caller is generation 1 contract 
         require(address(generations.get(0)) == msg.sender);
-        IERC20 stablecoin = stableAcceptor.stablecoins(0);
+
         stackToken.transferFrom(msg.sender, address(this), _amount);
-        stackToken.approve(address(exchange), _amount);
-        uint256 usdAmount = exchange.swapExactTokensForTokens(
-            _amount, 
-            stackToken, 
-            stablecoin
-        );
 
         uint256 mintPriceDiscounted = mintPrice
             .mul(10000 - transferDiscount)
-            .div(10000)
-            .mul(10 ** IDecimals(address(stablecoin)).decimals())
-            .div(PRICE_PRECISION);
+            .div(10000);
 
-        uint256 ticketAmount = usdAmount.div(mintPriceDiscounted);
+        uint256 ticketAmount = _amount.div(mintPriceDiscounted);
 
+        console.log("ta", ticketAmount, mintPriceDiscounted, _amount);
         // protection in case someone frontrunned
         if (ticketAmount > maxSupply - totalSupply)
             ticketAmount = maxSupply - totalSupply;
 
-        uint256 depositAmount = mintPriceDiscounted.mul(ticketAmount);
+        console.log("ta", ticketAmount);
+        uint256 stackToSpend = mintPriceDiscounted.mul(ticketAmount);
 
-        stablecoin.approve(address(exchange), usdAmount);
-        uint256 stackDepositAmount = exchange.swapExactTokensForTokens(
-            depositAmount, 
-            stablecoin,
-            stackToken
-        );
-        uint256 stackLeftOverAmount = exchange.swapExactTokensForTokens(
-            usdAmount - depositAmount,
-            stablecoin,
-            stackToken
-        );
-
+        // transfer left over amount to user
         stackToken.transfer(
             _ticketOwner,
-            stackLeftOverAmount
+            _amount - stackToSpend 
         );
 
-        stackDepositAmount = sendFees(stackDepositAmount);
+        stackToSpend = sendFees(stackToSpend);
 
-        adminWithdrawableAmount += stackDepositAmount;
+        adminWithdrawableAmount += stackToSpend;
         for (uint256 i; i < ticketAmount; i++) {
             _mint(_ticketOwner);
         }
@@ -298,30 +282,19 @@ contract StackOsNFTBasic is
     /*
      * @title User mint a token amount.
      * @param Number of tokens to mint.
-     * @param Address of supported stablecoin
      * @dev Sales should be started before mint.
      */
 
-    function mint(uint256 _nftAmount, IERC20 _stablecoin) external {
+    function mint(uint256 _nftAmount) external {
         require(salesStarted);
-        require(stableAcceptor.supportsCoin(_stablecoin));
 
         // protection in case someone frontrunned
         if (_nftAmount > maxSupply - totalSupply)
             _nftAmount = maxSupply - totalSupply;
 
-        uint256 amountIn = mintPrice
-            .mul(_nftAmount)
-            .mul(10 ** IDecimals(address(_stablecoin)).decimals())
-            .div(PRICE_PRECISION);
+        uint256 stackAmount = mintPrice.mul(_nftAmount);
 
-        _stablecoin.transferFrom(msg.sender, address(this), amountIn);
-        _stablecoin.approve(address(exchange), amountIn);
-        uint256 stackAmount = exchange.swapExactTokensForTokens(
-            amountIn, 
-            _stablecoin,
-            stackToken
-        );
+        stackToken.transferFrom(msg.sender, address(this), stackAmount);
 
         stackAmount = sendFees(stackAmount);
 
@@ -363,7 +336,6 @@ contract StackOsNFTBasic is
     /*
      * @title Called when user want to mint and pay with bonuses from royalties.
      * @param Amount to mint
-     * @param Address of supported stablecoin
      * @param Address to mint to
      * @dev Can only be called by Royalty contract.
      * @dev Sales should be started before mint.
@@ -371,7 +343,6 @@ contract StackOsNFTBasic is
 
     function mintFromRoyaltyRewards(
         uint256 _mintNum, 
-        address _stablecoin, 
         address _to
     ) 
         external
@@ -382,22 +353,15 @@ contract StackOsNFTBasic is
         
         uint256 discountAmount = mintPrice
             .mul(10000 - rewardDiscount)
-            .div(10000)
-            .mul(10 ** IDecimals(address(_stablecoin)).decimals())
-            .div(PRICE_PRECISION);
+            .div(10000);
 
         // frontrun protection
         if (_mintNum > maxSupply - totalSupply)
             _mintNum = maxSupply - totalSupply;
 
-        uint256 amountIn = discountAmount.mul(_mintNum);
-        IERC20(_stablecoin).transferFrom(msg.sender, address(this), amountIn);
-        IERC20(_stablecoin).approve(address(exchange), amountIn);
-        uint256 stackAmount = exchange.swapExactTokensForTokens(
-            amountIn, 
-            IERC20(_stablecoin),
-            stackToken
-        );
+        uint256 stackAmount = discountAmount.mul(_mintNum);
+        amountSpend = stackAmount;
+        stackToken.transferFrom(msg.sender, address(this), stackAmount);
 
         stackAmount = sendFees(stackAmount);
 
@@ -405,7 +369,6 @@ contract StackOsNFTBasic is
         for (uint256 i; i < _mintNum; i++) {
             _mint(_to);
         }
-        return amountIn;
     }
 
     /*
@@ -480,6 +443,7 @@ contract StackOsNFTBasic is
         totalMinted[_address] -= unlocked;
 
         lastMintAt[_address] = block.timestamp;
+        console.log(            totalMinted[_address] , maxMintRate);
 
         require(
             totalMinted[_address] < maxMintRate

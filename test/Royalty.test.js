@@ -265,13 +265,17 @@ describe("Royalty", function () {
     await stackOsNFT.partnerMint(1, usdt.address);
 
     await stackOsNFTgen2.startSales();
+    
+    // give them some STACK
+    await stackToken.transfer(bob.address, parseEther("50.0"));
+    await stackToken.transfer(vera.address, parseEther("50.0"));
 
-    await usdt.connect(bob).approve(stackOsNFTgen2.address, parseEther("5.0"));
-    await stackOsNFTgen2.connect(bob).mint(1, usdt.address);
-    await usdt.connect(vera).approve(stackOsNFTgen2.address, parseEther("5.0"));
-    await stackOsNFTgen2.connect(vera).mint(1, usdt.address);
-    await usdt.approve(stackOsNFTgen2.address, parseEther("5.0"));
-    await stackOsNFTgen2.mint(1, usdt.address);
+    await stackToken.connect(bob).approve(stackOsNFTgen2.address, parseEther("50.0"));
+    await stackOsNFTgen2.connect(bob).mint(1);
+    await stackToken.connect(vera).approve(stackOsNFTgen2.address, parseEther("50.0"));
+    await stackOsNFTgen2.connect(vera).mint(1);
+    await stackToken.approve(stackOsNFTgen2.address, parseEther("50.0"));
+    await stackOsNFTgen2.mint(1);
 
     //+6 delegates for 7 cycle
     await stackOsNFT.connect(bob).delegate(stackOsNFT.address, [6]);
@@ -377,7 +381,7 @@ describe("Royalty", function () {
     // should be zero + last cycle unclaimed
     print(await provider.getBalance(royalty.address));
     expect(await provider.getBalance(royalty.address)).to.be.equal(
-      5
+      3
     );
 
     expect(
@@ -459,7 +463,7 @@ describe("Royalty", function () {
 
     print(await provider.getBalance(royalty.address));
     expect(await provider.getBalance(royalty.address)).to.be.equal(
-      5
+      3
     );
     print(
       await owner.getBalance(),
@@ -490,7 +494,7 @@ describe("Royalty", function () {
       await bob.getBalance()
     );
 
-    await expect(() => royalty.purchaseNewNft(1, [2], 5, usdt.address))
+    await expect(() => royalty.purchaseNewNft(1, [2], 5))
       .to.changeTokenBalance(stackOsNFTgen2, owner, 5);
 
     print(
@@ -551,7 +555,7 @@ describe("Royalty", function () {
 
     print(await provider.getBalance(royalty.address));
     expect(await provider.getBalance(royalty.address)).to.be.equal(
-      10
+      5
     );
     print("owner weth:", await weth.balanceOf(owner.address));
     print("vera:", await weth.balanceOf(vera.address));

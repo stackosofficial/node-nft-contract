@@ -212,6 +212,7 @@ async function setup() {
     darkMatter.address,
     exchange.address,
     DEPOSIT_FEE_ADDRESS,
+    stackToken.address,
     MIN_CYCLE_ETHER
   );
   await royalty.deployed();

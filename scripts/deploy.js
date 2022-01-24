@@ -15,7 +15,6 @@ async function main() {
   OWNERSHIP = "";
 
   // Stablecoins supported by the protocol
-  // Make sure first address has the most liquidity, as it is used by default in some places
   STABLES = [
     "0xeb8f08a975Ab53E34D8a0330E0D34de942C95926"
   ]
@@ -120,7 +119,7 @@ async function main() {
   NAME_2 = "STACK OS NFT";
   // Token symbol
   SYMBOL_2 = "STACK NFT";
-  // Mint price in USD, should be 18 decimals!
+  // Mint price in STACK
   PRICE_2 = parseEther("100");
   // Mint fee percent for active subs
   SUBS_FEE_2 = 2000;
@@ -208,6 +207,7 @@ async function main() {
     darkMatter.address,
     exchange.address,
     DEPOSIT_FEE_ADDRESS,
+    STACK_TOKEN,
     MIN_CYCLE_ETHER
   );
 

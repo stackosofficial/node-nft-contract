@@ -22,6 +22,7 @@ describe("DarkMatter", function () {
   });
 
   it("Deploy StackOS NFT generation 2", async function () {
+    // fake gen 2
     stackOsNFTgen2 = await deployStackOS();
   });
 
