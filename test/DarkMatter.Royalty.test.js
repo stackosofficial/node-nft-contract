@@ -66,10 +66,10 @@ describe("DarkMatter doesn't corrupt Royalty contract logic", function () {
   it("Mint 3rd DarkMatter NFT on stack generation 2", async function () {
 
     stackOsNFTGen2 = await deployStackOSBasic();
-    await usdt.approve(stackOsNFTGen2.address, parseEther("100.0"));
+    await stackToken.approve(stackOsNFTGen2.address, parseEther("100.0"));
     await stackOsNFTGen2.startSales();
     await provider.send("evm_increaseTime", [60 * 5]); 
-    await stackOsNFTGen2.mint(5, usdt.address); 
+    await stackOsNFTGen2.mint(5);
 
     await stackOsNFTGen2.setApprovalForAll(darkMatter.address, true);
     await darkMatter.deposit(1, [0, 1, 2, 3, 4]);

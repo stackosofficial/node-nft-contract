@@ -24,6 +24,7 @@ contract Royalty is Ownable, ReentrancyGuard {
     Exchange private immutable exchange;
     IERC20 private WETH; // for Matic network
     address payable private feeAddress;
+    IERC20 private stackToken;
     uint256 private feePercent;
 
     uint256 private minEthToStartCycle;
@@ -45,12 +46,14 @@ contract Royalty is Ownable, ReentrancyGuard {
         DarkMatter _darkMatter,
         Exchange _exchange,
         address payable _feeAddress,
+        IERC20 _stackToken,
         uint256 _minEthToStartCycle
     ) {
         generations = _generations;
         darkMatter = _darkMatter;
         exchange = _exchange;
         feeAddress = _feeAddress;
+        stackToken = _stackToken;
         minEthToStartCycle = _minEthToStartCycle;
     }
 
@@ -169,7 +172,7 @@ contract Royalty is Ownable, ReentrancyGuard {
     function claim(uint256 _generationId, uint256[] calldata _tokenIds)
         external
     {
-        _claim(_generationId, _tokenIds, 0, false, IERC20(address(0)), false);
+        _claim(_generationId, _tokenIds, 0, false, false);
     }
 
     /*
@@ -181,7 +184,7 @@ contract Royalty is Ownable, ReentrancyGuard {
         external
     {
         require(address(WETH) != address(0), "Wrong WETH address");
-        _claim(_generationId, _tokenIds, 0, false, IERC20(address(0)), true);
+        _claim(_generationId, _tokenIds, 0, false, true);
     }
 
     /*
@@ -195,14 +198,13 @@ contract Royalty is Ownable, ReentrancyGuard {
     function purchaseNewNft(
         uint256 _generationId,
         uint256[] calldata _tokenIds,
-        uint256 _mintNum,
-        IERC20 _stablecoin 
+        uint256 _mintNum
     ) 
         external 
         nonReentrant 
     {
         require(_generationId > 0, "Must be not first generation");
-        _claim(_generationId, _tokenIds, _mintNum, true, _stablecoin, false);
+        _claim(_generationId, _tokenIds, _mintNum, true, false);
     }
 
     function _claim(
@@ -210,7 +212,6 @@ contract Royalty is Ownable, ReentrancyGuard {
         uint256[] calldata tokenIds,
         uint256 _mintNum,
         bool _mint,
-        IERC20 _stablecoin,
         bool _claimWETH
     ) internal {
         require(address(this).balance > 0, "No royalty");
@@ -281,19 +282,17 @@ contract Royalty is Ownable, ReentrancyGuard {
                         require(success, "Transfer failed");
                     }
                 } else {
-                    IStackOsNFTBasic stackNFT = IStackOsNFTBasic(address(generations.get(generationId)));
-                    uint256 usdReceived = exchange.swapExactETHForTokens{value: reward}(_stablecoin);
-                    _stablecoin.approve(address(stackNFT), usdReceived);
+                    IStackOsNFTBasic stackNFT = 
+                        IStackOsNFTBasic(address(generations.get(generationId)));
+                    uint256 stackReceived = 
+                        exchange.swapExactETHForTokens{value: reward}(stackToken);
+                    stackToken.approve(address(stackNFT), stackReceived);
 
                     uint256 spendAmount = stackNFT.mintFromRoyaltyRewards(
                         _mintNum,
-                        address(_stablecoin), 
                         msg.sender
                     );
-                    require(
-                        _stablecoin.transfer(msg.sender, usdReceived - spendAmount), 
-                        "USD: transfer failed"
-                    );
+                    stackToken.transfer(msg.sender, stackReceived - spendAmount);
                 }
             }
         }

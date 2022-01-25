@@ -61,12 +61,12 @@ describe("Active subs reward", function () {
     );
   });
 
-  it("Mint for usdc (gen 2)", async function () {
+  it("Mint (gen 2)", async function () {
     await stackOsNFTBasic.startSales();
 
-    await usdc.approve(stackOsNFTBasic.address, parseEther("100.0"));
+    await stackToken.approve(stackOsNFTBasic.address, parseEther("100.0"));
     await provider.send("evm_increaseTime", [60 * 60]); 
-    await stackOsNFTBasic.mint(4, usdc.address);
+    await stackOsNFTBasic.mint(4);
   });
 
   it("Partners mint for usdt (gen 1)", async function () {
@@ -106,14 +106,14 @@ describe("Active subs reward", function () {
   it("End period, mint to send fee, and withdraw this fee", async function () {
     await provider.send("evm_increaseTime", [MONTH]); // start period 2
     
-    await stackOsNFTBasic.mint(1, usdc.address); // send mint fee
+    await stackOsNFTBasic.mint(1);
     print("owner stack:", await stackToken.balanceOf(owner.address));
     await expect(() => sub0.withdraw2(0, [0], [1])) // 1 claimer receives all
-      .to.changeTokenBalance(stackToken, owner, "29847133918755550");
+      .to.changeTokenBalance(stackToken, owner, "5000000000000000");
 
-    await stackOsNFTBasic.mint(1, usdc.address); // send mint fee
+    await stackOsNFTBasic.mint(1);
     await expect(() => sub0.withdraw2(0, [0], [1])) // again 1 claimer
-      .to.changeTokenBalance(stackToken, owner, "29846656193854609");
+      .to.changeTokenBalance(stackToken, owner, "5000000000000000");
     await expect(() => sub0.withdraw2(0, [0], [1])) // claim 0 as no fees
       .to.changeTokenBalance(stackToken, owner, "0");
     print("owner stack:", await stackToken.balanceOf(owner.address));
@@ -134,13 +134,13 @@ describe("Active subs reward", function () {
   });
   it("End period 2, mint to send fee, withdraw on multiple account", async function () {
     await provider.send("evm_increaseTime", [MONTH]);
-    await stackOsNFTBasic.mint(1, usdc.address); // send fee
+    await stackOsNFTBasic.mint(1);
     await expect(() => sub0.withdraw2(0, [0], [2]))
-      .to.changeTokenBalance(stackToken, owner, "14573583657589650");
+      .to.changeTokenBalance(stackToken, owner, "2500000000000000");
     await provider.send("evm_increaseTime", [MONTH]); // enter 4 period, should be able to withdraw for 2
-    expect(await sub0.pendingReward(0, [1], [2])).to.be.equal("14573583657589650");
+    expect(await sub0.pendingReward(0, [1], [2])).to.be.equal("2500000000000000");
     await expect(() => sub0.connect(joe).withdraw2(0, [1], [2]))
-      .to.changeTokenBalance(stackToken, joe, "14573583657589650");
+      .to.changeTokenBalance(stackToken, joe, "2500000000000000");
   });
   it("Unable to withdraw foreign reward", async function () {
     await expect(sub0.withdraw2(0, [1], [2])).to.be.revertedWith(
