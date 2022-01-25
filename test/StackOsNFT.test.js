@@ -173,7 +173,7 @@ describe("StackOS NFT", function () {
   });
 
   it("Bid on Auction before it's open", async function () {
-    await stackToken.approve(stackOsNFT.address, parseEther("100.0"));
+    await stackToken.approve(stackOsNFT.address, parseEther("1000.0"));
     await expect(stackOsNFT.placeBid(parseEther("1.0"))).to.be.revertedWith(
       "Auction closed!"
     );
@@ -184,20 +184,24 @@ describe("StackOS NFT", function () {
     await stackOsNFT.adjustAuctionCloseTime(deadline);
   });
 
-  async function logBids () {
+  async function logBids (text) {
     let topBids = [];
     for(let i = 0; i <= AUCTIONED_NFTS; i++) {
-      topBids.push(
-        formatEther((await stackOsNFT.topBids(i)).toString())
-      );
+      try {
+        topBids.push(
+          formatEther((await stackOsNFT.topBids(i)).toString())
+        );
+      } catch (error) {
+        console.log(error);
+      }
     }
-    print("topBids", topBids, topBids.length);
+    print(text, topBids, topBids.length);
   }
   it("Auction", async function () {
 
     print("auctioned NFTs:", AUCTIONED_NFTS)
 
-    await logBids();
+    await logBids("topBids array before bids");
 
     await stackOsNFT.placeBid(parseEther("1.0"));
     await stackOsNFT.placeBid(parseEther("1.0"));
@@ -211,7 +215,19 @@ describe("StackOS NFT", function () {
     await stackOsNFT.placeBid(parseEther("9.0"));
     await stackOsNFT.placeBid(parseEther("20.0"));
 
-    await logBids();
+    let currentBidsCount = 0;
+    for(let i = 0; i <= AUCTIONED_NFTS; i++) {
+      if((await stackOsNFT.topBids(i)).isZero() == false)
+        currentBidsCount++;
+    }
+
+    // make 5 more bids than there is slots
+    let arbitraryBidsCount = AUCTIONED_NFTS - currentBidsCount + 5;
+    for(let i = 0; i <= arbitraryBidsCount; i++) {
+      await stackOsNFT.placeBid(parseEther("20.0").add(parseEther("1.0")));
+    }
+
+    await logBids("topBids array after bids");
 
     await expect(stackOsNFT.placeBid(parseEther("1.0"))).to.be.revertedWith(
       "Bid too small"
@@ -227,6 +243,7 @@ describe("StackOS NFT", function () {
   it("Close Auction Distribute NFT's", async function () {
     await ethers.provider.send("evm_setNextBlockTimestamp", [deadline + 1]);
     print(await stackOsNFT.balanceOf(owner.address))
+    console.log(await stackOsNFT.totalSupply())
     await expect(() => stackOsNFT.finalizeAuction()).to.changeTokenBalance(
       stackOsNFT, owner, AUCTIONED_NFTS
     );
@@ -413,12 +430,14 @@ describe("Test transferTickets and transferFromLastGen", function () {
     stackOsNFT = await deployStackOS();
     await stackOsNFT.startPartnerSales();
 
-    await stackOsNFT.whitelistPartner(joe.address, 25);
+    await stackOsNFT.whitelistPartner(joe.address, 1000);
     await usdc.transfer(joe.address, parseEther("220"));
     await usdc.connect(joe).approve(stackOsNFT.address, parseEther("220"));
 
     oldGenerationsCount = (await generationManager.count()).toNumber();
-    await stackOsNFT.connect(joe).partnerMint(25, usdc.address);
+    await stackOsNFT.connect(joe).partnerMint(
+      (await stackOsNFT.getMaxSupply()).sub(await stackOsNFT.totalSupply()), 
+      usdc.address);
 
   });
 
@@ -547,7 +566,13 @@ describe("Test manual deploy before max supply reached", function () {
     await stackOsNFT.startPartnerSales();
     await stackOsNFT.whitelistPartner(owner.address, 100);
     await usdc.approve(stackOsNFT.address, parseEther("10000.0"));
-    await stackOsNFT.partnerMint(15, usdc.address);
+    let amountToMint = (await stackOsNFT.getMaxSupply())
+        .sub(await stackOsNFT.totalSupply())
+        .sub(winningTickets.length);
+    await stackOsNFT.partnerMint(
+      amountToMint,
+      usdc.address
+    );
     await stackOsNFT.claimReward(winningTickets);
 
     expect(await generationManager.count()).to.be.equal(2);
