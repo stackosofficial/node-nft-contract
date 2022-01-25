@@ -226,9 +226,9 @@ async function setup() {
   STACK_TOKEN = stackToken.address;
   DARK_MATTER_ADDRESS = darkMatter.address;
   PRICE = parseEther("0.1");
-  MAX_SUPPLY = 25;
+  MAX_SUPPLY = 40;
   PRIZES = 10;
-  AUCTIONED_NFTS = 10;
+  AUCTIONED_NFTS = 21;
   VRF_COORDINATOR = coordinator.address;
   LINK_TOKEN = link.address;
   KEY_HASH =
