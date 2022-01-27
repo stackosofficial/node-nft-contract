@@ -109,10 +109,16 @@ describe("StackOS NFT Basic", function () {
     await stackToken.approve(stackOsNFTBasic.address, parseEther("100.0"));
     let oldGenerationsCount = (await generationManager.count()).toNumber();
 
-    await provider.send("evm_increaseTime", [60 * 60]); 
-    await stackOsNFTBasic.mint(10);
-    await provider.send("evm_increaseTime", [60 * 60]); 
-    await stackOsNFTBasic.mint(10);
+    for (let i = 0; i < MAX_SUPPLY; i++) {
+      try {
+        await provider.send("evm_increaseTime", [60 * 60]); 
+        await stackOsNFTBasic.mint(10);
+      } catch (error) {
+        break;
+      }
+    }
+    // await provider.send("evm_increaseTime", [60 * 60]); 
+    // await stackOsNFTBasic.mint(10);
 
     expect(await generationManager.count()).to.be.equal(
       oldGenerationsCount + 1
@@ -139,17 +145,20 @@ describe("StackOS NFT Basic", function () {
     let oldGenerationsCount = (await generationManager.count()).toNumber();
     
     await stackAutoDeployed.startSales();
-    await provider.send("evm_increaseTime", [60 * 60]); 
-    await stackAutoDeployed.mint(10);
-    await provider.send("evm_increaseTime", [60 * 60]); 
-    await stackAutoDeployed.mint(10);
-    await provider.send("evm_increaseTime", [60 * 60]); 
-    await stackAutoDeployed.mint(10);
-    await provider.send("evm_increaseTime", [60 * 60]); 
-    await stackAutoDeployed.mint(10);
+    let iterCount = 
+      await stackAutoDeployed.getMaxSupply() - 
+      await stackAutoDeployed.totalSupply() - 2;
+    for (let i = 0; i < iterCount; i++) {
+      try {
+        await provider.send("evm_increaseTime", [60 * 60]); 
+        await stackAutoDeployed.mint(1);
+      } catch (error) {
+        break;
+      }
+    }
     await provider.send("evm_increaseTime", [60 * 60]); 
     // test frontrun protection
-    await stackAutoDeployed.mint(100);
+    await stackAutoDeployed.mint(10);
     await expect(stackAutoDeployed.mint(1)).to.be.reverted;
 
     expect(await stackAutoDeployed.tokenURI(0)).to.be.equal(
@@ -167,7 +176,7 @@ describe("StackOS NFT Basic", function () {
     expect(await stackAutoDeployed2.name()).to.be.equal("STACK OS NFT 4");
     expect(await stackAutoDeployed2.owner()).to.be.equal(owner.address);
     expect(await stackAutoDeployed2.getMaxSupply()).to.be.equal(
-      100
+      await stackAutoDeployed2.getMaxSupply() * MAX_SUPPLY_GROWTH / 10000
     );
   });
 

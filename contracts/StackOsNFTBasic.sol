@@ -13,6 +13,7 @@ import "./Exchange.sol";
 import "./Whitelist.sol";
 import "./Royalty.sol";
 
+
 contract StackOsNFTBasic is
     Whitelist,
     ERC721,
