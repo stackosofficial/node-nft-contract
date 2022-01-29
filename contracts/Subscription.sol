@@ -29,7 +29,8 @@ contract Subscription is Ownable, ReentrancyGuard {
         uint256 tokenId,
         uint256 _price,
         IERC20 _stablecoin,
-        bool _payWithStack
+        bool _payWithStack,
+        uint256 periodId
     );
 
     event WithdrawRewards(
@@ -263,12 +264,12 @@ contract Subscription is Ownable, ReentrancyGuard {
             );
         }
 
-        _subscribe(generationId, tokenId, _price, _stablecoin, _payWithStack);
-
         // active sub reward logic
         updatePeriod();
         periods[currentPeriodId].subsNum += 1;
         periods[currentPeriodId].tokenData[generationId][tokenId].isSub = true;
+
+        _subscribe(generationId, tokenId, _price, _stablecoin, _payWithStack);
     }
 
     function _subscribe(
@@ -301,7 +302,6 @@ contract Subscription is Ownable, ReentrancyGuard {
         deposit.tax = subOrZero(deposit.tax, taxReductionAmount);
         deposit.nextPayDate += MONTH;
 
-        // convert stablecoin to stack token
         uint256 amount;
         if(_payWithStack) {
             _stablecoin = stableAcceptor.stablecoins(0);
@@ -351,7 +351,8 @@ contract Subscription is Ownable, ReentrancyGuard {
             tokenId,
             _price,
             _stablecoin,
-            _payWithStack
+            _payWithStack,
+            currentPeriodId
         );
     }
 
@@ -428,6 +429,7 @@ contract Subscription is Ownable, ReentrancyGuard {
                 );
                         
                 uint256 share = period.balance / period.subsNum;
+                // this way we ignore periods withdrawn
                 toWithdraw += (share - period.tokenData[generationId][tokenId].withdrawn);
                 period.tokenData[generationId][tokenId].withdrawn = share; 
             }
