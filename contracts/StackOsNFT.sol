@@ -24,21 +24,36 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
         address darkMatter,
         address exchange
     );
-    event StakeForTickets(address participant, uint256 ticketAmount);
+    event StakeForTickets(
+        address indexed participant, 
+        uint256 ticketAmount,
+        uint256 latestTicketID
+    );
     event AnnounceLottery(bytes32 requestId);
     event ChangeTicketStatus();
     event TransferTicket(
-        address participant, 
+        address indexed participant, 
         uint256[] ticketIDs, 
         address nextGenerationAddress, 
         uint256 stackTransfered
     );
-    event WhitelistPartner(address partner, uint256 amount);
+    event WhitelistPartner(
+        address indexed partner, 
+        uint256 amount
+    );
     event StartPartnerSales();
     event ActivateLottery();
     event AdjustAuctionCloseTime(uint256 time);
-    event PlaceBid(address bider, uint256 amount, uint256 placeInAuction);
-    event Delegate(address delegator, address delegatee, uint256 tokenId);
+    event PlaceBid(
+        address indexed bider, 
+        uint256 amount, 
+        uint256 placeInAuction
+    );
+    event Delegate(
+        address indexed delegator, 
+        address delegatee, 
+        uint256 tokenId
+    );
     event AdminWithdraw(address admin, uint256 withdrawAmount);
 
     enum TicketStatus {
@@ -65,7 +80,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
     uint256 private immutable maxSupply;
     uint256 public totalSupply;
     uint256 private immutable participationFee;
-    uint256 private participationTickets;
+    uint256 public participationTickets;
     uint256 private immutable prizes;
     uint256 internal constant fee = 1e14; // 0.0001 (1e14) on MATIC, 0.1 (1e17) on eth
 
@@ -195,7 +210,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
             ticketOwner[i] = msg.sender;
         }
         participationTickets += _ticketAmount;
-        emit StakeForTickets(msg.sender, _ticketAmount);
+        emit StakeForTickets(msg.sender, _ticketAmount, participationTickets - 1);
     }
 
     /*

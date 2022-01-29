@@ -23,7 +23,7 @@ contract Subscription is Ownable, ReentrancyGuard {
     event SetForgivenessPeriod(uint256 _seconds);
 
     event Subscribe(
-        address subscriberWallet,
+        address indexed subscriberWallet,
         uint256 blockTimestamp,
         uint256 generationId,
         uint256 tokenId,
@@ -33,7 +33,7 @@ contract Subscription is Ownable, ReentrancyGuard {
     );
 
     event WithdrawRewards(
-        address subscriberWallet,
+        address indexed subscriberWallet,
         uint256 amountWithdrawn,
         uint256 generationId, 
         uint256[] tokenIds,
@@ -41,7 +41,7 @@ contract Subscription is Ownable, ReentrancyGuard {
     );
 
     event PurchaseNewNft(
-        address subscriberWallet,
+        address indexed subscriberWallet,
         uint256 generationId,
         uint256 tokenId,
         uint256 purchaseGenerationId,
@@ -50,7 +50,7 @@ contract Subscription is Ownable, ReentrancyGuard {
     );
 
     event Withdraw(
-        address subscriberWallet,
+        address indexed subscriberWallet,
         uint256 generationId,
         uint256 tokenId,
         uint256 amountToMint
