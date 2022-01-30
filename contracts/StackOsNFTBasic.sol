@@ -32,7 +32,11 @@ contract StackOsNFTBasic is
     event SetRewardDiscount(uint256 _rewardDiscount);
     event SetFees(uint256 subs, uint256 dao, uint256 royaltyDistribution);
     event StartSales();
-    event Delegate(address delegator, address delegatee, uint256 tokenId);
+    event Delegate(
+        address indexed delegator, 
+        address delegatee, 
+        uint256 tokenId
+    );
     event AdminWithdraw(address admin, uint256 withdrawAmount);
 
     string private _name;

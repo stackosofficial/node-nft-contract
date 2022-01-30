@@ -13,7 +13,7 @@ contract DarkMatter is Whitelist, ERC721, ReentrancyGuard {
     using Counters for Counters.Counter;
 
     event Deposit(
-        address _wallet, 
+        address indexed _wallet, 
         uint256 generationId,
         uint256[] tokenIds
     );

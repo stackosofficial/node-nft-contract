@@ -13,29 +13,29 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeab
     event SetDaoFee(uint256 _percent);
 
     event StackSale(
-        address seller,
-        address buyer,
+        address indexed seller,
+        address indexed buyer,
         uint256 generationId,
         uint256 tokenId,
         uint256 price
     );
 
     event StackListing(
-        address seller,
+        address indexed seller,
         uint256 generationId,
         uint256 tokenId,
         uint256 price
     );
 
     event DarkMatterSale(
-        address seller,
-        address buyer,
+        address indexed seller,
+        address indexed buyer,
         uint256 tokenId,
         uint256 price
     );
 
     event DarkMatterListing(
-        address seller,
+        address indexed seller,
         uint256 tokenId,
         uint256 price
     );
