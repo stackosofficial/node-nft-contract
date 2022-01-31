@@ -175,18 +175,6 @@ describe("StackOS NFT", function () {
     expect(await stackOsNFT.getDelegatee(0)).to.equal(joe.address);
   });
 
-  it("Bid on Auction before it's open", async function () {
-    await stackToken.approve(stackOsNFT.address, parseEther("1000.0"));
-    await expect(stackOsNFT.placeBid(parseEther("1.0"))).to.be.revertedWith(
-      "Auction closed!"
-    );
-  });
-
-  it("Open Auction for bidding", async function () {
-    deadline = Math.floor(Date.now() / 1000) + 1000;
-    await stackOsNFT.adjustAuctionCloseTime(deadline);
-  });
-
   async function logBids (text) {
     let topBids = [];
     for(let i = 0; i <= AUCTIONED_NFTS; i++) {
@@ -202,6 +190,7 @@ describe("StackOS NFT", function () {
   }
   it("Auction", async function () {
 
+    await stackToken.approve(stackOsNFT.address, parseEther("1000.0"));
     print("auctioned NFTs:", AUCTIONED_NFTS)
 
     await logBids("topBids array before bids");
@@ -237,20 +226,19 @@ describe("StackOS NFT", function () {
     );
   });
 
-  it("Try to close auction before it has ended.", async function () {
-    await expect(stackOsNFT.finalizeAuction()).to.be.revertedWith(
-      "Auction still ongoing."
-    );
-  });
-
   it("Close Auction Distribute NFT's", async function () {
-    await ethers.provider.send("evm_setNextBlockTimestamp", [deadline + 1]);
     print(await stackOsNFT.balanceOf(owner.address))
     console.log(await stackOsNFT.totalSupply())
     await expect(() => stackOsNFT.finalizeAuction()).to.changeTokenBalance(
       stackOsNFT, owner, AUCTIONED_NFTS
     );
     print(await stackOsNFT.balanceOf(owner.address))
+  });
+
+  it("Unable to bid when finalized", async function () {
+    await expect(stackOsNFT.placeBid(parseEther("1.0"))).to.be.revertedWith(
+      "Auction closed!"
+    );
   });
 
   it("Unable to transfer when not whitelisted", async function () {
@@ -271,9 +259,8 @@ describe("StackOS NFT", function () {
 
   it("Admin withdraws after time lock.", async function () {
     await ethers.provider.send("evm_setNextBlockTimestamp", [
-      deadline + TIMELOCK,
+      (Math.floor(Date.now() / 1000)) + TIMELOCK,
     ]);
-
     
     await expect(() => stackOsNFT.adminWithdraw())
       .to.changeTokenBalance(stackToken, owner, adminWithdrawableAmount);
@@ -420,7 +407,7 @@ describe("Test transferTickets and transferFromLastGen", function () {
 
   it("Admin withdraws after time lock.", async function () {
     await ethers.provider.send("evm_setNextBlockTimestamp", [
-      deadline + TIMELOCK,
+      (Math.floor(Date.now() / 1000)) + TIMELOCK,
     ]);
     await expect(() => stackOsNFT.adminWithdraw())
       .to.changeTokenBalance(stackToken, owner, adminWithdrawableAmount);
