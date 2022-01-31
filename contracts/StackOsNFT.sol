@@ -262,27 +262,10 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
                 (shuffle[i], shuffle[j]) = (shuffle[j], shuffle[i]);
 
                 winningTickets.push(shuffle[i]);
+                ticketStatus[shuffle[i]] = TicketStatus.Won;
+                
                 i --;
             } else break;
-        }
-    }
-
-    /*
-     * @title Map out the winning tickets.
-     * @param From ID
-     * @param To ID
-     * @dev Could only be invoked by the contract owner.
-     */
-
-    function mapOutWinningTickets(uint256 _startingIndex, uint256 _endingIndex)
-        external
-        onlyOwner
-    {
-        require(winningTickets.length == prizes, "Not Decided Yet.");
-        require(ticketStatusAssigned == false, "Already Assigned.");
-        require(_endingIndex <= prizes);
-        for (uint256 i = _startingIndex; i < _endingIndex; i++) {
-            ticketStatus[winningTickets[i]] = TicketStatus.Won;
         }
     }
 
@@ -591,8 +574,8 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
     function adminWithdraw() external onlyOwner {
         require(block.timestamp > timeLock, "Locked!");
         require(ticketStatusAssigned == true, "Not Assigned.");
-        stackToken.transfer(msg.sender, adminWithdrawableAmount);
         emit AdminWithdraw(msg.sender, adminWithdrawableAmount);
+        stackToken.transfer(msg.sender, adminWithdrawableAmount);
         adminWithdrawableAmount = 0;
     }
 }

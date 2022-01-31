@@ -427,7 +427,7 @@ contract Subscription is Ownable, ReentrancyGuard {
                     period.tokenData[generationId][tokenId].isSub, 
                     "Was not subscribed"
                 );
-                        
+
                 uint256 share = period.balance / period.subsNum;
                 // this way we ignore periods withdrawn
                 toWithdraw += (share - period.tokenData[generationId][tokenId].withdrawn);

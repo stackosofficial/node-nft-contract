@@ -66,6 +66,12 @@ describe("StackOS NFT", function () {
     );
     print(winningTickets, notWinning);
 
+
+    // check that Won status assigned to all winning tickets
+    for (let i = 0; i < PRIZES; i++) {
+      expect(await stackOsNFT.ticketStatus(winningTickets[i]))
+        .to.be.equal(1);
+    }
     // check that tickets are valid indexes
     await expect(
       winningTickets.findIndex((n) => n < 0 || n > TICKETS-1)
@@ -86,9 +92,6 @@ describe("StackOS NFT", function () {
     await expect(stackOsNFT.returnStake(notWinning)).to.be.revertedWith(
       "Not Assigned Yet!"
     );
-  });
-  it("Map out winners", async function () {
-    await stackOsNFT.mapOutWinningTickets(0, PRIZES);
   });
 
   it("changeTicketStatus()", async function () {
@@ -366,8 +369,6 @@ describe("Test transferTickets and transferFromLastGen", function () {
     );
     print(notWinning);
 
-    await stackOsNFT.mapOutWinningTickets(0, PRIZES);
-
     await stackOsNFT.changeTicketStatus();
   });
 
@@ -551,8 +552,6 @@ describe("Test manual deploy before max supply reached", function () {
       (e) => winningTickets.indexOf(e) == -1
     );
     // print(notWinning);
-
-    await stackOsNFT.mapOutWinningTickets(0, PRIZES);
 
     await stackOsNFT.changeTicketStatus();
   });
