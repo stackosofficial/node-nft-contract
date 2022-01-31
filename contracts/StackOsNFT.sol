@@ -333,15 +333,12 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
                 ticketOwner[_ticketID[i]] == msg.sender,
                 "Not your ticket."
             );
-            if (
-                ticketStatus[_ticketID[i]] == TicketStatus.Rewarded ||
-                ticketStatus[_ticketID[i]] == TicketStatus.Withdrawn ||
-                ticketStatus[_ticketID[i]] == TicketStatus.Won
-            ) {
-                revert("Stake Not Returnable");
-            } else {
-                ticketStatus[_ticketID[i]] = TicketStatus.Withdrawn;
-            }
+
+            require(
+                ticketStatus[_ticketID[i]] == TicketStatus.None,
+                "Stake Not Returnable"
+            );
+            ticketStatus[_ticketID[i]] = TicketStatus.Withdrawn;
         }
         stackToken.transfer(
             msg.sender,
