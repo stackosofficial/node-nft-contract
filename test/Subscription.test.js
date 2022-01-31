@@ -408,7 +408,7 @@ describe("Subscription (generations above 1st)", function () {
     await stackOsNFT.startPartnerSales();
     await stackOsNFT.whitelistPartner(owner.address, 100);
     await usdt.approve(stackOsNFT.address, parseEther("100.0"));
-    await stackOsNFT.partnerMint(1, usdt.address);
+    await stackOsNFT.partnerMint(1);
   });
   it("Subscribe for 5000$", async function () {
     

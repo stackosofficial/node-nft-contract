@@ -52,7 +52,7 @@ describe("Market", function () {
     await stackOsNFT.startPartnerSales();
     await stackOsNFT.whitelistPartner(owner.address, 10);
     await usdt.approve(stackOsNFT.address, parseEther("100.0"));
-    await stackOsNFT.partnerMint(6, usdt.address);
+    await stackOsNFT.partnerMint(6);
     await stackOsNFT.whitelist(owner.address);
     await stackOsNFT.transferFrom(owner.address, joe.address, 5);
 
@@ -79,7 +79,7 @@ describe("Market", function () {
   });
 
   it("Two generations", async function () {
-    await stackOsNFT.partnerMint(3, usdt.address);
+    await stackOsNFT.partnerMint(3);
 
     await stackOsNFT.setApprovalForAll(darkMatter.address, true);
     await darkMatter.deposit(0, [6, 7, 8]);

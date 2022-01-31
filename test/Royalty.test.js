@@ -96,7 +96,7 @@ describe("Royalty", function () {
     await stackOsNFT.startPartnerSales();
     await stackOsNFT.whitelistPartner(partner.address, 3);
     await usdt.connect(partner).approve(stackOsNFT.address, parseEther("10.0"));
-    await stackOsNFT.connect(partner).partnerMint(3, usdt.address);
+    await stackOsNFT.connect(partner).partnerMint(3);
   });
   it("Bank takes percent", async function () {
     await owner.sendTransaction({
@@ -193,11 +193,11 @@ describe("Royalty", function () {
       value: parseEther("100.0"),
     });
     await usdt.connect(bob).approve(stackOsNFT.address, parseEther("5.0"));
-    await stackOsNFT.connect(bob).partnerMint(1, usdt.address);
+    await stackOsNFT.connect(bob).partnerMint(1);
     await usdt.connect(vera).approve(stackOsNFT.address, parseEther("5.0"));
-    await stackOsNFT.connect(vera).partnerMint(1, usdt.address);
+    await stackOsNFT.connect(vera).partnerMint(1);
     await usdt.approve(stackOsNFT.address, parseEther("5.0"));
-    await stackOsNFT.partnerMint(1, usdt.address);
+    await stackOsNFT.partnerMint(1);
 
     await expect(royalty.claim(0, [0])).to.be.revertedWith("Not owner");
     await expect(royalty.connect(vera).claim(0, [4])).to.be.revertedWith(
@@ -260,9 +260,9 @@ describe("Royalty", function () {
     await provider.send("evm_increaseTime", [CYCLE_DURATION]); // 6 cycle can end
     await provider.send("evm_mine");
 
-    await stackOsNFT.connect(bob).partnerMint(1, usdt.address);
-    await stackOsNFT.connect(vera).partnerMint(1, usdt.address);
-    await stackOsNFT.partnerMint(1, usdt.address);
+    await stackOsNFT.connect(bob).partnerMint(1);
+    await stackOsNFT.connect(vera).partnerMint(1);
+    await stackOsNFT.partnerMint(1);
 
     await stackOsNFTgen2.startSales();
     
@@ -405,11 +405,11 @@ describe("Royalty", function () {
     await stackOsNFTgen3.startPartnerSales();
 
     await usdt.connect(bob).approve(stackOsNFTgen3.address, parseEther("5.0"));
-    await stackOsNFTgen3.connect(bob).partnerMint(1, usdt.address);
+    await stackOsNFTgen3.connect(bob).partnerMint(1);
     await usdt.connect(vera).approve(stackOsNFTgen3.address, parseEther("5.0"));
-    await stackOsNFTgen3.connect(vera).partnerMint(1, usdt.address);
+    await stackOsNFTgen3.connect(vera).partnerMint(1);
     await usdt.approve(stackOsNFTgen3.address, parseEther("5.0"));
-    await stackOsNFTgen3.partnerMint(1, usdt.address);
+    await stackOsNFTgen3.partnerMint(1);
 
     // delegates for 11 cycle
     await stackOsNFTgen3.connect(bob).delegate(stackOsNFTgen3.address, [0]);
@@ -555,7 +555,7 @@ describe("Royalty", function () {
 
     print(await provider.getBalance(royalty.address));
     expect(await provider.getBalance(royalty.address)).to.be.equal(
-      5
+      15
     );
     print("owner weth:", await weth.balanceOf(owner.address));
     print("vera:", await weth.balanceOf(vera.address));

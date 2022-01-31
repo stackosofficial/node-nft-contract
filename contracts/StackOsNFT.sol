@@ -407,31 +407,13 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
     /*
      * @title Partner can mint a token amount that he has been allowed to mint.
      * @param Number of tokens to mint.
-     * @param Address of supported stablecoin to pay for mint
      * @dev Partner sales should be started before mint.
      */
 
-    function partnerMint(uint256 _nftAmount, IERC20 _stablecoin) external {
+    function partnerMint(uint256 _nftAmount) external {
         require(salesStarted, "Sales not started");
-        require(stableAcceptor.supportsCoin(_stablecoin), "Unsupported stablecoin");
         require(strategicPartner[msg.sender] >= _nftAmount, "Amount Too Big");
 
-        uint256 stackAmount = participationFee.mul(_nftAmount);
-        uint256 amountIn = exchange.getAmountIn(
-            stackAmount, 
-            stackToken,
-            _stablecoin
-        );
-
-        IERC20(_stablecoin).transferFrom(msg.sender, address(this), amountIn);
-        IERC20(_stablecoin).approve(address(exchange), amountIn);
-        stackAmount = exchange.swapExactTokensForTokens(
-            amountIn, 
-            IERC20(_stablecoin),
-            stackToken
-        );
-
-        adminWithdrawableAmount += stackAmount;
         for (uint256 i; i < _nftAmount; i++) {
             strategicPartner[msg.sender]--;
             mint(msg.sender);

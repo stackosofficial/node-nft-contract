@@ -257,9 +257,9 @@ contract Royalty is Ownable, ReentrancyGuard {
 
                 for (uint256 o; o < counter.current(); o++) {
                     if (
-                        // should be able to claim only once for cycle
+                        // make sure its unclaimed
                         cycles[o].isClaimed[generationId][tokenId] == false
-                        // is this token delegated before this cycle start?
+                        // make sure token is delegated before this cycle start
                         && addedAt[generationId][tokenId] < int256(o)
                     ) {
                         reward += cycles[o].balance / cycles[o].delegatedCount;
