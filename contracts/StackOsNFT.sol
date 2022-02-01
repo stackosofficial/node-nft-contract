@@ -43,7 +43,6 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
     );
     event StartPartnerSales();
     event ActivateLottery();
-    event AdjustAuctionCloseTime(uint256 time);
     event PlaceBid(
         address indexed bider, 
         uint256 amount, 
@@ -75,7 +74,6 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
     uint256 public immutable timeLock;
     uint256 public randomNumber;
     uint256 public immutable auctionedNFTs;
-    uint256 public auctionCloseTime;
     uint256 public adminWithdrawableAmount;
     uint256 private immutable maxSupply;
     uint256 public totalSupply;
@@ -262,27 +260,10 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
                 (shuffle[i], shuffle[j]) = (shuffle[j], shuffle[i]);
 
                 winningTickets.push(shuffle[i]);
+                ticketStatus[shuffle[i]] = TicketStatus.Won;
+                
                 i --;
             } else break;
-        }
-    }
-
-    /*
-     * @title Map out the winning tickets.
-     * @param From ID
-     * @param To ID
-     * @dev Could only be invoked by the contract owner.
-     */
-
-    function mapOutWinningTickets(uint256 _startingIndex, uint256 _endingIndex)
-        external
-        onlyOwner
-    {
-        require(winningTickets.length == prizes, "Not Decided Yet.");
-        require(ticketStatusAssigned == false, "Already Assigned.");
-        require(_endingIndex <= prizes);
-        for (uint256 i = _startingIndex; i < _endingIndex; i++) {
-            ticketStatus[winningTickets[i]] = TicketStatus.Won;
         }
     }
 
@@ -333,15 +314,12 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
                 ticketOwner[_ticketID[i]] == msg.sender,
                 "Not your ticket."
             );
-            if (
-                ticketStatus[_ticketID[i]] == TicketStatus.Rewarded ||
-                ticketStatus[_ticketID[i]] == TicketStatus.Withdrawn ||
-                ticketStatus[_ticketID[i]] == TicketStatus.Won
-            ) {
-                revert("Stake Not Returnable");
-            } else {
-                ticketStatus[_ticketID[i]] = TicketStatus.Withdrawn;
-            }
+
+            require(
+                ticketStatus[_ticketID[i]] == TicketStatus.None,
+                "Stake Not Returnable"
+            );
+            ticketStatus[_ticketID[i]] = TicketStatus.Withdrawn;
         }
         stackToken.transfer(
             msg.sender,
@@ -413,45 +391,15 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
     }
 
     /*
-     * @title Adjust auction closing time.
-     * @param Timestamp when auction should be closed.
-     * @dev Could only be invoked by the contract owner and when the auction has not been finalized.
-     */
-
-    function adjustAuctionCloseTime(uint256 _time) external onlyOwner {
-        require(auctionFinalized == false, "Auction Already Finalized");
-        auctionCloseTime = _time;
-        emit AdjustAuctionCloseTime(_time);
-    }
-
-    /*
      * @title Partner can mint a token amount that he has been allowed to mint.
      * @param Number of tokens to mint.
-     * @param Address of supported stablecoin to pay for mint
      * @dev Partner sales should be started before mint.
      */
 
-    function partnerMint(uint256 _nftAmount, IERC20 _stablecoin) external {
+    function partnerMint(uint256 _nftAmount) external {
         require(salesStarted, "Sales not started");
-        require(stableAcceptor.supportsCoin(_stablecoin), "Unsupported stablecoin");
         require(strategicPartner[msg.sender] >= _nftAmount, "Amount Too Big");
 
-        uint256 stackAmount = participationFee.mul(_nftAmount);
-        uint256 amountIn = exchange.getAmountIn(
-            stackAmount, 
-            stackToken,
-            _stablecoin
-        );
-
-        IERC20(_stablecoin).transferFrom(msg.sender, address(this), amountIn);
-        IERC20(_stablecoin).approve(address(exchange), amountIn);
-        stackAmount = exchange.swapExactTokensForTokens(
-            amountIn, 
-            IERC20(_stablecoin),
-            stackToken
-        );
-
-        adminWithdrawableAmount += stackAmount;
         for (uint256 i; i < _nftAmount; i++) {
             strategicPartner[msg.sender]--;
             mint(msg.sender);
@@ -465,7 +413,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
      */
 
     function placeBid(uint256 _amount) external returns (uint256 i) {
-        require(block.timestamp < auctionCloseTime, "Auction closed!");
+        require(auctionFinalized == false, "Auction closed!");
         require(topBids[1] < _amount, "Bid too small");
         stackToken.transferFrom(msg.sender, address(this), _amount);
         for (i = auctionedNFTs; i != 0; i--) {
@@ -494,11 +442,11 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
 
     /*
      * @title Finalize auction and mint NFT for top biders.
-     * @dev Could only be invoked by the contract owner, when auction out of time and not finalized.
+     * @dev Could only be invoked by the contract owner.
+     * @dev Shouldn't be already finalized.
      */
 
     function finalizeAuction() external onlyOwner {
-        require(block.timestamp > auctionCloseTime, "Auction still ongoing.");
         require(auctionFinalized == false, "Auction Already Finalized");
         auctionFinalized = true;
         for (uint256 i = 1; i <= auctionedNFTs; i++) {
@@ -594,8 +542,8 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
     function adminWithdraw() external onlyOwner {
         require(block.timestamp > timeLock, "Locked!");
         require(ticketStatusAssigned == true, "Not Assigned.");
-        stackToken.transfer(msg.sender, adminWithdrawableAmount);
         emit AdminWithdraw(msg.sender, adminWithdrawableAmount);
+        stackToken.transfer(msg.sender, adminWithdrawableAmount);
         adminWithdrawableAmount = 0;
     }
 }

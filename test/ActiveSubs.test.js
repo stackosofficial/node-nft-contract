@@ -73,7 +73,7 @@ describe("Active subs reward", function () {
     await stackOsNFT.startPartnerSales();
     await stackOsNFT.whitelistPartner(owner.address, 100);
     await usdt.approve(stackOsNFT.address, parseEther("100.0"));
-    await stackOsNFT.partnerMint(2, usdt.address);
+    await stackOsNFT.partnerMint(2);
   });
 
   it("Lock subscription contract to generation 1", async function () {
