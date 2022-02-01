@@ -104,7 +104,15 @@ describe("Subscription (generations above 1st)", function () {
     await dai.approve(subscription.address, parseEther("5000.0"));
     await subscription.subscribe(1, 1, 0, dai.address, false);
   });
+  it("Unable to withdraw when low balance on bonus wallet", async function () {
+    await expect(subscription.withdraw(1, [1])).to.be.revertedWith(
+      "Bonus balance is too low"
+    );
+  });
   it("Take TAX for early withdrawal", async function () {
+    // send some for bonuses
+    await stackToken.transfer(subscription.address, parseEther("100.0"));
+
     await stackOsNFTBasic.whitelist(owner.address);
     await stackOsNFTBasic.transferFrom(owner.address, bob.address, 0);
     expect(await stackToken.balanceOf(bob.address)).to.equal(0);
@@ -126,11 +134,6 @@ describe("Subscription (generations above 1st)", function () {
     await subscription.subscribe(1, 1, 0, usdt.address, false);
     await provider.send("evm_increaseTime", [MONTH]);
     await subscription.subscribe(1, 1, 0, usdt.address, false);
-  });
-  it("Unable to withdraw when low balance on bonus wallet", async function () {
-    await expect(subscription.withdraw(1, [1])).to.be.revertedWith(
-      "Not enough balance on bonus wallet"
-    );
   });
   it("Withdraw", async function () {
     await stackToken.transfer(subscription.address, parseEther("5000.0"));

@@ -67,16 +67,19 @@ contract Subscription is Ownable, ReentrancyGuard {
     uint256 internal constant HUNDRED_PERCENT = 10000;
     uint256 public constant MONTH = 28 days;
 
+    uint256 public totalDeposited;
+    uint256 public totalRewards;
     uint256 public dripPeriod = 700 days;
     uint256 public forgivenessPeriod = 7 days;
-    uint256 public price = 1e18;
+    uint256 public price = 1e18; // price in USD
     uint256 public maxPrice = 5000e18;
     uint256 public bonusPercent = 2000;
     uint256 public taxReductionAmount = 2500;
     uint256 public currentPeriodId;
     bool public isOnlyFirstGeneration;
 
-    uint256 public constant PRICE_PRECISION = 1e18;
+
+    uint256 public constant PRICE_PRECISION = 1e18; // how much decimals `price` has
 
     enum withdrawStatus {
         withdraw,
@@ -218,7 +221,7 @@ contract Subscription is Ownable, ReentrancyGuard {
     }  
     
     /*
-     * @title Reverts if passed generationId doesn't match desired generation by the contract.
+     * @title Reverts if generationId doesn't match contract's desired generation.
      * @title This is used in modifier.
      * @dev Could only be invoked by the contract owner.
      */
@@ -236,7 +239,8 @@ contract Subscription is Ownable, ReentrancyGuard {
      *  @param Amount user wish to pay, used only in 1st generation subscription contract
      *  @param Address of supported stablecoin, unused when pay with STACK
      *  @param Whether to pay with STACK token
-     *  @dev Caller must approve us to spend `price` amount of `_stablecoin` or stack token.
+     *  @dev Caller must approve us to spend `price` amount of `_stablecoin`.
+     *  @dev If paying with stack, caller must approve stack amount that costs `price` usd.
      */
     function subscribe(
         uint256 generationId,
@@ -249,11 +253,11 @@ contract Subscription is Ownable, ReentrancyGuard {
         nonReentrant 
         restrictGeneration(generationId)
     {
-        if(!_payWithStack)
-            require(
-                stableAcceptor.supportsCoin(_stablecoin), 
-                "Unsupported stablecoin"
-            );
+        require(
+            // don't validate stables when paying with stack
+            _payWithStack || stableAcceptor.supportsCoin(_stablecoin), 
+            "Unsupported stablecoin"
+        );
 
         uint256 _price = price;
         if(isOnlyFirstGeneration) {
@@ -322,26 +326,27 @@ contract Subscription is Ownable, ReentrancyGuard {
                 10 ** IDecimals(address(_stablecoin)).decimals() /
                 PRICE_PRECISION;
             require(
-                _stablecoin.transferFrom(msg.sender, address(this), _price), 
+                _stablecoin.transferFrom(msg.sender, address(this), _price),
                 "USD: transfer failed"
             );
             _stablecoin.approve(address(exchange), _price);
             amount = exchange.swapExactTokensForTokens(
-                _price, 
+                _price,
                 _stablecoin,
                 stackToken
             );
         }
 
+        totalDeposited += amount;
         deposit.balance += amount;
 
         // bonuses logic
         updateBonuses(generationId, tokenId);
         uint256 bonusAmount = amount * bonusPercent / HUNDRED_PERCENT;
         deposit.bonuses.push(Bonus({
-            total: bonusAmount, 
-            lastTxDate: block.timestamp, 
-            releasePeriod: dripPeriod, 
+            total: bonusAmount,
+            lastTxDate: block.timestamp,
+            releasePeriod: dripPeriod,
             lockedAmount: bonusAmount
         }));
         emit Subscribe(
@@ -383,6 +388,7 @@ contract Subscription is Ownable, ReentrancyGuard {
         if(periods[currentPeriodId - 1].subsNum == 0) {
             return false;
         } else {
+            totalRewards += _amount;
             periods[currentPeriodId - 1].balance += _amount;
             stackToken.transferFrom(msg.sender, address(this), _amount);
         }
@@ -434,6 +440,13 @@ contract Subscription is Ownable, ReentrancyGuard {
                 period.tokenData[generationId][tokenId].withdrawn = share; 
             }
         }
+
+        require(
+            stackToken.balanceOf(address(this)) - totalDeposited >= toWithdraw,
+            "Rewards balance is too low"
+        );
+
+        totalRewards -= toWithdraw;
         stackToken.transfer(msg.sender, toWithdraw);
 
         emit WithdrawRewards(
@@ -585,11 +598,18 @@ contract Subscription is Ownable, ReentrancyGuard {
         uint256 bonusAmount = bonusDripped[generationId][tokenId];
         bonusDripped[generationId][tokenId] = 0;
 
+        uint256 contractBalance = stackToken.balanceOf(address(this));
         require(
-            amountWithdraw + bonusAmount <= stackToken.balanceOf(address(this)),
-            "Not enough balance on bonus wallet"
+            // make sure max withdraw amount won't touch balance of rewards 
+            amountWithdraw + bonusAmount <= 
+                contractBalance - totalRewards &&
+                // make sure bonus amount won't touch balances of deposits or rewards 
+                bonusAmount <= 
+                    contractBalance - totalRewards - totalDeposited,
+            "Bonus balance is too low"
         );
 
+        totalDeposited -= amountWithdraw;
         deposit.balance = 0;
 
         // early withdraw tax
@@ -609,11 +629,11 @@ contract Subscription is Ownable, ReentrancyGuard {
             );
 
             // frontrun protection
+            // this should be in stack contract, but code size limit...
             if (amountToMint > stack.getMaxSupply() - stack.totalSupply())
                 amountToMint = stack.getMaxSupply() - stack.totalSupply();
 
-            // this should be inside mintFromSubscriptionRewards
-            // BUT then GenerationManager exceeds size limit
+            // this should be in stack contract, but code size limit...
             uint256 stackToSpend = 
                 (stack.mintPrice() * (10000 - stack.rewardDiscount()) / 10000) * 
                 amountToMint;
