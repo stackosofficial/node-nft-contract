@@ -37,9 +37,11 @@ async function main() {
   // 25% means: 1 month withdraw 75% tax, 2 month 50%, 3 month 25%, 4 month 0%
   TAX_REDUCTION_AMOUNT = 2500;
   // Subscription forgiveness period in seconds
-  FORGIVENESS_PERIOD = 60 * 60 * 24 * 7;
+  FORGIVENESS_PERIOD = 604800;
+  // Subscription bonus drip period in seconds
+  DRIP_PERIOD_2 = 31536000;
 
-  // Params for first generation subscription
+  // Params for subscription contract that is locked to first generation tokens
 
   // Address to receive tax of early withdraw subscription
   TAX_ADDRESS_2 = "0xF90fF6d484331399f4eAa13f73D03b8B18eA1373";
@@ -52,7 +54,9 @@ async function main() {
   // Subscription tax reduction
   TAX_REDUCTION_AMOUNT_2 = 2500;
   // Subscription forgiveness period in seconds
-  FORGIVENESS_PERIOD_2 = 60 * 60 * 24 * 7;
+  FORGIVENESS_PERIOD_2 = 604800;
+  // Subscription bonus drip period in seconds
+  DRIP_PERIOD_2 = 31536000;
   
   // Market dao fee address
   DAO_ADDRESS = "0xF90fF6d484331399f4eAa13f73D03b8B18eA1373";
@@ -126,12 +130,12 @@ async function main() {
   // Mint fee percent for DAO
   DAO_FEE_2 = 500;
   // Mint fee percent royalty distribution
-  DISTR_FEE_2 = 500;
+  ROYALTY_FEE_2 = 500;
   // Set uri for newly minted tokens
   URI_2 = "google.com";
   // How much to grow max supply in percents.
   // For example value of 25% will increase max supply from 100 to 125.
-  MAX_SUPPLY_GROWTH = 10000;
+  MAX_SUPPLY_GROWTH = 2000;
   // Transfer discount to mint NFTs (when transfer unwon tickets)
   TRANSFER_DISCOUNT_2 = 2000;
   // Timelock period for admin withdraw
@@ -332,7 +336,7 @@ async function main() {
   await generationManager.setupDeploy2(
     marketProxy.address,
     DAO_FEE_2,
-    DISTR_FEE_2,
+    ROYALTY_FEE_2,
     URI_2
   )
 

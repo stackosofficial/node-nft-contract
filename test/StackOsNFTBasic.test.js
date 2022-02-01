@@ -58,7 +58,6 @@ describe("StackOS NFT Basic", function () {
   });
 
   it("Mint", async function () {
-    await stackOsNFTBasic.startSales();
 
     await stackToken.approve(stackOsNFTBasic.address, parseEther("100.0"));
     // pass some time, so that enough tokens dripped
@@ -82,7 +81,6 @@ describe("StackOS NFT Basic", function () {
 
   it("Setup auto deploy", async function () {
     ROYALTY = royalty.address;
-    MAX_SUPPLY_GROWTH = 10000;
     await generationManager.setupDeploy(
       NAME,
       SYMBOL,
@@ -100,7 +98,7 @@ describe("StackOS NFT Basic", function () {
     await generationManager.setupDeploy2(
       owner.address, // fake market address
       DAO_FEE,
-      DISTR_FEE,
+      ROYALTY_FEE,
       URI
     )
   });
@@ -135,7 +133,7 @@ describe("StackOS NFT Basic", function () {
     
     expect(await stackAutoDeployed.owner()).to.be.equal(owner.address);
     expect(await stackAutoDeployed.getMaxSupply()).to.be.equal(
-      MAX_SUPPLY * 2
+      MAX_SUPPLY * (10000 + MAX_SUPPLY_GROWTH) / 10000
     );
     await expect(generationManager.deployNextGenPreset()).to.be.reverted;
   });
@@ -144,7 +142,6 @@ describe("StackOS NFT Basic", function () {
     await stackToken.approve(stackAutoDeployed.address, parseEther("100.0"));
     let oldGenerationsCount = (await generationManager.count()).toNumber();
     
-    await stackAutoDeployed.startSales();
     let iterCount = 
       await stackAutoDeployed.getMaxSupply() - 
       await stackAutoDeployed.totalSupply() - 2;
@@ -176,7 +173,10 @@ describe("StackOS NFT Basic", function () {
     expect(await stackAutoDeployed2.name()).to.be.equal("STACK OS NFT 4");
     expect(await stackAutoDeployed2.owner()).to.be.equal(owner.address);
     expect(await stackAutoDeployed2.getMaxSupply()).to.be.equal(
-      await stackAutoDeployed2.getMaxSupply() * MAX_SUPPLY_GROWTH / 10000
+      Math.floor(
+        (await stackAutoDeployed.getMaxSupply()) * 
+          (10000 + MAX_SUPPLY_GROWTH) / 10000
+      )
     );
   });
 
@@ -194,7 +194,7 @@ describe("StackOS NFT Basic", function () {
 
   it("Dripping tokens", async function () {
     await stackToken.approve(stackOsNFTBasicgen3.address, parseEther("100.0"));
-    await stackOsNFTBasicgen3.startSales();
+
     await expect(stackOsNFTBasicgen3.mint(11)).to.be.reverted;
     await stackOsNFTBasicgen3.mint(10);
     await provider.send("evm_increaseTime", [60 * 1]); 
@@ -210,7 +210,7 @@ describe("StackOS NFT Basic", function () {
     let oldBalance = await stackToken.balanceOf(stackOsNFTBasicgen3.address);
     await stackOsNFTBasicgen3.mintForUsd(1, usdc.address);
     let newBalance = await stackToken.balanceOf(stackOsNFTBasicgen3.address);
-    expect(newBalance.sub(oldBalance)).to.be.closeTo(parseEther("0.08"), parseEther("0.001"))
+    expect(newBalance.sub(oldBalance)).to.be.closeTo(parseEther("0.07"), parseEther("0.001"))
   });
 
   it("Whitelist address and transfer from it", async function () {

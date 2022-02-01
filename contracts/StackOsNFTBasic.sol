@@ -13,7 +13,6 @@ import "./Exchange.sol";
 import "./Whitelist.sol";
 import "./Royalty.sol";
 
-
 contract StackOsNFTBasic is
     Whitelist,
     ERC721,
@@ -31,7 +30,6 @@ contract StackOsNFTBasic is
     );
     event SetRewardDiscount(uint256 _rewardDiscount);
     event SetFees(uint256 subs, uint256 dao, uint256 royaltyDistribution);
-    event StartSales();
     event Delegate(
         address indexed delegator, 
         address delegatee, 
@@ -70,7 +68,6 @@ contract StackOsNFTBasic is
     mapping(address => uint256) private totalMinted;
     mapping(address => uint256) private lastMintAt;
 
-    bool private salesStarted;
     string private URI;
 
     bool private initialized;
@@ -271,23 +268,12 @@ contract StackOsNFTBasic is
     }
 
     /*
-     * @title Allow to buy NFT's.
-     * @dev Could only be invoked by the contract owner.
-     */
-
-    function startSales() external onlyOwner {
-        salesStarted = true;
-        emit StartSales();
-    }
-
-    /*
      * @title User mint a token amount.
      * @param Number of tokens to mint.
      * @dev Sales should be started before mint.
      */
 
     function mint(uint256 _nftAmount) external {
-        require(salesStarted);
 
         // frontrun protection
         if (_nftAmount > maxSupply - totalSupply)
@@ -313,7 +299,6 @@ contract StackOsNFTBasic is
      */
 
     function mintForUsd(uint256 _nftAmount, IERC20 _stablecoin) external {
-        require(salesStarted);
         require(stableAcceptor.supportsCoin(_stablecoin));
 
         // frontrun protection
@@ -357,7 +342,6 @@ contract StackOsNFTBasic is
         uint256 _stackAmount,
         address _to
     ) external {
-        require(salesStarted);
         require(msg.sender == address(subscription));
 
         stackToken.transferFrom(msg.sender, address(this), _stackAmount);
@@ -387,7 +371,6 @@ contract StackOsNFTBasic is
         external
         returns (uint256 amountSpend)
     {
-        require(salesStarted);
         require(msg.sender == address(royaltyAddress));
         
         uint256 discountAmount = mintPrice
@@ -479,6 +462,7 @@ contract StackOsNFTBasic is
         uint256 unlocked = timeSinceLastMint / 1 minutes;
         if (unlocked > totalMinted[_address])
             unlocked = totalMinted[_address];
+
         totalMinted[_address] -= unlocked;
 
         lastMintAt[_address] = block.timestamp;

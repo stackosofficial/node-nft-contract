@@ -62,7 +62,6 @@ describe("Active subs reward", function () {
   });
 
   it("Mint (gen 2)", async function () {
-    await stackOsNFTBasic.startSales();
 
     await stackToken.approve(stackOsNFTBasic.address, parseEther("100.0"));
     await provider.send("evm_increaseTime", [60 * 60]); 

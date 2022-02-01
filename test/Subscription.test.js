@@ -61,7 +61,6 @@ describe("Subscription (generations above 1st)", function () {
 
   it("Mint some NFTs", async function () {
     await stackToken.transfer(partner.address, parseEther("100.0"));
-    await stackOsNFTBasic.startSales();
 
     await stackToken.approve(stackOsNFTBasic.address, parseEther("10.0"));
     await stackOsNFTBasic.mint(4);
@@ -145,7 +144,7 @@ describe("Subscription (generations above 1st)", function () {
 
     await subscription.connect(vera).withdraw(1, [1]);
     expect(await stackToken.balanceOf(vera.address)).closeTo(
-      parseEther("1324"), 
+      parseEther("1419"), 
       parseEther("1")
     );
 
@@ -155,7 +154,7 @@ describe("Subscription (generations above 1st)", function () {
     );
     await subscription.connect(vera).withdraw(1, [1]);
     expect(await stackToken.balanceOf(vera.address)).closeTo(
-      parseEther("1324"), 
+      parseEther("1419"), 
       parseEther("1")
     );
     print(
@@ -193,7 +192,7 @@ describe("Subscription (generations above 1st)", function () {
     // Restart tax because skipped subs.
     await subscription.withdraw(1, [5]);
     expect(await stackToken.balanceOf(owner.address)).closeTo(
-      parseEther("291"), 
+      parseEther("351"), 
       parseEther("1")
     ); // withdraw for 2 months, tax 75% (282 + 9)
     print("owner: ", await stackToken.balanceOf(owner.address));
@@ -203,7 +202,7 @@ describe("Subscription (generations above 1st)", function () {
     await subscription.subscribe(1, 5, parseEther("100"), dai.address, false); // tax max, 600, bonus
     await subscription.withdraw(1, [5]);
     expect(await stackToken.balanceOf(owner.address)).closeTo(
-      parseEther("437"),
+      parseEther("558"),
       parseEther("1")
     ); // withdraw for 1 month
 
@@ -215,7 +214,7 @@ describe("Subscription (generations above 1st)", function () {
     stackOsNFTGen2 = await deployStackOSBasic();
 
     await stackToken.approve(stackOsNFTGen2.address, parseEther("10000.0"));
-    await stackOsNFTGen2.startSales();
+
     await provider.send("evm_increaseTime", [60 * 5]); 
     await stackOsNFTGen2.mint(5);
     console.log("GEN 3 NFT ADDRESS", stackOsNFTGen2.address);
@@ -398,10 +397,10 @@ describe("Subscription (generations above 1st)", function () {
     print("owner balance after sub: ", await stackToken.balanceOf(owner.address));
     print("sub balance after sub: ", await stackToken.balanceOf(subscription.address));
     expect(await stackToken.balanceOf(subscription.address)).to.be.closeTo(
-      parseEther("99902777"), parseEther("1")
+      parseEther("99899670"), parseEther("1")
     )
     expect(await stackToken.balanceOf(owner.address)).to.be.closeTo(
-      parseEther("1831"), parseEther("1")
+      parseEther("4844"), parseEther("1")
     )
   });
   it("Withdraw", async function () {

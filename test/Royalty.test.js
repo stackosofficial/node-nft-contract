@@ -264,7 +264,6 @@ describe("Royalty", function () {
     await stackOsNFT.connect(vera).partnerMint(1);
     await stackOsNFT.partnerMint(1);
 
-    await stackOsNFTgen2.startSales();
     
     // give them some STACK
     await stackToken.transfer(bob.address, parseEther("50.0"));
@@ -381,7 +380,7 @@ describe("Royalty", function () {
     // should be zero + last cycle unclaimed
     print(await provider.getBalance(royalty.address));
     expect(await provider.getBalance(royalty.address)).to.be.equal(
-      3
+      1
     );
 
     expect(
@@ -463,7 +462,7 @@ describe("Royalty", function () {
 
     print(await provider.getBalance(royalty.address));
     expect(await provider.getBalance(royalty.address)).to.be.equal(
-      3
+      1
     );
     print(
       await owner.getBalance(),
@@ -555,7 +554,7 @@ describe("Royalty", function () {
 
     print(await provider.getBalance(royalty.address));
     expect(await provider.getBalance(royalty.address)).to.be.equal(
-      15
+      9
     );
     print("owner weth:", await weth.balanceOf(owner.address));
     print("vera:", await weth.balanceOf(vera.address));

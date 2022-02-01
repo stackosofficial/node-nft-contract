@@ -67,7 +67,6 @@ describe("DarkMatter doesn't corrupt Royalty contract logic", function () {
 
     stackOsNFTGen2 = await deployStackOSBasic();
     await stackToken.approve(stackOsNFTGen2.address, parseEther("100.0"));
-    await stackOsNFTGen2.startSales();
     await provider.send("evm_increaseTime", [60 * 5]); 
     await stackOsNFTGen2.mint(5);
 

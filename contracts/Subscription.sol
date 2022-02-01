@@ -65,21 +65,21 @@ contract Subscription is Ownable, ReentrancyGuard {
     address internal immutable taxAddress;
 
     uint256 internal constant HUNDRED_PERCENT = 10000;
+    uint256 public constant PRICE_PRECISION = 1e18; // how much decimals `price` has
     uint256 public constant MONTH = 28 days;
 
     uint256 public totalDeposited;
     uint256 public totalRewards;
-    uint256 public dripPeriod = 700 days;
-    uint256 public forgivenessPeriod = 7 days;
-    uint256 public price = 1e18; // price in USD
-    uint256 public maxPrice = 5000e18;
-    uint256 public bonusPercent = 2000;
-    uint256 public taxReductionAmount = 2500;
+
+    uint256 public dripPeriod;
+    uint256 public forgivenessPeriod;
+    uint256 public price; // price in USD
+    uint256 public maxPrice;
+    uint256 public bonusPercent;
+    uint256 public taxReductionAmount;
     uint256 public currentPeriodId;
     bool public isOnlyFirstGeneration;
 
-
-    uint256 public constant PRICE_PRECISION = 1e18; // how much decimals `price` has
 
     enum withdrawStatus {
         withdraw,

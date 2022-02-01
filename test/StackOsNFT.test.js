@@ -19,24 +19,25 @@ describe("StackOS NFT", function () {
   });
 
   it("Stake for tickets", async function () {
-    await stackToken.approve(stackOsNFT.address, parseEther("10.0"));
+    await stackToken.approve(stackOsNFT.address, parseEther("100.0"));
 
     await expect(stackOsNFT.stakeForTickets(2)).to.be.revertedWith(
       "Lottery inactive"
     );
     await stackOsNFT.activateLottery();
-    TICKETS = 14;
+    TICKETS = PRIZES * 2;
     await stackOsNFT.stakeForTickets(TICKETS);
 
     expect(await stackToken.balanceOf(owner.address)).to.be.equal(
-      parseEther("99999998.6")
+      parseEther("99999988.0")
     );
     expect(await stackToken.balanceOf(stackOsNFT.address)).to.be.equal(
-      parseEther("1.4")
+      parseEther("12.0")
     );
   });
+
   it("Start lottery", async function () {
-    await link.transfer(stackOsNFT.address, parseEther("10.0"));
+    await link.transfer(stackOsNFT.address, parseEther("1.0"));
     requestID = await stackOsNFT.callStatic.announceLottery();
     await stackOsNFT.callStatic.announceLottery();
     print(requestID);
@@ -54,7 +55,7 @@ describe("StackOS NFT", function () {
   });
 
   it("Announce winners", async function () {
-    await stackOsNFT.announceWinners(10);
+    await stackOsNFT.announceWinners(PRIZES);
 
     winningTickets = [];
     for (let i = 0; i < PRIZES; i++) {
@@ -152,7 +153,7 @@ describe("StackOS NFT", function () {
     await stackOsNFT.connect(joe).partnerMint(2);
     expect(await stackOsNFT.balanceOf(joe.address)).to.be.equal(2);
     expect(await stackToken.balanceOf(stackOsNFT.address)).to.be.equal(
-      parseEther("1")
+      parseEther("6")
     );
   });
 
@@ -192,8 +193,6 @@ describe("StackOS NFT", function () {
 
     await stackToken.approve(stackOsNFT.address, parseEther("1000.0"));
     print("auctioned NFTs:", AUCTIONED_NFTS)
-
-    await logBids("topBids array before bids");
 
     await stackOsNFT.placeBid(parseEther("1.0"));
     await stackOsNFT.placeBid(parseEther("1.0"));
@@ -319,13 +318,13 @@ describe("Test transferTickets and transferFromLastGen", function () {
     );
   });
   it("Get 'not winning' tickets", async function () {
-    await stackToken.approve(stackOsNFT.address, parseEther("10.0"));
+    await stackToken.approve(stackOsNFT.address, parseEther("100.0"));
 
     await expect(stackOsNFT.stakeForTickets(2)).to.be.revertedWith(
       "Lottery inactive"
     );
     await stackOsNFT.activateLottery();
-    await stackOsNFT.stakeForTickets(14);
+    await stackOsNFT.stakeForTickets(TICKETS);
 
     //"Start lottery"
     await link.transfer(stackOsNFT.address, parseEther("10.0"));
@@ -351,7 +350,7 @@ describe("Test transferTickets and transferFromLastGen", function () {
       winningTickets.push((await stackOsNFT.winningTickets(i)).toNumber());
     }
     // get NOT winning tickets
-    notWinning = [...Array(14).keys()].filter(
+    notWinning = [...Array(TICKETS).keys()].filter(
       (e) => winningTickets.indexOf(e) == -1
     );
     print(notWinning);
@@ -370,35 +369,38 @@ describe("Test transferTickets and transferFromLastGen", function () {
   });
 
   it("Transfer tickets that did not win from gen 1 to gen 2", async function () {
-    print("not winning tickets to be transferred: " + notWinning);
     print(
-      "gen2 balance: " +
+      "gen1 balance: " +
         (await stackToken.balanceOf(stackOsNFT.address))
     );
     print(
-      "gen3 balance: " +
+      "gen2 balance: " +
         (await stackToken.balanceOf(stackOsNFTBasic.address))
     );
     // Pass some time to drip some tokens
     await provider.send("evm_increaseTime", [60 * 60]); 
     await provider.send("evm_mine"); 
-    await stackOsNFT.transferTicket(notWinning, stackOsNFTBasic.address);
+    let toTransfer = notWinning.slice(0, 8);
+    print("transfering tickets", toTransfer);
+    await stackOsNFT.transferTicket(toTransfer, stackOsNFTBasic.address);
     expect(await stackToken.balanceOf(stackOsNFT.address)).to.be.equal(
-      parseEther("1.0")
+      parseEther("11.2")
     );
     expect(await stackToken.balanceOf(stackOsNFTBasic.address)).to.be.equal(
-      parseEther("0.32")
+      parseEther("0.56")
     );
+
     print("Tickets transfered!");
     print(
-      "gen2 balance: " +
+      "gen1 balance: " +
         (await stackToken.balanceOf(stackOsNFT.address))
     );
     print(
-      "gen3 balance: " +
+      "gen2 balance: " +
         (await stackToken.balanceOf(stackOsNFTBasic.address))
     );
   });
+
   it("Admin tried to withdraw before time lock expires.", async function () {
     adminWithdrawableAmount = await stackOsNFT.adminWithdrawableAmount();
     print(adminWithdrawableAmount);
@@ -447,7 +449,7 @@ describe("Test transferTickets and transferFromLastGen", function () {
     expect(await stackAutoDeployed.owner()).to.be.equal(owner.address);
     // growth is set to 100% so multiply supply by 2
     expect(await stackAutoDeployed.getMaxSupply()).to.be.equal(
-      MAX_SUPPLY * 2
+      MAX_SUPPLY * (10000 + MAX_SUPPLY_GROWTH) / 10000
     );
     await expect(generationManager.deployNextGenPreset()).to.be.reverted;
   });
@@ -503,13 +505,13 @@ describe("Test manual deploy before max supply reached", function () {
     );
   });
   it("Get 'not winning' tickets", async function () {
-    await stackToken.approve(stackOsNFT.address, parseEther("10.0"));
+    await stackToken.approve(stackOsNFT.address, parseEther("100.0"));
 
     await expect(stackOsNFT.stakeForTickets(2)).to.be.revertedWith(
       "Lottery inactive"
     );
     await stackOsNFT.activateLottery();
-    await stackOsNFT.stakeForTickets(14);
+    await stackOsNFT.stakeForTickets(TICKETS);
 
     //"Start lottery"
     await link.transfer(stackOsNFT.address, parseEther("10.0"));
@@ -535,7 +537,7 @@ describe("Test manual deploy before max supply reached", function () {
       winningTickets.push((await stackOsNFT.winningTickets(i)).toNumber());
     }
     // get NOT winning tickets
-    notWinning = [...Array(14).keys()].filter(
+    notWinning = [...Array(TICKETS).keys()].filter(
       (e) => winningTickets.indexOf(e) == -1
     );
     // print(notWinning);
