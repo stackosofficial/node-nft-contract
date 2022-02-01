@@ -43,7 +43,6 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
     );
     event StartPartnerSales();
     event ActivateLottery();
-    event AdjustAuctionCloseTime(uint256 time);
     event PlaceBid(
         address indexed bider, 
         uint256 amount, 
@@ -75,7 +74,6 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
     uint256 public immutable timeLock;
     uint256 public randomNumber;
     uint256 public immutable auctionedNFTs;
-    uint256 public auctionCloseTime;
     uint256 public adminWithdrawableAmount;
     uint256 private immutable maxSupply;
     uint256 public totalSupply;
@@ -393,18 +391,6 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
     }
 
     /*
-     * @title Adjust auction closing time.
-     * @param Timestamp when auction should be closed.
-     * @dev Could only be invoked by the contract owner and when the auction has not been finalized.
-     */
-
-    function adjustAuctionCloseTime(uint256 _time) external onlyOwner {
-        require(auctionFinalized == false, "Auction Already Finalized");
-        auctionCloseTime = _time;
-        emit AdjustAuctionCloseTime(_time);
-    }
-
-    /*
      * @title Partner can mint a token amount that he has been allowed to mint.
      * @param Number of tokens to mint.
      * @dev Partner sales should be started before mint.
@@ -427,7 +413,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
      */
 
     function placeBid(uint256 _amount) external returns (uint256 i) {
-        require(block.timestamp < auctionCloseTime, "Auction closed!");
+        require(auctionFinalized == false, "Auction closed!");
         require(topBids[1] < _amount, "Bid too small");
         stackToken.transferFrom(msg.sender, address(this), _amount);
         for (i = auctionedNFTs; i != 0; i--) {
@@ -456,11 +442,11 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
 
     /*
      * @title Finalize auction and mint NFT for top biders.
-     * @dev Could only be invoked by the contract owner, when auction out of time and not finalized.
+     * @dev Could only be invoked by the contract owner.
+     * @dev Shouldn't be already finalized.
      */
 
     function finalizeAuction() external onlyOwner {
-        require(block.timestamp > auctionCloseTime, "Auction still ongoing.");
         require(auctionFinalized == false, "Auction Already Finalized");
         auctionFinalized = true;
         for (uint256 i = 1; i <= auctionedNFTs; i++) {
