@@ -13,7 +13,6 @@ import "./Exchange.sol";
 import "./Whitelist.sol";
 import "./Royalty.sol";
 
-// import "hardhat/console.sol";
 
 contract StackOsNFTBasic is
     Whitelist,

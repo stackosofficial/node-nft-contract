@@ -34,7 +34,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         address darkMatter;
         address subscription;
         address sub0;
-        uint256 participationFee;
+        uint256 mintPrice;
         uint256 subsFee;
         uint256 daoFee;
         uint256 royaltyFee;
@@ -88,7 +88,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         address _darkMatter,
         address _subscription,
         address _sub0,
-        uint256 _participationFee,
+        uint256 _mintPrice,
         uint256 _subsFee,
         uint256 _maxSupplyGrowthPercent,
         uint256 _transferDiscount,
@@ -102,7 +102,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         deployment.darkMatter = _darkMatter;
         deployment.subscription = _subscription;
         deployment.sub0 = _sub0;
-        deployment.participationFee = _participationFee;
+        deployment.mintPrice = _mintPrice;
         deployment.subsFee = _subsFee;
         deployment.maxSupplyGrowthPercent = _maxSupplyGrowthPercent;
         deployment.transferDiscount = _transferDiscount;
@@ -164,7 +164,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
             deployment.royaltyAddress,
             stableAcceptor,
             exchange,
-            deployment.participationFee,
+            deployment.mintPrice,
 
                 get(getIDByAddress(msg.sender)).getMaxSupply() * 
                 (deployment.maxSupplyGrowthPercent + 10000) / 10000,
@@ -210,7 +210,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         address _darkMatter,
         address _subscription,
         address _sub0,
-        uint256 _participationFee,
+        uint256 _mintPrice,
         uint256 _maxSupply,
         uint256 _transferDiscount,
         uint256 _timeLock,
@@ -237,7 +237,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
             _royaltyAddress,
             stableAcceptor,
             exchange,
-            _participationFee,
+            _mintPrice,
             _maxSupply,
             _transferDiscount,
             _timeLock
