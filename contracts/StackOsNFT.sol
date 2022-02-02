@@ -12,6 +12,7 @@ import "./GenerationManager.sol";
 import "./StableCoinAcceptor.sol";
 import "./Exchange.sol";
 
+
 contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
     using Counters for Counters.Counter;
     using SafeMath for uint256;
@@ -428,18 +429,16 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
         stackToken.transferFrom(msg.sender, address(this), _amount);
         for (i = auctionedNFTs; i != 0; i--) {
             if (topBids[i] < _amount) {
-                if (i > 1) {
-                    for (uint256 b; b < i; b++) {
-                        if (b == 0 && topBids[b + 1] != 0) {
-                            stackToken.transfer(
-                                topBiders[b + 1],
-                                topBids[b + 1]
-                            );
-                            adminWithdrawableAmount -= topBids[b + 1];
-                        }
-                        topBids[b] = topBids[b + 1];
-                        topBiders[b] = topBiders[b + 1];
+                for (uint256 b; b < i; b++) {
+                    if (b == 0 && topBids[b + 1] != 0) {
+                        stackToken.transfer(
+                            topBiders[b + 1],
+                            topBids[b + 1]
+                        );
+                        adminWithdrawableAmount -= topBids[b + 1];
                     }
+                    topBids[b] = topBids[b + 1];
+                    topBiders[b] = topBiders[b + 1];
                 }
                 topBids[i] = _amount;
                 adminWithdrawableAmount += _amount;

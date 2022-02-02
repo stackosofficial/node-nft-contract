@@ -65,7 +65,8 @@ describe("StackOS NFT", function () {
     notWinning = [...Array(TICKETS).keys()].filter(
       (e) => winningTickets.indexOf(e) == -1
     );
-    print(winningTickets, notWinning);
+    print("winners: ", winningTickets);
+    print("losers: ", notWinning);
 
 
     // check that Won status assigned to all winning tickets
@@ -201,10 +202,10 @@ describe("StackOS NFT", function () {
     await stackOsNFT.placeBid(parseEther("3.0"));
     await stackOsNFT.placeBid(parseEther("10.0"));
     await stackOsNFT.placeBid(parseEther("15.0"));
-    await stackOsNFT.placeBid(parseEther("5.0"));
     await stackOsNFT.placeBid(parseEther("1.0"));
     await stackOsNFT.placeBid(parseEther("9.0"));
     await stackOsNFT.placeBid(parseEther("20.0"));
+    await stackOsNFT.placeBid(parseEther("6.0"));
 
     let currentBidsCount = 0;
     for(let i = 0; i <= AUCTIONED_NFTS; i++) {
@@ -220,9 +221,27 @@ describe("StackOS NFT", function () {
 
     await logBids("topBids array after bids");
 
-    await expect(stackOsNFT.placeBid(parseEther("1.0"))).to.be.revertedWith(
+  });
+
+  it("Unable to bid less (or equal) than lowest bid", async function () {
+    let lowestBid = await stackOsNFT.topBids(1);
+    await expect(stackOsNFT.placeBid(lowestBid)).to.be.revertedWith(
       "Bid too small"
     );
+  });
+
+  it("Should credit back the bid amount when outbid", async function () {
+    let lowestBid = await stackOsNFT.topBids(1);
+    let newLowestBid = lowestBid.add(parseEther("1.0"));
+    
+    print("user spend", newLowestBid);
+    print("user return", lowestBid);
+    await expect(() => stackOsNFT.placeBid(newLowestBid))
+        .to.changeTokenBalance(
+          stackToken, 
+          owner, 
+          lowestBid.sub(newLowestBid)
+        );
   });
 
   it("Close Auction Distribute NFT's", async function () {
