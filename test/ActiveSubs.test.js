@@ -62,7 +62,6 @@ describe("Active subs reward", function () {
   });
 
   it("Mint (gen 2)", async function () {
-    await stackOsNFTBasic.startSales();
 
     await stackToken.approve(stackOsNFTBasic.address, parseEther("100.0"));
     await provider.send("evm_increaseTime", [60 * 60]); 
@@ -109,11 +108,11 @@ describe("Active subs reward", function () {
     await stackOsNFTBasic.mint(1);
     print("owner stack:", await stackToken.balanceOf(owner.address));
     await expect(() => sub0.withdraw2(0, [0], [1])) // 1 claimer receives all
-      .to.changeTokenBalance(stackToken, owner, "5000000000000000");
+      .to.changeTokenBalance(stackToken, owner, "30072921397294038");
 
     await stackOsNFTBasic.mint(1);
     await expect(() => sub0.withdraw2(0, [0], [1])) // again 1 claimer
-      .to.changeTokenBalance(stackToken, owner, "5000000000000000");
+      .to.changeTokenBalance(stackToken, owner, "30072957736039370");
     await expect(() => sub0.withdraw2(0, [0], [1])) // claim 0 as no fees
       .to.changeTokenBalance(stackToken, owner, "0");
     print("owner stack:", await stackToken.balanceOf(owner.address));
@@ -136,11 +135,11 @@ describe("Active subs reward", function () {
     await provider.send("evm_increaseTime", [MONTH]);
     await stackOsNFTBasic.mint(1);
     await expect(() => sub0.withdraw2(0, [0], [2]))
-      .to.changeTokenBalance(stackToken, owner, "2500000000000000");
+      .to.changeTokenBalance(stackToken, owner, "14551136000895502");
     await provider.send("evm_increaseTime", [MONTH]); // enter 4 period, should be able to withdraw for 2
-    expect(await sub0.pendingReward(0, [1], [2])).to.be.equal("2500000000000000");
+    expect(await sub0.pendingReward(0, [1], [2])).to.be.equal("14551136000895502");
     await expect(() => sub0.connect(joe).withdraw2(0, [1], [2]))
-      .to.changeTokenBalance(stackToken, joe, "2500000000000000");
+      .to.changeTokenBalance(stackToken, joe, "14551136000895502");
   });
   it("Unable to withdraw foreign reward", async function () {
     await expect(sub0.withdraw2(0, [1], [2])).to.be.revertedWith(

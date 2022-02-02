@@ -64,7 +64,6 @@ describe("Measure withdraw() and updateBonuses() gas", function () {
   });
 
   it("Mint", async function () {
-    await stackOsNFTBasic.startSales();
 
     await stackToken.approve(stackOsNFTBasic.address, parseEther("100000.0"));
     for (let i = 0; i < 10; i++) {

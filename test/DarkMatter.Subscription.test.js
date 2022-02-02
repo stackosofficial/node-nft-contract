@@ -83,6 +83,8 @@ describe("DarkMatter doesn't corrupt Subscription logic", function () {
     await sub0.subscribe(0, 1, parseEther("100"), dai.address, false);
   });
   it("Take TAX for early withdrawal", async function () {
+    await stackToken.transfer(sub0.address, parseEther("1000"));
+
     await darkMatter.whitelist(owner.address);
     await darkMatter.transferFrom(owner.address, bob.address, 0);
     expect(await stackToken.balanceOf(bob.address)).to.equal(0);

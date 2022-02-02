@@ -56,7 +56,6 @@ describe("Market", function () {
     await stackOsNFT.whitelist(owner.address);
     await stackOsNFT.transferFrom(owner.address, joe.address, 5);
 
-    await stackOsNFTgen2.startSales();
     await stackToken.approve(stackOsNFTgen2.address, parseEther("100.0"));
     await provider.send("evm_increaseTime", [60 * 60]); 
     await stackOsNFTgen2.mint(2);

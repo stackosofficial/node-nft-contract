@@ -12,6 +12,7 @@ import "./GenerationManager.sol";
 import "./StableCoinAcceptor.sol";
 import "./Exchange.sol";
 
+
 contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
     using Counters for Counters.Counter;
     using SafeMath for uint256;
@@ -31,6 +32,14 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
     );
     event AnnounceLottery(bytes32 requestId);
     event ChangeTicketStatus();
+    event ClaimReward(
+        address indexed participant,
+        uint256[] ticketIDs
+    );
+    event ReturnStake(
+        address indexed participant,
+        uint256[] ticketIDs
+    );
     event TransferTicket(
         address indexed participant, 
         uint256[] ticketIDs, 
@@ -286,20 +295,21 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
      * @param List of Ticket Numbers that were winners.
      */
 
-    function claimReward(uint256[] calldata _ticketID) external {
+    function claimReward(uint256[] calldata _ticketIDs) external {
         require(ticketStatusAssigned == true, "Not Assigned Yet!");
-        for (uint256 i; i < _ticketID.length; i++) {
+        for (uint256 i; i < _ticketIDs.length; i++) {
             require(
-                ticketOwner[_ticketID[i]] == msg.sender,
+                ticketOwner[_ticketIDs[i]] == msg.sender,
                 "Not your ticket."
             );
             require(
-                ticketStatus[_ticketID[i]] == TicketStatus.Won, 
+                ticketStatus[_ticketIDs[i]] == TicketStatus.Won, 
                 "Awarded Or Not Won"
             );
-            ticketStatus[_ticketID[i]] = TicketStatus.Rewarded;
+            ticketStatus[_ticketIDs[i]] = TicketStatus.Rewarded;
             mint(msg.sender);
         }
+        emit ClaimReward(msg.sender, _ticketIDs);
     }
 
     /*
@@ -307,24 +317,25 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
      * @param List of Ticket Numbers that did not win.
      */
 
-    function returnStake(uint256[] calldata _ticketID) external {
+    function returnStake(uint256[] calldata _ticketIDs) external {
         require(ticketStatusAssigned == true, "Not Assigned Yet!");
-        for (uint256 i; i < _ticketID.length; i++) {
+        for (uint256 i; i < _ticketIDs.length; i++) {
             require(
-                ticketOwner[_ticketID[i]] == msg.sender,
+                ticketOwner[_ticketIDs[i]] == msg.sender,
                 "Not your ticket."
             );
 
             require(
-                ticketStatus[_ticketID[i]] == TicketStatus.None,
+                ticketStatus[_ticketIDs[i]] == TicketStatus.None,
                 "Stake Not Returnable"
             );
-            ticketStatus[_ticketID[i]] = TicketStatus.Withdrawn;
+            ticketStatus[_ticketIDs[i]] = TicketStatus.Withdrawn;
         }
         stackToken.transfer(
             msg.sender,
-            _ticketID.length.mul(participationFee)
+            _ticketIDs.length.mul(participationFee)
         );
+        emit ReturnStake(msg.sender, _ticketIDs);
     }
 
     /*
@@ -333,26 +344,26 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
      * @param StackNFT generation address.
      */
 
-    function transferTicket(uint256[] calldata _ticketID, address _address)
+    function transferTicket(uint256[] calldata _ticketIDs, address _address)
         external
     {
         require(generations.isAdded(_address), "Wrong stack contract");
         require(ticketStatusAssigned == true, "Not Assigned Yet!");
-        for (uint256 i; i < _ticketID.length; i++) {
+        for (uint256 i; i < _ticketIDs.length; i++) {
             require(
-                ticketOwner[_ticketID[i]] == msg.sender,
+                ticketOwner[_ticketIDs[i]] == msg.sender,
                 "Not your ticket."
             );
             require(
-                ticketStatus[_ticketID[i]] == TicketStatus.None,
+                ticketStatus[_ticketIDs[i]] == TicketStatus.None,
                 "Stake Not Returnable"
             );
-            ticketStatus[_ticketID[i]] = TicketStatus.Withdrawn;
+            ticketStatus[_ticketIDs[i]] = TicketStatus.Withdrawn;
         }
-        uint256 amount = _ticketID.length.mul(participationFee);
+        uint256 amount = _ticketIDs.length.mul(participationFee);
         stackToken.approve(_address, amount);
         IStackOsNFTBasic(_address).transferFromLastGen(msg.sender, amount);
-        emit TransferTicket(msg.sender, _ticketID, _address, amount);
+        emit TransferTicket(msg.sender, _ticketIDs, _address, amount);
     }
 
     /*
@@ -418,23 +429,21 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
         stackToken.transferFrom(msg.sender, address(this), _amount);
         for (i = auctionedNFTs; i != 0; i--) {
             if (topBids[i] < _amount) {
-                if (i > 1) {
-                    for (uint256 b; b < i; b++) {
-                        if (b == 0 && topBids[b + 1] != 0) {
-                            stackToken.transfer(
-                                topBiders[b + 1],
-                                topBids[b + 1]
-                            );
-                            adminWithdrawableAmount -= topBids[b + 1];
-                        }
-                        topBids[b] = topBids[b + 1];
-                        topBiders[b] = topBiders[b + 1];
+                for (uint256 b; b < i; b++) {
+                    if (b == 0 && topBids[b + 1] != 0) {
+                        stackToken.transfer(
+                            topBiders[b + 1],
+                            topBids[b + 1]
+                        );
+                        adminWithdrawableAmount -= topBids[b + 1];
                     }
+                    topBids[b] = topBids[b + 1];
+                    topBiders[b] = topBiders[b + 1];
                 }
                 topBids[i] = _amount;
                 adminWithdrawableAmount += _amount;
                 topBiders[i] = msg.sender;
-                return i;
+                break;
             }
         }
         emit PlaceBid(msg.sender, _amount, i);

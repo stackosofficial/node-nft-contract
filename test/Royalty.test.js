@@ -2,6 +2,7 @@ const { ethers } = require("hardhat");
 const { use, expect } = require("chai");
 const { parseEther, parseUnits } = require("@ethersproject/units");
 const { deployStackOS, setup, print, deployStackOSBasic, setupDeployment } = require("./utils");
+const { BigNumber } = require("ethers");
 
 describe("Royalty", function () {
   const CYCLE_DURATION = 60 * 60 * 24 * 31;
@@ -264,7 +265,6 @@ describe("Royalty", function () {
     await stackOsNFT.connect(vera).partnerMint(1);
     await stackOsNFT.partnerMint(1);
 
-    await stackOsNFTgen2.startSales();
     
     // give them some STACK
     await stackToken.transfer(bob.address, parseEther("50.0"));
@@ -380,8 +380,8 @@ describe("Royalty", function () {
 
     // should be zero + last cycle unclaimed
     print(await provider.getBalance(royalty.address));
-    expect(await provider.getBalance(royalty.address)).to.be.equal(
-      3
+    expect(await provider.getBalance(royalty.address)).to.be.closeTo(
+      BigNumber.from(0), 50
     );
 
     expect(
@@ -462,8 +462,8 @@ describe("Royalty", function () {
     await royalty.connect(partner).claim(0, [0, 1, 2]);
 
     print(await provider.getBalance(royalty.address));
-    expect(await provider.getBalance(royalty.address)).to.be.equal(
-      3
+    expect(await provider.getBalance(royalty.address)).to.be.closeTo(
+      BigNumber.from(0), 50
     );
     print(
       await owner.getBalance(),
@@ -554,8 +554,8 @@ describe("Royalty", function () {
     await royalty.connect(partner).claimWETH(0, [0, 1, 2]);
 
     print(await provider.getBalance(royalty.address));
-    expect(await provider.getBalance(royalty.address)).to.be.equal(
-      15
+    expect(await provider.getBalance(royalty.address)).to.be.closeTo(
+      BigNumber.from(0), 50
     );
     print("owner weth:", await weth.balanceOf(owner.address));
     print("vera:", await weth.balanceOf(vera.address));

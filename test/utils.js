@@ -148,11 +148,12 @@ async function setup() {
   ROUTER_ADDRESS = router.address;
   TAX_ADDRESS = tax.address;
 
+  DRIP_PERIOD = 31536000;
   SUBSCRIPTION_PRICE = parseEther("100.0");
   SUBSCRIPTION_PRICE_MAX = parseEther("5000.0");
-  BONUS_PECENT = 2000;
+  BONUS_PECENT = 8000;
   TAX_REDUCTION_AMOUNT = 2500; // 25% means: 1month withdraw 75% tax, 2 month 50%, 3 month 25%, 4 month 0%
-  FORGIVENESS_PERIOD = 60 * 60 * 24 * 7; // 1 week
+  FORGIVENESS_PERIOD = 604800; // 1 week
 
   const Subscription = await ethers.getContractFactory("Subscription");
   subscription = await Subscription.deploy(
@@ -168,6 +169,7 @@ async function setup() {
     TAX_REDUCTION_AMOUNT
   );
   await subscription.deployed();
+  await subscription.setDripPeriod(DRIP_PERIOD);
   await subscription.setPrice(SUBSCRIPTION_PRICE);
   await subscription.setBonusPercent(BONUS_PECENT);
   await subscription.setTaxReductionAmount(TAX_REDUCTION_AMOUNT);
@@ -189,6 +191,7 @@ async function setup() {
     TAX_REDUCTION_AMOUNT
   );
   await sub0.deployed();
+  await sub0.setDripPeriod(DRIP_PERIOD);
   await sub0.setPrice(SUBSCRIPTION_PRICE);
   await sub0.setMaxPrice(SUBSCRIPTION_PRICE_MAX);
   await sub0.setBonusPercent(BONUS_PECENT);
@@ -226,16 +229,16 @@ async function setup() {
   STACK_TOKEN = stackToken.address;
   DARK_MATTER_ADDRESS = darkMatter.address;
   PRICE = parseEther("0.1");
-  MAX_SUPPLY = 40;
-  PRIZES = 10;
-  AUCTIONED_NFTS = 21;
+  MAX_SUPPLY = 100;
+  PRIZES = 60;
+  AUCTIONED_NFTS = 20;
   VRF_COORDINATOR = coordinator.address;
   LINK_TOKEN = link.address;
   KEY_HASH =
     "0xf86195cf7690c55907b2b611ebb7343a6f649bff128701cc542f0569e2c549da";
   SUBS_FEE = 1000;
-  DAO_FEE = 500;
-  DISTR_FEE = 500;
+  DAO_FEE = 1000;
+  ROYALTY_FEE = 1000;
   URI = "site.com";
   TIMELOCK = 6442850;
   let StackOS = await ethers.getContractFactory("StackOsNFT");
@@ -244,7 +247,7 @@ async function setup() {
 }
 
 async function setupDeployment() {
-    MAX_SUPPLY_GROWTH = 10000;
+    MAX_SUPPLY_GROWTH = 2000;
     TRANSFER_DISCOUNT = 2000;
     await generationManager.setupDeploy(
       NAME,
@@ -263,7 +266,7 @@ async function setupDeployment() {
     await generationManager.setupDeploy2(
       owner.address, // fake market address
       DAO_FEE,
-      DISTR_FEE,
+      ROYALTY_FEE,
       URI
     )
 }
