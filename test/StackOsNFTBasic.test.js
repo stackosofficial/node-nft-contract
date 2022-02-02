@@ -76,6 +76,7 @@ describe("StackOS NFT Basic", function () {
       ethers.constants.AddressZero
     );
     await stackOsNFTBasic.delegate(joe.address, [0]);
+    await expect(stackOsNFTBasic.delegate(joe.address, [0])).to.be.reverted;
     expect(await stackOsNFTBasic.getDelegatee(0)).to.equal(joe.address);
   });
 

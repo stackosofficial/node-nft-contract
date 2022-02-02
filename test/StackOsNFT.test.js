@@ -174,6 +174,7 @@ describe("StackOS NFT", function () {
       ethers.constants.AddressZero
     );
     await stackOsNFT.delegate(joe.address, [0]);
+    await expect(stackOsNFT.delegate(joe.address, [0])).to.be.reverted;
     expect(await stackOsNFT.getDelegatee(0)).to.equal(joe.address);
   });
 
