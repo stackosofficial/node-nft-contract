@@ -13,6 +13,8 @@ import "./Exchange.sol";
 import "./Whitelist.sol";
 import "./Royalty.sol";
 
+// import "hardhat/console.sol";
+
 contract StackOsNFTBasic is
     Whitelist,
     ERC721,
@@ -39,6 +41,8 @@ contract StackOsNFTBasic is
 
     string private _name;
     string private _symbol;
+
+    uint256 public constant PRICE_PRECISION = 1e18;
 
     Counters.Counter private _tokenIdCounter;
     IERC20 private stackToken;
@@ -111,7 +115,7 @@ contract StackOsNFTBasic is
         timeLock = block.timestamp + _timeLock;
     }
 
-    // Set mint price in STACK tokens
+    // Set mint price
     function setPrice(uint256 _price) external onlyOwner {
         mintPrice = _price;
         emit SetPrice(_price);
@@ -241,17 +245,34 @@ contract StackOsNFTBasic is
 
         stackToken.transferFrom(msg.sender, address(this), _amount);
 
-        uint256 mintPriceDiscounted = mintPrice
+        IERC20 stablecoin = stableAcceptor.stablecoins(0);
+        uint256 amountUsd = exchange.getAmountIn(
+            _amount,
+            stackToken,
+            stablecoin
+        );
+        uint256 price = adjustDecimals(
+            mintPrice, 
+            stablecoin
+        );
+
+        uint256 mintPriceDiscounted = price
             .mul(10000 - transferDiscount)
             .div(10000);
 
-        uint256 ticketAmount = _amount.div(mintPriceDiscounted);
+
+        uint256 ticketAmount = amountUsd.div(mintPriceDiscounted);
 
         // frontrun protection
         if (ticketAmount > maxSupply - totalSupply)
             ticketAmount = maxSupply - totalSupply;
 
-        uint256 stackToSpend = mintPriceDiscounted.mul(ticketAmount);
+        uint256 usdToSpend = mintPriceDiscounted.mul(ticketAmount);
+        uint256 stackToSpend = exchange.getAmountIn(
+            usdToSpend,
+            stablecoin,
+            stackToken
+        );
 
         // transfer left over amount to user
         stackToken.transfer(
@@ -268,7 +289,7 @@ contract StackOsNFTBasic is
     }
 
     /*
-     * @title User mint a token amount.
+     * @title User mint a token amount for stack tokens.
      * @param Number of tokens to mint.
      * @dev Sales should be started before mint.
      */
@@ -279,7 +300,18 @@ contract StackOsNFTBasic is
         if (_nftAmount > maxSupply - totalSupply)
             _nftAmount = maxSupply - totalSupply;
 
-        uint256 stackAmount = mintPrice.mul(_nftAmount);
+        IERC20 stablecoin = stableAcceptor.stablecoins(0);
+        uint256 amountOut = adjustDecimals(
+            mintPrice, 
+            stablecoin
+        );
+        amountOut = amountOut.mul(_nftAmount);
+
+        uint256 stackAmount = exchange.getAmountIn(
+            amountOut, 
+            stablecoin,
+            stackToken
+        );
 
         stackToken.transferFrom(msg.sender, address(this), stackAmount);
 
@@ -305,12 +337,11 @@ contract StackOsNFTBasic is
         if (_nftAmount > maxSupply - totalSupply)
             _nftAmount = maxSupply - totalSupply;
 
-        uint256 stackToReceive = mintPrice.mul(_nftAmount);
-        uint256 usdToSpend = exchange.getAmountIn(
-            stackToReceive, 
-            stackToken,
+        uint256 usdToSpend = adjustDecimals(
+            mintPrice, 
             _stablecoin
         );
+        usdToSpend = usdToSpend.mul(_nftAmount);
 
         _stablecoin.transferFrom(msg.sender, address(this), usdToSpend);
         _stablecoin.approve(address(exchange), usdToSpend);
@@ -372,16 +403,28 @@ contract StackOsNFTBasic is
         returns (uint256 amountSpend)
     {
         require(msg.sender == address(royaltyAddress));
-        
-        uint256 discountAmount = mintPrice
-            .mul(10000 - rewardDiscount)
-            .div(10000);
 
         // frontrun protection
         if (_mintNum > maxSupply - totalSupply)
             _mintNum = maxSupply - totalSupply;
+        
+        IERC20 stablecoin = stableAcceptor.stablecoins(0);
+        uint256 price = adjustDecimals(
+            mintPrice, 
+            stablecoin
+        );
 
-        uint256 stackAmount = discountAmount.mul(_mintNum);
+        uint256 discountPrice = price
+            .mul(10000 - rewardDiscount)
+            .div(10000);
+
+        uint256 amountUsd = discountPrice.mul(_mintNum);
+        uint256 stackAmount = exchange.getAmountIn(
+            amountUsd,
+            stablecoin,
+            stackToken
+        );
+        
         amountSpend = stackAmount;
         stackToken.transferFrom(msg.sender, address(this), stackAmount);
 
@@ -484,6 +527,18 @@ contract StackOsNFTBasic is
         }
     }
 
+    // Adjusts amount's decimals to token's decimals
+    function adjustDecimals(uint256 amount, IERC20 token) 
+        private 
+        view 
+        returns (uint256) 
+    {
+        return amount   
+            .mul(10 ** IDecimals(address(token)).decimals())
+            .div(PRICE_PRECISION); 
+    }
+
+    // notice the onlyWhitelisted modifier
     function _transfer(
         address from,
         address to,

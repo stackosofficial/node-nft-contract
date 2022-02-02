@@ -283,7 +283,7 @@ describe("Subscription (generations above 1st)", function () {
     await subscription.subscribe(2, 4, parseEther("100"), usdt.address, false);
     await provider.send("evm_increaseTime", [MONTH * 3]);
 
-    await subscription.purchaseNewNft(2, [4], 2, 5, usdt.address);
+    await subscription.purchaseNewNft(2, [4], 2, 5);
   });
 
   it("Pay for subscription on NFT owned by other peoples", async function () {
@@ -397,7 +397,7 @@ describe("Subscription (generations above 1st)", function () {
     print("owner balance after sub: ", await stackToken.balanceOf(owner.address));
     print("sub balance after sub: ", await stackToken.balanceOf(subscription.address));
     expect(await stackToken.balanceOf(subscription.address)).to.be.closeTo(
-      parseEther("99899670"), parseEther("1")
+      parseEther("99899661"), parseEther("1")
     )
     expect(await stackToken.balanceOf(owner.address)).to.be.closeTo(
       parseEther("4844"), parseEther("1")

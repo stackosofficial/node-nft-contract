@@ -46,8 +46,7 @@ contract Subscription is Ownable, ReentrancyGuard {
         uint256 generationId,
         uint256 tokenId,
         uint256 purchaseGenerationId,
-        uint256 amountToMint,
-        IERC20 _stablecoin
+        uint256 amountToMint
     );
 
     event Withdraw(
@@ -525,8 +524,7 @@ contract Subscription is Ownable, ReentrancyGuard {
                 tokenIds[i],
                 withdrawStatus.withdraw,
                 0,
-                0,
-                IERC20(address(0))
+                0
             );
         }
     }
@@ -537,7 +535,6 @@ contract Subscription is Ownable, ReentrancyGuard {
      * @param Token ids to withdraw
      * @param Generation id to mint
      * @param Amount to mint
-     * @param Supported stablecoin to use to buy stack token
      * @dev Withdraw tokens must be owned by the caller
      * @dev Generation should be greater than 0
      */
@@ -545,14 +542,12 @@ contract Subscription is Ownable, ReentrancyGuard {
         uint256 withdrawGenerationId,
         uint256[] calldata withdrawTokenIds,
         uint256 purchaseGenerationId,
-        uint256 amountToMint,
-        IERC20 _stablecoin
+        uint256 amountToMint
     ) 
         external 
         nonReentrant
         restrictGeneration(withdrawGenerationId)
     {
-        require(stableAcceptor.supportsCoin(_stablecoin), "Unsupported stablecoin");
         require(purchaseGenerationId > 0, "Cant purchase generation 0");
         updatePeriod();
 
@@ -562,8 +557,7 @@ contract Subscription is Ownable, ReentrancyGuard {
                 withdrawTokenIds[i],
                 withdrawStatus.purchase,
                 purchaseGenerationId,
-                amountToMint,
-                _stablecoin
+                amountToMint
             );
         }
     }
@@ -573,8 +567,7 @@ contract Subscription is Ownable, ReentrancyGuard {
         uint256 tokenId,
         withdrawStatus allocationStatus,
         uint256 purchaseGenerationId,
-        uint256 amountToMint,
-        IERC20 _stablecoin
+        uint256 amountToMint
     ) internal {
         require(generationId < generations.count(), "Generation doesn't exist");
         require(
@@ -629,14 +622,22 @@ contract Subscription is Ownable, ReentrancyGuard {
             );
 
             // frontrun protection
-            // this should be in stack contract, but code size limit...
+            // most of the following should be on stack contract side, but code size limit...
             if (amountToMint > stack.getMaxSupply() - stack.totalSupply())
                 amountToMint = stack.getMaxSupply() - stack.totalSupply();
 
-            // this should be in stack contract, but code size limit...
-            uint256 stackToSpend = 
-                (stack.mintPrice() * (10000 - stack.rewardDiscount()) / 10000) * 
-                amountToMint;
+            // adjust decimals
+            uint256 mintPrice = stack.mintPrice() * 
+                (10 ** IDecimals(address(stableAcceptor.stablecoins(0))).decimals()) / 
+                stack.PRICE_PRECISION();
+
+            // convert usd to stack
+            uint256 stackToSpend = exchange.getAmountIn(
+                // get total amount usd needed to mint requested amount 
+                (mintPrice * (10000 - stack.rewardDiscount()) / 10000) * amountToMint,
+                stableAcceptor.stablecoins(0),
+                stackToken
+            );
 
             require(amountWithdraw > stackToSpend, "Not enough earnings");
 
@@ -660,8 +661,7 @@ contract Subscription is Ownable, ReentrancyGuard {
                 generationId,
                 tokenId,
                 purchaseGenerationId,
-                amountToMint,
-                _stablecoin
+                amountToMint
             );
         } else {
             stackToken.transfer(msg.sender, amountWithdraw);

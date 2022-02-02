@@ -123,7 +123,7 @@ async function main() {
   NAME_2 = "STACK OS NFT";
   // Token symbol
   SYMBOL_2 = "STACK NFT";
-  // Mint price in STACK
+  // Mint price in USD
   PRICE_2 = parseEther("100");
   // Mint fee percent for active subs
   SUBS_FEE_2 = 2000;

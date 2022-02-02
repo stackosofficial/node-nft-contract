@@ -211,7 +211,7 @@ describe("StackOS NFT Basic", function () {
     let oldBalance = await stackToken.balanceOf(stackOsNFTBasicgen3.address);
     await stackOsNFTBasicgen3.mintForUsd(1, usdc.address);
     let newBalance = await stackToken.balanceOf(stackOsNFTBasicgen3.address);
-    expect(newBalance.sub(oldBalance)).to.be.closeTo(parseEther("0.07"), parseEther("0.001"))
+    expect(newBalance.sub(oldBalance)).to.be.closeTo(parseEther("0.42"), parseEther("0.01"))
   });
 
   it("Whitelist address and transfer from it", async function () {
