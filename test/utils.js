@@ -241,14 +241,15 @@ async function setup() {
   ROYALTY_FEE = 1000;
   URI = "site.com";
   TIMELOCK = 6442850;
+  MAX_SUPPLY_GROWTH = 2000;
+  TRANSFER_DISCOUNT = 2000;
+  REWARD_DISCOUNT = 2000;
   let StackOS = await ethers.getContractFactory("StackOsNFT");
   stackOsNFT = await deployStackOS();
-  
+
 }
 
 async function setupDeployment() {
-    MAX_SUPPLY_GROWTH = 2000;
-    TRANSFER_DISCOUNT = 2000;
     await generationManager.setupDeploy(
       NAME,
       SYMBOL,
@@ -267,7 +268,8 @@ async function setupDeployment() {
       owner.address, // fake market address
       DAO_FEE,
       ROYALTY_FEE,
-      URI
+      URI,
+      REWARD_DISCOUNT
     )
 }
 

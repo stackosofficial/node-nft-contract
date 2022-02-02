@@ -100,7 +100,8 @@ describe("StackOS NFT Basic", function () {
       owner.address, // fake market address
       DAO_FEE,
       ROYALTY_FEE,
-      URI
+      URI,
+      REWARD_DISCOUNT
     )
   });
 

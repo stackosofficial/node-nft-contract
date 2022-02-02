@@ -140,6 +140,8 @@ async function main() {
   TRANSFER_DISCOUNT_2 = 2000;
   // Timelock period for admin withdraw
   TIMELOCK_2 = 6442850;
+  // Royalty & subscription rewards discount to mint NFTs
+  REWARD_DISCOUNT = 2000;
 
   //^^^^^^^^^^^^^^^^^^ SETTINGS ^^^^^^^^^^^^^^^^^^
 
@@ -337,7 +339,8 @@ async function main() {
     marketProxy.address,
     DAO_FEE_2,
     ROYALTY_FEE_2,
-    URI_2
+    URI_2,
+    REWARD_DISCOUNT
   )
 
   // TRANSFER OWNERSHIP
