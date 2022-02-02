@@ -397,7 +397,7 @@ describe("Subscription (generations above 1st)", function () {
     print("owner balance after sub: ", await stackToken.balanceOf(owner.address));
     print("sub balance after sub: ", await stackToken.balanceOf(subscription.address));
     expect(await stackToken.balanceOf(subscription.address)).to.be.closeTo(
-      parseEther("99899661"), parseEther("1")
+      parseEther("99899662"), parseEther("1")
     )
     expect(await stackToken.balanceOf(owner.address)).to.be.closeTo(
       parseEther("4844"), parseEther("1")
