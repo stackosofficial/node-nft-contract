@@ -92,17 +92,17 @@ describe("Active subs reward", function () {
     await expect(sub0.subscribe(1, 0, parseEther("100"), usdt.address, false)).to.be.revertedWith(
       "Generaion should be 0"
     );
-    await expect(sub0.withdraw2(1, [0], [0])).to.be.revertedWith(
+    await expect(sub0.harvestReward(1, [0], [0])).to.be.revertedWith(
       "Generaion should be 0"
     );
   });
   it("Unable to withdraw when no subs in period", async function () {
-    await expect(sub0.withdraw2(0, [0], [0])).to.be.revertedWith(
+    await expect(sub0.harvestReward(0, [0], [0])).to.be.revertedWith(
       "No subs in period"
     );
   });
   it("Unable to withdraw when period not ended", async function () {
-    await expect(sub0.withdraw2(0, [0], [1])).to.be.revertedWith(
+    await expect(sub0.harvestReward(0, [0], [1])).to.be.revertedWith(
       "Period not ended"
     );
   });
@@ -113,7 +113,7 @@ describe("Active subs reward", function () {
     print("owner stack:", await stackToken.balanceOf(owner.address));
 
     oldBalance = await stackToken.balanceOf(owner.address);
-    await sub0.withdraw2(0, [0], [1]); // 1 claimer receives all
+    await sub0.harvestReward(0, [0], [1]); // 1 claimer receives all
     newBalance = await stackToken.balanceOf(owner.address);
 
     expect(newBalance.sub(oldBalance)).to.be.closeTo(
@@ -124,7 +124,7 @@ describe("Active subs reward", function () {
     await stackOsNFTBasic.mint(1);
 
     oldBalance = await stackToken.balanceOf(owner.address);
-    await sub0.withdraw2(0, [0], [1]);
+    await sub0.harvestReward(0, [0], [1]);
     newBalance = await stackToken.balanceOf(owner.address);
     expect(newBalance.sub(oldBalance)).to.be.closeTo(
       parseEther("0.03"), 
@@ -132,7 +132,7 @@ describe("Active subs reward", function () {
     );
 
     oldBalance = await stackToken.balanceOf(owner.address);
-    await sub0.withdraw2(0, [0], [1]); // claim 0 as no fees
+    await sub0.harvestReward(0, [0], [1]); // claim 0 as no fees
     newBalance = await stackToken.balanceOf(owner.address);
     expect(newBalance.sub(oldBalance)).to.be.eq(0);
 
@@ -140,7 +140,7 @@ describe("Active subs reward", function () {
   });
 
   it("Unable to withdraw when token not subscribed in target period", async function () {
-    await expect(sub0.withdraw2(0, [1], [1])).to.be.revertedWith(
+    await expect(sub0.harvestReward(0, [1], [1])).to.be.revertedWith(
       "Was not subscribed"
     );
   });
@@ -157,7 +157,7 @@ describe("Active subs reward", function () {
     await stackOsNFTBasic.mint(1);
 
     oldBalance = await stackToken.balanceOf(owner.address);
-    await sub0.withdraw2(0, [0], [2]); 
+    await sub0.harvestReward(0, [0], [2]); 
     newBalance = await stackToken.balanceOf(owner.address);
 
     expect(newBalance.sub(oldBalance)).to.be.closeTo(
@@ -172,7 +172,7 @@ describe("Active subs reward", function () {
     );
 
     oldBalance = await stackToken.balanceOf(joe.address);
-    await sub0.connect(joe).withdraw2(0, [1], [2]); 
+    await sub0.connect(joe).harvestReward(0, [1], [2]); 
     newBalance = await stackToken.balanceOf(joe.address);
 
     expect(newBalance.sub(oldBalance)).to.be.closeTo(
@@ -181,7 +181,7 @@ describe("Active subs reward", function () {
     );
   });
   it("Unable to withdraw foreign reward", async function () {
-    await expect(sub0.withdraw2(0, [1], [2])).to.be.revertedWith(
+    await expect(sub0.harvestReward(0, [1], [2])).to.be.revertedWith(
       "Not owner"
     );
   });

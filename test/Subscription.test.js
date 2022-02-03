@@ -87,7 +87,7 @@ describe("Subscription (generations above 1st)", function () {
     await expect(subscription.subscribe(0, 0, parseEther("100"), usdt.address, false)).to.be.revertedWith(
       "Generaion shouldn't be 0"
     );
-    await expect(subscription.withdraw2(0, [0], [0])).to.be.revertedWith(
+    await expect(subscription.harvestReward(0, [0], [0])).to.be.revertedWith(
       "Generaion shouldn't be 0"
     );
   });
