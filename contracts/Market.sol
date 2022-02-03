@@ -17,7 +17,7 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeab
         address indexed buyer,
         uint256 generationId,
         uint256 tokenId,
-        uint256 price
+        uint256 sellerReceived
     );
 
     event StackListing(
@@ -31,7 +31,7 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeab
         address indexed seller,
         address indexed buyer,
         uint256 tokenId,
-        uint256 price
+        uint256 sellerReceived
     );
 
     event DarkMatterListing(
@@ -203,6 +203,8 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeab
         uint256 royaltyPart = lot.price * royaltyFee / HUNDRED_PERCENT;
         uint256 sellerPart = lot.price - daoPart - royaltyPart;
 
+        generations.get(generationId).transferFrom(lot.seller, msg.sender, tokenId);
+
         (bool success, ) = daoAddress.call{value: daoPart}("");
         require(success, "Transfer failed");
         (success, ) = royaltyAddress.call{value: royaltyPart}("");
@@ -210,10 +212,7 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeab
         (success, ) = payable(lot.seller).call{value: sellerPart}("");
         require(success, "Transfer failed");
 
-        generations.get(generationId).transferFrom(lot.seller, msg.sender, tokenId);
-
-        emit StackSale(lot.seller, msg.sender, generationId, tokenId, lot.price);
-
+        emit StackSale(lot.seller, msg.sender, generationId, tokenId, sellerPart);
         delete stackToLot[generationId][tokenId];
     }
 
@@ -233,6 +232,8 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeab
         uint256 royaltyPart = lot.price * royaltyFee / HUNDRED_PERCENT;
         uint256 sellerPart = lot.price - daoPart - royaltyPart;
 
+        darkMatter.transferFrom(lot.seller, msg.sender, tokenId);
+
         (bool success, ) = daoAddress.call{value: daoPart}("");
         require(success, "Transfer failed");
         (success, ) = royaltyAddress.call{value: royaltyPart}("");
@@ -240,10 +241,7 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeab
         (success, ) = payable(lot.seller).call{value: sellerPart}("");
         require(success, "Transfer failed");
 
-        darkMatter.transferFrom(lot.seller, msg.sender, tokenId);
-
-        emit DarkMatterSale(lot.seller, msg.sender, tokenId, lot.price);
-
+        emit DarkMatterSale(lot.seller, msg.sender, tokenId, sellerPart);
         delete darkMatterToLot[tokenId];
     }
 
