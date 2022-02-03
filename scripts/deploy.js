@@ -25,7 +25,7 @@ async function main() {
   // Required deposit amount of StackNFTs to be able to mint DarkMatter
   DARK_MATTER_PRICE = 5;
 
-  // Uniswap router
+  // IUniswapV2Router02 compatible router
   ROUTER_ADDRESS = "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D";
   // Address to receive tax of early withdraw subscription
   TAX_ADDRESS = "0xF90fF6d484331399f4eAa13f73D03b8B18eA1373";
@@ -354,6 +354,7 @@ async function main() {
     await subscription.transferOwnership(OWNERSHIP);
     await stackOsNFT.transferOwnership(OWNERSHIP);
     await royalty.transferOwnership(OWNERSHIP);
+    await exchange.transferOwnership(OWNERSHIP);
   }
   
   //^^^^^^^^^^^^^^^^^^ CONTRACT SETTINGS ^^^^^^^^^^^^^^^^^^

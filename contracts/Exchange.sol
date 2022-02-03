@@ -1,14 +1,23 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 
-contract Exchange {
+contract Exchange is Ownable {
 
-    IUniswapV2Router02 private router;
+    event SetRouter(address newRouter);
+
+    IUniswapV2Router02 public router;
 
     constructor (address _router) {
         router = IUniswapV2Router02(_router);
+    }
+
+    function setRouter(address _router) external onlyOwner {
+        require(_router != address(0));
+        router = IUniswapV2Router02(_router);
+        emit SetRouter(_router);
     }
 
     /*
