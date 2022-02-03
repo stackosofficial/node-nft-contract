@@ -32,7 +32,7 @@ async function main() {
   // Subscription price in USD, should be 18 decimals!
   SUBSCRIPTION_PRICE = parseEther("100.0");
   // Subscription bonus percent
-  BONUS_PECENT = 2000;
+  BONUS_PECENT = 8000;
   // Subscription tax reduction amount each month
   // 25% means: 1 month withdraw 75% tax, 2 month 50%, 3 month 25%, 4 month 0%
   TAX_REDUCTION_AMOUNT = 2500;
@@ -48,9 +48,9 @@ async function main() {
   // Subscription min price in USD, should be 18 decimals!
   SUBSCRIPTION_PRICE_2 = parseEther("100.0");
   // Subscription max price in USD, should be 18 decimals!
-  SUBSCRIPTION_MAX_PRICE_2 = parseEther("100.0");
+  SUBSCRIPTION_MAX_PRICE_2 = parseEther("5000.0");
   // Subscription bonus percent
-  BONUS_PECENT_2 = 2000;
+  BONUS_PECENT_2 = 8000;
   // Subscription tax reduction
   TAX_REDUCTION_AMOUNT_2 = 2500;
   // Subscription forgiveness period in seconds
@@ -58,7 +58,7 @@ async function main() {
   // Subscription bonus drip period in seconds
   DRIP_PERIOD_2 = 31536000;
   
-  // Market dao fee address
+  // Market and minting dao fee address
   DAO_ADDRESS = "0xF90fF6d484331399f4eAa13f73D03b8B18eA1373";
   // Market dao fee percent
   DAO_FEE = 1000;
@@ -76,11 +76,11 @@ async function main() {
   // Mint price in STACK
   PRICE = parseEther("0.1");
   // Max amount of NFT in 1st generation
-  MAX_SUPPLY = 25;
+  MAX_SUPPLY = 100;
   // Lottery prizes amount
-  PRIZES = 10;
+  PRIZES = 60;
   // Auctioned NFTs amount
-  AUCTIONED_NFTS = 10;
+  AUCTIONED_NFTS = 20;
   // Timelock period for admin withdraw
   // If you set this to 60, then admin can withdraw after 60 seconds after deployment
   TIMELOCK = 6442850;
@@ -105,7 +105,7 @@ async function main() {
    * Uint256 - amount of NFTs allowed for this address to mint
    */
   WHITELISTED_PARTNERS = [
-    // ["0x47ef611fcb6480fa4bc74522f2ea2b5812352ae5", 4], // remove or copy-paste this line
+    // ["0x47ef611fcb6480fa4bc74522f2ea2b5812352ae5", 20], // remove or copy-paste this line
   ];
   
   // Address to send fees when royalties received by Royalty contract
