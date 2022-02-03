@@ -75,9 +75,9 @@ describe("Measure withdraw() and updateBonuses() gas", function () {
 
   it("Subscribe", async function () {
     TOKENS_NUM = 1;
-    PERIODS_NUM = 30;
+    BONUSES_NUM = 30;
     await usdt.approve(subscription.address, ethers.constants.MaxUint256);
-    for (let i = 0; i < PERIODS_NUM; i++) {
+    for (let i = 0; i < BONUSES_NUM; i++) {
       for (let i = 0; i < TOKENS_NUM; i++) {
         await subscription.subscribe(1, i, parseEther("0"), usdt.address, false);
       }
@@ -90,7 +90,7 @@ describe("Measure withdraw() and updateBonuses() gas", function () {
     // 10 tokens = 5569688 (~13$ gas)
     let tokens = [...Array(TOKENS_NUM).keys()];
     console.log(formatEther(await subscription.estimateGas.withdraw(1, tokens)));
-    await subscription.withdraw(1, tokens);
+    await subscription.harvestBonus(1, tokens);
   });
 
   it("Revert EVM state", async function () {

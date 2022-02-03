@@ -12,6 +12,8 @@ import "./interfaces/IDecimals.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
+import "hardhat/console.sol";
+
 contract Subscription is Ownable, ReentrancyGuard {
 
     event SetOnlyFirstGeneration();
@@ -500,7 +502,8 @@ contract Subscription is Ownable, ReentrancyGuard {
                 index = i+1;
             else if(index > 0) {
                 uint256 currentIndex = i - index;
-// TODO: probably should be able to optimize, replace bonuses[i] with bonus
+                // TODO: probably should be able to optimize but will loss a lot of readability 
+                // (replace bonuses[i] with bonus, and make it memory)
                 deposit.bonuses[currentIndex] = 
                     deposit.bonuses[i];
                 delete deposit.bonuses[i];
@@ -515,11 +518,11 @@ contract Subscription is Ownable, ReentrancyGuard {
     }
 
     /*
-     *  @title Withdraw deposit taking into account bonus and tax
+     *  @title Withdraw deposit, accounting for tax
      *  @param Generation id
      *  @param Token ids
      *  @dev Caller must own `tokenIds`
-     *  @dev Tax resets to maximum on withdraw
+     *  @dev Tax resets to maximum after withdraw
      */
     function withdraw(uint256 generationId, uint256[] calldata tokenIds)
         external
@@ -539,13 +542,13 @@ contract Subscription is Ownable, ReentrancyGuard {
     }
 
    /*
-     * @title Purchase StackNFTs
+     * @title Purchase StackNFTs using money in deposit
      * @param Generation id to withdraw
      * @param Token ids to withdraw
      * @param Generation id to mint
      * @param Amount to mint
      * @dev Withdraw tokens must be owned by the caller
-     * @dev Generation should be greater than 0
+     * @dev Purchase Generation should be greater than 0
      */
     function purchaseNewNft(
         uint256 withdrawGenerationId,
@@ -659,6 +662,8 @@ contract Subscription is Ownable, ReentrancyGuard {
                 deposit.nextPayDate = 0;
                 deposit.tax = HUNDRED_PERCENT - taxReductionAmount;
             }
+
+            console.log(amountWithdraw, deposit.tax);
             
             // early withdraw tax
             if (deposit.tax > 0) {
@@ -679,6 +684,13 @@ contract Subscription is Ownable, ReentrancyGuard {
         }
     }
 
+    /*
+     *  @title Withdraw dripped bonuses
+     *  @param Generation id
+     *  @param Token ids
+     *  @dev Caller must own `tokenIds`
+     */
+     
     // TODO: maybe good idea to add control on amount of bonuses to withdraw, to reduce gas problem
     function harvestBonus(
         uint256 generationId,
@@ -703,6 +715,7 @@ contract Subscription is Ownable, ReentrancyGuard {
             bonusDripped[generationId][tokenId] = 0;
 
             uint256 contractBalance = stackToken.balanceOf(address(this));
+            // TODO: redo this maybe
             require(
                 // make sure bonus amount won't touch balances of deposits or rewards 
                 bonusAmount <= 
@@ -729,6 +742,7 @@ contract Subscription is Ownable, ReentrancyGuard {
      * @returns Locked amount of bonuses
      * @returns Array contains seconds needed to fully release locked amount (so this is per bonus array)
      */
+
     function pendingBonus(uint256 _generationId, uint256 _tokenId)
         external
         view
