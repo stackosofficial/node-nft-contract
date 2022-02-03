@@ -12,7 +12,6 @@ import "./interfaces/IDecimals.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-import "hardhat/console.sol";
 
 contract Subscription is Ownable, ReentrancyGuard {
 
@@ -350,7 +349,6 @@ contract Subscription is Ownable, ReentrancyGuard {
 
         // bonuses logic
         updateBonuses(generationId, tokenId);
-        // TODO: can add `totalBonuses` also, and remove other totals
         uint256 bonusAmount = amount * bonusPercent / HUNDRED_PERCENT;
         deposit.bonuses.push(Bonus({
             total: bonusAmount,
@@ -451,11 +449,6 @@ contract Subscription is Ownable, ReentrancyGuard {
             }
         }
 
-        require(
-            stackToken.balanceOf(address(this)) - totalDeposited >= toWithdraw,
-            "Rewards balance is too low"
-        );
-
         totalRewards -= toWithdraw;
         stackToken.transfer(msg.sender, toWithdraw);
 
@@ -481,6 +474,8 @@ contract Subscription is Ownable, ReentrancyGuard {
         uint256 drippedAmount;
 
         for (uint256 i; i < len; i++) {
+            // TODO: probably should be able to optimize but will loss a lot of readability 
+            // (put `bonus` in memory and then update it in storage at the end)
             Bonus storage bonus = deposit.bonuses[i];
 
             uint256 withdrawAmount = 
@@ -502,8 +497,6 @@ contract Subscription is Ownable, ReentrancyGuard {
                 index = i+1;
             else if(index > 0) {
                 uint256 currentIndex = i - index;
-                // TODO: probably should be able to optimize but will loss a lot of readability 
-                // (replace bonuses[i] with bonus, and make it memory)
                 deposit.bonuses[currentIndex] = 
                     deposit.bonuses[i];
                 delete deposit.bonuses[i];
@@ -594,16 +587,6 @@ contract Subscription is Ownable, ReentrancyGuard {
 
         uint256 amountWithdraw = deposit.balance;
         require(amountWithdraw > 0, "Already withdrawn");
-        deposit.balance = 0;
-
-        require(
-            // make sure it won't touch balance of rewards or bonuses
-            // TODO: if `.balance` is constant, then this check probably unnecessery
-            amountWithdraw <= totalDeposited,
-            "Contract balance is too low"
-        );
-
-        totalDeposited -= amountWithdraw;
 
         if (allocationStatus == withdrawStatus.purchase) {
 
@@ -642,17 +625,16 @@ contract Subscription is Ownable, ReentrancyGuard {
                 msg.sender
             );
 
-            // Add rest back to pending rewards
-            amountWithdraw -= stackToSpend;
-            // TODO: should not touch bonuses when dealing with deposits!
-            bonusDripped[generationId][tokenId] = amountWithdraw;
+            // Add left over amount back to user's balance
+            deposit.balance = amountWithdraw - stackToSpend;
+            // decrease totals only by amount that we spend
+            totalDeposited -= stackToSpend;
 
             emit PurchaseNewNft(
                 msg.sender,
                 generationId,
                 tokenId,
                 purchaseGenerationId,
-                // TODO: need return actual minted amount I guess! from mintFromSubscriptionRewards
                 amountToMint
             );
         } else {
@@ -663,17 +645,19 @@ contract Subscription is Ownable, ReentrancyGuard {
                 deposit.tax = HUNDRED_PERCENT - taxReductionAmount;
             }
 
-            console.log(amountWithdraw, deposit.tax);
-            
+            // decrease totals before we transfer tax
+            totalDeposited -= amountWithdraw;
+
             // early withdraw tax
             if (deposit.tax > 0) {
-                uint256 tax = (amountWithdraw * deposit.tax) / HUNDRED_PERCENT;
+                uint256 tax = amountWithdraw * deposit.tax / HUNDRED_PERCENT;
                 amountWithdraw -= tax;
                 stackToken.transfer(taxAddress, tax);
             }
 
             stackToken.transfer(msg.sender, amountWithdraw);
             deposit.tax = HUNDRED_PERCENT;
+            deposit.balance = 0;
 
             emit Withdraw(
                 msg.sender,
@@ -689,9 +673,9 @@ contract Subscription is Ownable, ReentrancyGuard {
      *  @param Generation id
      *  @param Token ids
      *  @dev Caller must own `tokenIds`
+     *  @dev Be careful with gas consumption.
      */
      
-    // TODO: maybe good idea to add control on amount of bonuses to withdraw, to reduce gas problem
     function harvestBonus(
         uint256 generationId,
         uint256[] calldata tokenIds
@@ -715,7 +699,6 @@ contract Subscription is Ownable, ReentrancyGuard {
             bonusDripped[generationId][tokenId] = 0;
 
             uint256 contractBalance = stackToken.balanceOf(address(this));
-            // TODO: redo this maybe
             require(
                 // make sure bonus amount won't touch balances of deposits or rewards 
                 bonusAmount <= 
