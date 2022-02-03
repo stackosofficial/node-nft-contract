@@ -39,7 +39,7 @@ async function main() {
   // Subscription forgiveness period in seconds
   FORGIVENESS_PERIOD = 604800;
   // Subscription bonus drip period in seconds
-  DRIP_PERIOD_2 = 31536000;
+  DRIP_PERIOD = 31536000;
 
   // Params for subscription contract that is locked to first generation tokens
 
@@ -75,7 +75,7 @@ async function main() {
   URI = "google.com";
   // Mint price in STACK
   PRICE = parseEther("0.1");
-  // Max amount of NFT in this generation
+  // Max amount of NFT in 1st generation
   MAX_SUPPLY = 25;
   // Lottery prizes amount
   PRIZES = 10;
@@ -298,9 +298,11 @@ async function main() {
   // Allow Market to transfer StackNFT
   await stackOsNFT.whitelist(marketProxy.address);
 
+  await subscription.setDripPeriod(DRIP_PERIOD);
   // One of subs contracts is only for 1st generaion
   await sub0.setOnlyFirstGeneration();
   await sub0.setMaxPrice(SUBSCRIPTION_MAX_PRICE_2);
+  await sub0.setDripPeriod(DRIP_PERIOD_2);
 
   // Whitelist partners to mint if there is any
   await Promise.all(
