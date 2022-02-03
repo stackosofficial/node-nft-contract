@@ -129,8 +129,6 @@ async function main() {
   SUBS_FEE_2 = 2000;
   // Mint fee percent for DAO
   DAO_FEE_2 = 500;
-  // Mint fee percent royalty distribution
-  ROYALTY_FEE_2 = 500;
   // Set uri for newly minted tokens
   URI_2 = "google.com";
   // How much to grow max supply in percents.
@@ -340,7 +338,6 @@ async function main() {
   await generationManager.setupDeploy2(
     marketProxy.address,
     DAO_FEE_2,
-    ROYALTY_FEE_2,
     URI_2,
     REWARD_DISCOUNT
   )

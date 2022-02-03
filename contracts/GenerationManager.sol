@@ -30,7 +30,6 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         uint256 mintPrice;
         uint256 subsFee;
         uint256 daoFee;
-        uint256 royaltyFee;
         uint256 maxSupplyGrowthPercent;
         uint256 transferDiscount;
         uint256 rewardDiscount;
@@ -119,13 +118,11 @@ contract GenerationManager is Ownable, ReentrancyGuard {
     function setupDeploy2(
         address _market,
         uint256 _daoFee,
-        uint256 _royaltyFee,
         string calldata _uri,
         uint256 _rewardDiscount
     ) public onlyOwner {
         deployment.market = _market;
         deployment.daoFee = _daoFee;
-        deployment.royaltyFee = _royaltyFee;
         deployment.URI = _uri;
         deployment.rewardDiscount = _rewardDiscount;
     }
@@ -175,7 +172,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
             deployment.timeLock
         );
         add(IStackOsNFT(address(stack)));
-        stack.setFees(deployment.subsFee, deployment.daoFee, deployment.royaltyFee);
+        stack.setFees(deployment.subsFee, deployment.daoFee);
         stack.setRewardDiscount(deployment.rewardDiscount);
         stack.adjustAddressSettings(dao);
         stack.whitelist(address(deployment.darkMatter));
@@ -246,7 +243,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
             _timeLock
         );
         add(IStackOsNFT(address(stack)));
-        stack.setFees(deployment.subsFee, deployment.daoFee, deployment.royaltyFee);
+        stack.setFees(deployment.subsFee, deployment.daoFee);
         stack.setRewardDiscount(deployment.rewardDiscount);
         stack.adjustAddressSettings(dao);
         stack.whitelist(address(deployment.darkMatter));
