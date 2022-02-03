@@ -43,6 +43,8 @@ contract GenerationManager is Ownable, ReentrancyGuard {
     address private exchange;
     address private dao;
 
+    uint256 private constant GEN2_MAX_SUPPLY = 1000;
+
     Deployment private deployment;
     IStackOsNFT[] private generations;
     mapping(address => uint256) private ids;
@@ -164,7 +166,8 @@ contract GenerationManager is Ownable, ReentrancyGuard {
             stableAcceptor,
             exchange,
             deployment.mintPrice,
-
+                // if kicking 2nd generation, use constant, otherwise apply growth % 
+                count() == 1 ? GEN2_MAX_SUPPLY : 
                 get(getIDByAddress(msg.sender)).getMaxSupply() * 
                 (deployment.maxSupplyGrowthPercent + 10000) / 10000,
 
