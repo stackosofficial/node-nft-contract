@@ -20,13 +20,6 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         address _dao
     );
 
-    address private stableAcceptor;
-    address private exchange;
-    address private dao;
-
-    IStackOsNFT[] public generations;
-    mapping(address => uint256) private ids;
-
     struct Deployment {
         string name;
         string symbol;
@@ -37,15 +30,24 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         uint256 mintPrice;
         uint256 subsFee;
         uint256 daoFee;
-        uint256 royaltyFee;
         uint256 maxSupplyGrowthPercent;
         uint256 transferDiscount;
+        uint256 rewardDiscount;
         uint256 timeLock;
         address royaltyAddress;
         address market;
         string URI;
     }
+
+    address private stableAcceptor;
+    address private exchange;
+    address private dao;
+
+    uint256 private constant GEN2_MAX_SUPPLY = 1000;
+
     Deployment private deployment;
+    IStackOsNFT[] private generations;
+    mapping(address => uint256) private ids;
 
     constructor() {}
 
@@ -95,7 +97,6 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         uint256 _timeLock,
         address _royaltyAddress
     ) public onlyOwner {
-        require(_maxSupplyGrowthPercent <= 10000);
         deployment.name = _name;
         deployment.symbol = _symbol;
         deployment.stackToken = _stackToken;
@@ -119,13 +120,13 @@ contract GenerationManager is Ownable, ReentrancyGuard {
     function setupDeploy2(
         address _market,
         uint256 _daoFee,
-        uint256 _royaltyFee,
-        string calldata _uri
+        string calldata _uri,
+        uint256 _rewardDiscount
     ) public onlyOwner {
         deployment.market = _market;
         deployment.daoFee = _daoFee;
-        deployment.royaltyFee = _royaltyFee;
         deployment.URI = _uri;
+        deployment.rewardDiscount = _rewardDiscount;
     }
 
     /*
@@ -165,7 +166,8 @@ contract GenerationManager is Ownable, ReentrancyGuard {
             stableAcceptor,
             exchange,
             deployment.mintPrice,
-
+                // if kicking 2nd generation, use constant, otherwise apply growth % 
+                count() == 1 ? GEN2_MAX_SUPPLY : 
                 get(getIDByAddress(msg.sender)).getMaxSupply() * 
                 (deployment.maxSupplyGrowthPercent + 10000) / 10000,
 
@@ -173,7 +175,8 @@ contract GenerationManager is Ownable, ReentrancyGuard {
             deployment.timeLock
         );
         add(IStackOsNFT(address(stack)));
-        stack.setFees(deployment.subsFee, deployment.daoFee, deployment.royaltyFee);
+        stack.setFees(deployment.subsFee, deployment.daoFee);
+        stack.setRewardDiscount(deployment.rewardDiscount);
         stack.adjustAddressSettings(dao);
         stack.whitelist(address(deployment.darkMatter));
         stack.whitelist(address(deployment.market));
@@ -243,7 +246,8 @@ contract GenerationManager is Ownable, ReentrancyGuard {
             _timeLock
         );
         add(IStackOsNFT(address(stack)));
-        stack.setFees(deployment.subsFee, deployment.daoFee, deployment.royaltyFee);
+        stack.setFees(deployment.subsFee, deployment.daoFee);
+        stack.setRewardDiscount(deployment.rewardDiscount);
         stack.adjustAddressSettings(dao);
         stack.whitelist(address(deployment.darkMatter));
         stack.whitelist(address(deployment.market));

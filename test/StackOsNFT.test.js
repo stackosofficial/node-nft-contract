@@ -408,7 +408,7 @@ describe("Test transferTickets and transferFromLastGen", function () {
       parseEther("10.0")
     );
     expect(await stackToken.balanceOf(stackOsNFTBasic.address)).to.be.closeTo(
-      parseEther("1.11"), parseEther("0.01")
+      parseEther("1.27"), parseEther("0.01")
     );
 
     print("Tickets transfered!");

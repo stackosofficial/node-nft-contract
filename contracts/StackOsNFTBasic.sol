@@ -30,7 +30,7 @@ contract StackOsNFTBasic is
         address dao 
     );
     event SetRewardDiscount(uint256 _rewardDiscount);
-    event SetFees(uint256 subs, uint256 dao, uint256 royaltyDistribution);
+    event SetFees(uint256 subs, uint256 dao);
     event Delegate(
         address indexed delegator, 
         address delegatee, 
@@ -63,7 +63,6 @@ contract StackOsNFTBasic is
     uint256 public transferDiscount;
     uint256 private subsFee;
     uint256 private daoFee;
-    uint256 private royaltyDistributionFee;
     // this is max amount to drip, dripping is 1 per minute
     uint256 public constant maxMintRate = 10;
 
@@ -191,19 +190,17 @@ contract StackOsNFTBasic is
      * @title Set amounts taken from mint
      * @param % that is sended to Subscription contract 
      * @param % that is sended to dao
-     * @param % that is sended to royalty distribution
      * @dev Could only be invoked by the contract owner.
      */
 
-    function setFees(uint256 _subs, uint256 _dao, uint256 _distr)
+    function setFees(uint256 _subs, uint256 _dao)
         external
         onlyOwner
     {
-        require(_subs + _dao + _distr <= 10000);
+        require(_subs + _dao <= 10000);
         subsFee = _subs;
         daoFee = _dao;
-        royaltyDistributionFee = _distr;
-        emit SetFees(_subs, _dao, _distr);
+        emit SetFees(_subs, _dao);
     }
 
     function _baseURI() internal pure override returns (string memory) {
@@ -444,8 +441,7 @@ contract StackOsNFTBasic is
 
         uint256 subsPart = _amount * subsFee / 10000;
         uint256 daoPart = _amount * daoFee / 10000;
-        uint256 royaltyPart = _amount * royaltyDistributionFee / 10000;
-        amountAfterFees = _amount - subsPart - daoPart - royaltyPart;
+        amountAfterFees = _amount - subsPart - daoPart;
 
         uint256 subsPartHalf = subsPart / 2;
 
@@ -459,13 +455,6 @@ contract StackOsNFTBasic is
             daoPart += (subsPartHalf);
         }
         stackToken.transfer(address(daoAddress), daoPart);
-
-        stackToken.approve(address(exchange), royaltyPart);
-        exchange.swapExactTokensForETH(
-            stackToken, 
-            royaltyPart, 
-            address(royaltyAddress)
-        );
     }
 
     function _delegate(address _delegatee, uint256 tokenId) private {

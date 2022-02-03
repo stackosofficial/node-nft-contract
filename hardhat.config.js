@@ -104,6 +104,9 @@ module.exports = {
     ],
   },
   networks: {
+    localhost: {
+      timeout: 600000
+    },
     hardhat: {
         forking: {
           url: process.env.MATIC_URL, // must be archive node for next line to work
@@ -127,9 +130,9 @@ module.exports = {
   },
   gasReporter: {
     enabled: process.env.REPORT_GAS !== undefined,
-    currency: "USD",
-    gasPrice: 5,
-    coinmarketcap: process.env.CMC_KEY || undefined
+    // currency: "USD",
+    // gasPrice: 5,
+    // coinmarketcap: process.env.CMC_KEY || undefined
   },
   etherscan: {
     apiKey: process.env.ETHERSCAN_API_KEY,
