@@ -9,6 +9,13 @@ import "./interfaces/IStackOsNFT.sol";
 import "./interfaces/IStackOsNFTBasic.sol";
 import "./Exchange.sol";
 
+// TODO: maybe will need to add 'merge' function:
+//      so if genData's balance is so low that no one can claim, 
+//      we can merge it's balance with preceding genDatas.
+//      But should only merge if genData never been claimed even once,
+//      otherwise users can claim second time after merge.
+// TODO: maybe possible to remove usage of int256
+
 contract Royalty is Ownable, ReentrancyGuard {
     using Counters for Counters.Counter;
 
@@ -30,11 +37,22 @@ contract Royalty is Ownable, ReentrancyGuard {
     uint256 private minEthToStartCycle;
     uint256 private constant CYCLE_DURATION = 30 days;
 
+    struct GenData {
+        // total received by each generation in cycle
+        uint256 balance;
+        // whether reward for this token in this cycle for this generation is claimed
+        mapping(uint256 => mapping(uint256 => bool)) isClaimed; 
+    }
+
     struct Cycle {
-        uint256 startTimestamp; // cycle started timestamp
-        uint256 balance; // how much deposited during cycle
-        uint256 delegatedCount; // how much tokens delegated when cycle started
-        mapping(uint256 => mapping(uint256 => bool)) isClaimed; // whether reward for this token in this cycle is claimed
+        // cycle started timestamp
+        uint256 startTimestamp; 
+        // total received in cycle
+        uint256 totalBalance; 
+        // total delegated tokens when cycle started
+        uint256 delegatedCount; 
+        // per generation balance
+        mapping(uint256 => GenData) genData; 
     }
 
     mapping(uint256 => Cycle) public cycles; 
@@ -78,8 +96,12 @@ contract Royalty is Ownable, ReentrancyGuard {
     receive() external payable {
         checkDelegationsForFirstCycle();
 
+        // TODO: receive this from args
+        uint256 generationId = 0;
+
         // take fee from deposits
-        uint256 feePart = ((msg.value * feePercent) / HUNDRED_PERCENT);
+        uint256 feePart = msg.value * feePercent / HUNDRED_PERCENT;
+        uint256 valuePart = msg.value - feePart;
 
         // is current cycle lasts enough?
         if (
@@ -87,20 +109,17 @@ contract Royalty is Ownable, ReentrancyGuard {
             block.timestamp
         ) {
             // is current cycle got enough ether?
-            if (cycles[counter.current()].balance >= minEthToStartCycle) {
+            if (cycles[counter.current()].totalBalance >= minEthToStartCycle) {
                 // start new cycle
                 counter.increment();
                 // save count of delegates that exists on start of cycle
                 cycles[counter.current()].delegatedCount = totalDelegated;
                 cycles[counter.current()].startTimestamp = block.timestamp;
-
-                cycles[counter.current()].balance += (msg.value - feePart);
-            } else {
-                cycles[counter.current()].balance += (msg.value - feePart);
             }
-        } else {
-            cycles[counter.current()].balance += (msg.value - feePart);
         }
+        
+        cycles[counter.current()].totalBalance += valuePart;
+        cycles[counter.current()].genData[generationId].balance += valuePart;
 
         (bool success, ) = feeAddress.call{value: feePart}("");
         require(success, "Transfer failed.");
@@ -215,7 +234,8 @@ contract Royalty is Ownable, ReentrancyGuard {
         bool _claimWETH
     ) internal {
         require(address(this).balance > 0, "No royalty");
-        IStackOsNFT stack = generations.get(generationId);
+        IStackOsNFTBasic stack = 
+            IStackOsNFTBasic(address(generations.get(generationId)));
         require(
             stack.balanceOf(msg.sender) > 0 ||
                 darkMatter.balanceOf(msg.sender) > 0,
@@ -224,11 +244,14 @@ contract Royalty is Ownable, ReentrancyGuard {
 
         checkDelegationsForFirstCycle();
 
+
         if (
             cycles[counter.current()].startTimestamp + CYCLE_DURATION <
             block.timestamp
         ) {
-            if (cycles[counter.current()].balance >= minEthToStartCycle) {
+            if (
+                cycles[counter.current()].totalBalance >= minEthToStartCycle
+            ) {
                 counter.increment();
                 cycles[counter.current()].delegatedCount = totalDelegated;
                 cycles[counter.current()].startTimestamp = block.timestamp;
@@ -255,17 +278,21 @@ contract Royalty is Ownable, ReentrancyGuard {
                     "NFT should be delegated"
                 );
 
+                // TODO: add control over cycle's and balance's amount of iterations
                 for (uint256 o; o < counter.current(); o++) {
-                    if (
-                        // make sure its unclaimed
-                        cycles[o].isClaimed[generationId][tokenId] == false
-                        // make sure token is delegated before this cycle start
-                        && addedAt[generationId][tokenId] < int256(o)
-                    ) {
-                        reward += cycles[o].balance / cycles[o].delegatedCount;
-                        cycles[o].isClaimed[generationId][
-                            tokenId
-                        ] = true;
+                    // verify token is delegated before this cycle start
+                    if(addedAt[generationId][tokenId] < int256(o)) {
+                        // id is zero-based, that's why <=
+                        for (uint256 j; j <= generationId; j++) {
+                            if (
+                                cycles[o].genData[j].balance > 0 &&
+                                // verify reward is unclaimed
+                                cycles[o].genData[j].isClaimed[generationId][tokenId] == false
+                            ) {
+                                reward += cycles[o].genData[j].balance / cycles[o].delegatedCount;
+                                cycles[o].genData[j].isClaimed[generationId][tokenId] = true;
+                            }
+                        }
                     }
                 }
             }
@@ -282,13 +309,11 @@ contract Royalty is Ownable, ReentrancyGuard {
                         require(success, "Transfer failed");
                     }
                 } else {
-                    IStackOsNFTBasic stackNFT = 
-                        IStackOsNFTBasic(address(generations.get(generationId)));
                     uint256 stackReceived = 
                         exchange.swapExactETHForTokens{value: reward}(stackToken);
-                    stackToken.approve(address(stackNFT), stackReceived);
+                    stackToken.approve(address(stack), stackReceived);
 
-                    uint256 spendAmount = stackNFT.mintFromRoyaltyRewards(
+                    uint256 spendAmount = stack.mintFromRoyaltyRewards(
                         _mintNum,
                         msg.sender
                     );
@@ -315,7 +340,7 @@ contract Royalty is Ownable, ReentrancyGuard {
             cycles[counter.current()].startTimestamp + CYCLE_DURATION <
             block.timestamp
         ) {
-            if (cycles[counter.current()].balance >= minEthToStartCycle) {
+            if (cycles[counter.current()].totalBalance >= minEthToStartCycle) {
                 _counterCurrent += 1;
             }
         }
@@ -331,13 +356,18 @@ contract Royalty is Ownable, ReentrancyGuard {
                     continue;
 
                 for (uint256 o; o < _counterCurrent; o++) {
-                    if (
-                        // should be able to claim only once for cycle
-                        cycles[o].isClaimed[generationId][tokenId] == false
-                        // is this token delegated before this cycle start?
-                        && addedAt[generationId][tokenId] < int256(o)
-                    ) {
-                        reward += cycles[o].balance / cycles[o].delegatedCount;
+                    // verify token is delegated before this cycle start
+                    if(addedAt[generationId][tokenId] < int256(o)) {
+                        // id is zero-based, that's why <=
+                        for (uint256 j; j <= generationId; j++) {
+                            if (
+                                cycles[o].genData[j].balance > 0 &&
+                                // verify reward is unclaimed
+                                cycles[o].genData[j].isClaimed[generationId][tokenId] == false
+                            ) {
+                                reward += cycles[o].genData[j].balance / cycles[o].delegatedCount;
+                            }
+                        }
                     }
                 }
             }
