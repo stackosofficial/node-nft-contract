@@ -28,8 +28,13 @@ contract DarkMatter is Whitelist, ERC721, ReentrancyGuard {
     mapping(address => uint256) private lastUserDarkMatter; 
     // owner => DarkMatter ids
     mapping(address => uint256[]) private toBeMinted; 
+
+    struct ValidId {
+        uint256 id;
+        bool written;
+    }
     // generation => StackNFT id => DarkMatter id
-    mapping(uint256 => mapping(uint256 => uint256)) private stackToDarkMatter; 
+    mapping(uint256 => mapping(uint256 => ValidId)) private stackToDarkMatter; 
 
     // DarkMatter id => generation => StackNFT ids 
     mapping(uint256 => mapping(uint256 => uint256[])) private darkMatterToStack; 
@@ -72,7 +77,8 @@ contract DarkMatter is Whitelist, ERC721, ReentrancyGuard {
         uint256 tokenId
     ) external view returns (bool) {
         if (
-            _exists(stackToDarkMatter[generationId][tokenId]) &&
+            stackToDarkMatter[generationId][tokenId].written &&
+            _exists(stackToDarkMatter[generationId][tokenId].id) &&
             ownerOf(generationId, tokenId) == _wallet
         ) {
             return true;
@@ -92,7 +98,10 @@ contract DarkMatter is Whitelist, ERC721, ReentrancyGuard {
         returns (address)
     {
         uint256 generationId = generations.getIDByAddress(address(_stackOsNFT));
-        if (_exists(stackToDarkMatter[generationId][tokenId])) {
+        if (
+            stackToDarkMatter[generationId][tokenId].written &&
+            _exists(stackToDarkMatter[generationId][tokenId].id)
+        ) {
             return ownerOf(generationId, tokenId);
         }
         return _stackOsNFT.ownerOf(tokenId);
@@ -108,7 +117,8 @@ contract DarkMatter is Whitelist, ERC721, ReentrancyGuard {
         view
         returns (address)
     {
-        return ownerOf(stackToDarkMatter[generationId][tokenId]);
+        require(stackToDarkMatter[generationId][tokenId].written);
+        return ownerOf(stackToDarkMatter[generationId][tokenId].id);
     }
 
     /*
@@ -140,7 +150,8 @@ contract DarkMatter is Whitelist, ERC721, ReentrancyGuard {
             } else {
                 darkMatterToStack[lastUserDarkMatter[msg.sender]][generationId].push(tokenId);
             }
-            stackToDarkMatter[generationId][tokenId] = lastUserDarkMatter[
+            stackToDarkMatter[generationId][tokenId].written = true;
+            stackToDarkMatter[generationId][tokenId].id = lastUserDarkMatter[
                 msg.sender
             ];
         }

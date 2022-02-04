@@ -189,6 +189,34 @@ describe("Market", function () {
     await market.connect(joe).deListStackNFT(0, 5);
   });
 
+  it("Royalty handle fees correctly", async function () {
+
+    /*  Scenario, 2 generations
+        Delegate all tokens
+        Sell gen 1, fail to claim royalty by gen 2
+        Sell gen 2, claim royalty by gen 1
+    */
+
+    // mint
+    // await stackOsNFT.whitelistPartner(owner.address, 10);
+    // await usdt.approve(stackOsNFT.address, parseEther("100.0"));
+    // await stackOsNFT.partnerMint(5); // start from id 9
+
+    // await stackToken.approve(stackOsNFTgen2.address, parseEther("100.0"));
+    // await provider.send("evm_increaseTime", [60 * 60]); 
+    // await stackOsNFTgen2.mint(2); // start from id 2
+
+    // delegate
+    console.log(await stackOsNFT.totalSupply());
+    await stackOsNFT.delegate(owner.address, [9]);
+    // await stackOsNFTgen2.delegate(owner.address, [2]);
+
+    // sell to send fee
+    // await market.listStackNFT(0, 9, parseEther("100.0"));
+    // await market.buyStack(0, 9, { value: parseEther("100.0") });
+
+  });
+
   it("Revert EVM state", async function () {
     await ethers.provider.send("evm_revert", [snapshotId]);
   });

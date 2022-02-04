@@ -8,6 +8,7 @@ import "./DarkMatter.sol";
 import "./interfaces/IStackOsNFT.sol";
 import "./interfaces/IStackOsNFTBasic.sol";
 import "./Exchange.sol";
+import "hardhat/console.sol";
 
 contract Royalty is Ownable, ReentrancyGuard {
     using Counters for Counters.Counter;
@@ -30,11 +31,22 @@ contract Royalty is Ownable, ReentrancyGuard {
     uint256 private minEthToStartCycle;
     uint256 private constant CYCLE_DURATION = 30 days;
 
+    struct GenData {
+        // total received by each generation in cycle
+        uint256 balance;
+        // whether reward for this token in this cycle for this generation is claimed
+        mapping(uint256 => mapping(uint256 => bool)) isClaimed; 
+    }
+
     struct Cycle {
-        uint256 startTimestamp; // cycle started timestamp
-        uint256 balance; // how much deposited during cycle
-        uint256 delegatedCount; // how much tokens delegated when cycle started
-        mapping(uint256 => mapping(uint256 => bool)) isClaimed; // whether reward for this token in this cycle is claimed
+        // cycle started timestamp
+        uint256 startTimestamp; 
+        // total received in cycle
+        uint256 totalBalance; 
+        // total delegated tokens when cycle started
+        uint256 delegatedCount; 
+        // per generation balance
+        mapping(uint256 => GenData) genData; 
     }
 
     mapping(uint256 => Cycle) public cycles; 
@@ -78,8 +90,11 @@ contract Royalty is Ownable, ReentrancyGuard {
     receive() external payable {
         checkDelegationsForFirstCycle();
 
+        uint256 generationId = 0;
+
         // take fee from deposits
-        uint256 feePart = ((msg.value * feePercent) / HUNDRED_PERCENT);
+        uint256 feePart = msg.value * feePercent / HUNDRED_PERCENT;
+        uint256 valuePart = msg.value - feePart;
 
         // is current cycle lasts enough?
         if (
@@ -87,20 +102,51 @@ contract Royalty is Ownable, ReentrancyGuard {
             block.timestamp
         ) {
             // is current cycle got enough ether?
-            if (cycles[counter.current()].balance >= minEthToStartCycle) {
+            if (cycles[counter.current()].totalBalance >= minEthToStartCycle) {
                 // start new cycle
                 counter.increment();
                 // save count of delegates that exists on start of cycle
                 cycles[counter.current()].delegatedCount = totalDelegated;
                 cycles[counter.current()].startTimestamp = block.timestamp;
-
-                cycles[counter.current()].balance += (msg.value - feePart);
-            } else {
-                cycles[counter.current()].balance += (msg.value - feePart);
             }
-        } else {
-            cycles[counter.current()].balance += (msg.value - feePart);
         }
+
+        console.log(valuePart / 1e18, counter.current(), cycles[counter.current()].delegatedCount);
+
+        cycles[counter.current()].totalBalance += valuePart;
+        cycles[counter.current()].genData[generationId].balance += valuePart;
+
+        (bool success, ) = feeAddress.call{value: feePart}("");
+        require(success, "Transfer failed.");
+    }
+
+    /*
+     * @title Deposit royalty so that NFT holders can claim it later.
+     */
+    function onReceive(uint256 generationId) external payable nonReentrant {
+        checkDelegationsForFirstCycle();
+
+        // take fee from deposits
+        uint256 feePart = msg.value * feePercent / HUNDRED_PERCENT;
+        uint256 valuePart = msg.value - feePart;
+
+        // is current cycle lasts enough?
+        if (
+            cycles[counter.current()].startTimestamp + CYCLE_DURATION <
+            block.timestamp
+        ) {
+            // is current cycle got enough ether?
+            if (cycles[counter.current()].totalBalance >= minEthToStartCycle) {
+                // start new cycle
+                counter.increment();
+                // save count of delegates that exists on start of cycle
+                cycles[counter.current()].delegatedCount = totalDelegated;
+                cycles[counter.current()].startTimestamp = block.timestamp;
+            }
+        }
+        
+        cycles[counter.current()].totalBalance += valuePart;
+        cycles[counter.current()].genData[generationId].balance += valuePart;
 
         (bool success, ) = feeAddress.call{value: feePart}("");
         require(success, "Transfer failed.");
@@ -117,7 +163,7 @@ contract Royalty is Ownable, ReentrancyGuard {
             // this dont allow to end first cycle with perTokenReward = 0 and balance > 0
             cycles[counter.current()].startTimestamp = block.timestamp;
             /*
-                The following check is need to prevent ETH hang on first cycle forever.
+                The following check is need to prevent ETH hang on first cycle.
                 If first ever delegation happens at the same block with receiving eth here,
                 then no one can claim for the first cycle, because when claiming royalty
                 there is check: tokenDelegationTime < cycleStartTime
@@ -169,10 +215,15 @@ contract Royalty is Ownable, ReentrancyGuard {
      * @param Token ids
      * @dev tokens must be delegated and owned by the caller
      */
-    function claim(uint256 _generationId, uint256[] calldata _tokenIds)
+    function claim(
+        uint256 _generationId, 
+        uint256[] calldata _tokenIds,
+        uint256[] calldata _cycleIds,
+        uint256[] calldata _genIds
+    )
         external
     {
-        _claim(_generationId, _tokenIds, 0, false, false);
+        _claim(_generationId, _tokenIds, 0, false, _cycleIds, _genIds);
     }
 
     /*
@@ -180,11 +231,16 @@ contract Royalty is Ownable, ReentrancyGuard {
      * @dev tokens must be delegated and owned by the caller
      * @dev WETH address must be set by the admin
      */
-    function claimWETH(uint256 _generationId, uint256[] calldata _tokenIds)
+    function claimWETH(
+        uint256 _generationId, 
+        uint256[] calldata _tokenIds,
+        uint256[] calldata _cycleIds,
+        uint256[] calldata _genIds
+    )
         external
     {
         require(address(WETH) != address(0), "Wrong WETH address");
-        _claim(_generationId, _tokenIds, 0, false, true);
+        _claim(_generationId, _tokenIds, 0, true, _cycleIds, _genIds);
     }
 
     /*
@@ -198,24 +254,29 @@ contract Royalty is Ownable, ReentrancyGuard {
     function purchaseNewNft(
         uint256 _generationId,
         uint256[] calldata _tokenIds,
-        uint256 _mintNum
+        uint256 _mintNum,
+        uint256[] calldata _cycleIds,
+        uint256[] calldata _genIds
     ) 
         external 
         nonReentrant 
     {
         require(_generationId > 0, "Must be not first generation");
-        _claim(_generationId, _tokenIds, _mintNum, true, false);
+        require(_mintNum > 0, "Mint num is 0");
+        _claim(_generationId, _tokenIds, _mintNum, false, _cycleIds, _genIds);
     }
 
     function _claim(
         uint256 generationId,
         uint256[] calldata tokenIds,
         uint256 _mintNum,
-        bool _mint,
-        bool _claimWETH
+        bool _claimWETH,
+        uint256[] calldata _cycleIds,
+        uint256[] calldata _genIds
     ) internal {
         require(address(this).balance > 0, "No royalty");
-        IStackOsNFT stack = generations.get(generationId);
+        IStackOsNFTBasic stack = 
+            IStackOsNFTBasic(address(generations.get(generationId)));
         require(
             stack.balanceOf(msg.sender) > 0 ||
                 darkMatter.balanceOf(msg.sender) > 0,
@@ -228,50 +289,42 @@ contract Royalty is Ownable, ReentrancyGuard {
             cycles[counter.current()].startTimestamp + CYCLE_DURATION <
             block.timestamp
         ) {
-            if (cycles[counter.current()].balance >= minEthToStartCycle) {
+            if (
+                cycles[counter.current()].totalBalance >= minEthToStartCycle
+            ) {
                 counter.increment();
                 cycles[counter.current()].delegatedCount = totalDelegated;
                 cycles[counter.current()].startTimestamp = block.timestamp;
             }
         }
 
+        console.log(counter.current());
+
         if (counter.current() > 0) {
             uint256 reward;
 
             // iterate over tokens from args
             for (uint256 i; i < tokenIds.length; i++) {
-                uint256 tokenId = tokenIds[i];
 
                 require(
                     darkMatter.isOwnStackOrDarkMatter(
                         msg.sender,
                         generationId,
-                        tokenId
+                        tokenIds[i]
                     ),
                     "Not owner"
                 );
                 require(
-                    stack.getDelegatee(tokenId) != address(0),
+                    stack.getDelegatee(tokenIds[i]) != address(0),
                     "NFT should be delegated"
                 );
 
-                for (uint256 o; o < counter.current(); o++) {
-                    if (
-                        // make sure its unclaimed
-                        cycles[o].isClaimed[generationId][tokenId] == false
-                        // make sure token is delegated before this cycle start
-                        && addedAt[generationId][tokenId] < int256(o)
-                    ) {
-                        reward += cycles[o].balance / cycles[o].delegatedCount;
-                        cycles[o].isClaimed[generationId][
-                            tokenId
-                        ] = true;
-                    }
-                }
+                reward += calcReward(generationId, tokenIds[i], _cycleIds, _genIds);
+
             }
 
             if (reward > 0) {
-                if (_mint == false) {
+                if (_mintNum == 0) {
                     if(_claimWETH) {
                         uint256 wethReceived = exchange.swapExactETHForTokens{value: reward}(WETH);
                         require(WETH.transfer(msg.sender, wethReceived), "WETH: transfer failed");
@@ -282,17 +335,50 @@ contract Royalty is Ownable, ReentrancyGuard {
                         require(success, "Transfer failed");
                     }
                 } else {
-                    IStackOsNFTBasic stackNFT = 
-                        IStackOsNFTBasic(address(generations.get(generationId)));
                     uint256 stackReceived = 
                         exchange.swapExactETHForTokens{value: reward}(stackToken);
-                    stackToken.approve(address(stackNFT), stackReceived);
+                    stackToken.approve(address(stack), stackReceived);
 
-                    uint256 spendAmount = stackNFT.mintFromRoyaltyRewards(
+                    console.log("MINT:", _mintNum);
+                    uint256 spendAmount = stack.mintFromRoyaltyRewards(
                         _mintNum,
                         msg.sender
                     );
                     stackToken.transfer(msg.sender, stackReceived - spendAmount);
+                }
+            }
+        }
+    }
+
+    function calcReward(
+        uint256 generationId,
+        uint256 tokenId,
+        uint256[] calldata _cycleIds,
+        uint256[] calldata _genIds
+    )   
+        private 
+        returns (uint256 reward) 
+    {
+        console.log("kek");
+        for (uint256 o; o < _cycleIds.length; o++) {
+            uint256 cycleId = _cycleIds[o];
+            require(cycleId < counter.current(), "Bad cycle id");
+
+            // verify token is delegated before this cycle start
+            if(addedAt[generationId][tokenId] < int256(cycleId)) {
+                for (uint256 j; j < _genIds.length; j++) {
+                    require(_genIds[j] <= generationId, "Bad gen id");
+                    GenData storage genData = cycles[cycleId].genData[_genIds[j]];
+
+                    if (
+                        genData.balance > 0 &&
+                        // verify reward is unclaimed
+                        genData.isClaimed[generationId][tokenId] == false
+                    ) {
+                        reward += genData.balance / cycles[cycleId].delegatedCount;
+                        console.log(counter.current(), genData.balance, cycles[cycleId].delegatedCount, reward / 1e18);
+                        genData.isClaimed[generationId][tokenId] = true;
+                    }
                 }
             }
         }
@@ -315,7 +401,7 @@ contract Royalty is Ownable, ReentrancyGuard {
             cycles[counter.current()].startTimestamp + CYCLE_DURATION <
             block.timestamp
         ) {
-            if (cycles[counter.current()].balance >= minEthToStartCycle) {
+            if (cycles[counter.current()].totalBalance >= minEthToStartCycle) {
                 _counterCurrent += 1;
             }
         }
@@ -331,13 +417,21 @@ contract Royalty is Ownable, ReentrancyGuard {
                     continue;
 
                 for (uint256 o; o < _counterCurrent; o++) {
-                    if (
-                        // should be able to claim only once for cycle
-                        cycles[o].isClaimed[generationId][tokenId] == false
-                        // is this token delegated before this cycle start?
-                        && addedAt[generationId][tokenId] < int256(o)
-                    ) {
-                        reward += cycles[o].balance / cycles[o].delegatedCount;
+                    // verify token is delegated before this cycle start
+                    if(addedAt[generationId][tokenId] < int256(o)) {
+                        // id is zero-based, that's why <=
+                        for (uint256 j; j <= generationId; j++) {
+                            if (
+                                cycles[o].genData[j].balance > 0 &&
+                                // verify reward is unclaimed
+                                cycles[o].genData[j].isClaimed[generationId][tokenId] == false
+                            ) {
+                                reward += cycles[o].genData[j].balance / cycles[o].delegatedCount;
+                                console.log("pending", 
+                                o, j,
+                                reward / 1e18);
+                            }
+                        }
                     }
                 }
             }

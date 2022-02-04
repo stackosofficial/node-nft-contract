@@ -3,7 +3,7 @@ const { expect } = require("chai");
 const { parseEther, formatEther, parseUnits } = require("@ethersproject/units");
 const { deployStackOS, setup, deployStackOSBasic, print, setupDeployment, setupLiquidity } = require("./utils");
 
-describe("StackOS NFT Basic", function () {
+describe("Generation Manager", function () {
   it("Snapshot EVM", async function () {
     snapshotId = await ethers.provider.send("evm_snapshot");
   });
