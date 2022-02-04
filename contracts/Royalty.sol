@@ -126,6 +126,7 @@ contract Royalty is Ownable, ReentrancyGuard {
     function onReceive(uint256 generationId) external payable nonReentrant {
         checkDelegationsForFirstCycle();
 
+
         // take fee from deposits
         uint256 feePart = msg.value * feePercent / HUNDRED_PERCENT;
         uint256 valuePart = msg.value - feePart;
@@ -145,6 +146,7 @@ contract Royalty is Ownable, ReentrancyGuard {
             }
         }
         
+        console.log("onReceive", generationId, counter.current());
         cycles[counter.current()].totalBalance += valuePart;
         cycles[counter.current()].genData[generationId].balance += valuePart;
 
@@ -359,7 +361,7 @@ contract Royalty is Ownable, ReentrancyGuard {
         private 
         returns (uint256 reward) 
     {
-        console.log("kek");
+        console.log("kek", _genIds[0], generationId);
         for (uint256 o; o < _cycleIds.length; o++) {
             uint256 cycleId = _cycleIds[o];
             require(cycleId < counter.current(), "Bad cycle id");
@@ -367,7 +369,7 @@ contract Royalty is Ownable, ReentrancyGuard {
             // verify token is delegated before this cycle start
             if(addedAt[generationId][tokenId] < int256(cycleId)) {
                 for (uint256 j; j < _genIds.length; j++) {
-                    require(_genIds[j] <= generationId, "Bad gen id");
+                    require(_genIds[j] >= generationId, "Bad gen id");
                     GenData storage genData = cycles[cycleId].genData[_genIds[j]];
 
                     if (
