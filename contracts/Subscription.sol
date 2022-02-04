@@ -474,7 +474,7 @@ contract Subscription is Ownable, ReentrancyGuard {
         uint256 drippedAmount;
 
         for (uint256 i; i < len; i++) {
-            // TODO: probably should be able to optimize but will loss a lot of readability 
+            // TODO: probably should be able to optimize
             // (put `bonus` in memory and then update it in storage at the end)
             Bonus storage bonus = deposit.bonuses[i];
 
