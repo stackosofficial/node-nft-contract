@@ -728,14 +728,14 @@ contract Subscription is Ownable, ReentrancyGuard {
         view
         returns (
             uint256 unlocked, 
+            uint256 totalClaimable, 
             uint256 locked, 
-            uint256[] memory timeLeft 
+            uint256 timeLeft 
         )
     {
         Deposit memory deposit = deposits[_generationId][_tokenId];
 
         uint256 len = deposit.bonuses.length;
-        timeLeft = new uint256[](len);
 
         for (uint256 i; i < len; i++) {
             Bonus memory bonus = deposit.bonuses[i];
@@ -751,11 +751,13 @@ contract Subscription is Ownable, ReentrancyGuard {
             bonus.lockedAmount -= amount;
             locked += bonus.lockedAmount;
 
-            timeLeft[i] = 
-                bonus.releasePeriod * bonus.lockedAmount / bonus.total;
+            if(i+1 == len) {
+                timeLeft = 
+                    bonus.releasePeriod * bonus.lockedAmount / bonus.total;
+            }
         }
 
-        unlocked += bonusDripped[_generationId][_tokenId];
+        totalClaimable = unlocked + bonusDripped[_generationId][_tokenId];
     }
 
     /*

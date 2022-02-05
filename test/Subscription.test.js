@@ -308,7 +308,7 @@ describe("Subscription (generations above 1st)", function () {
       oldPendingBonus.claimed, 
       oldPendingBonus.unlocked, 
       oldPendingBonus.locked,
-      // oldPendingBonus.timeLeft,
+      oldPendingBonus.timeLeft,
     );
 
     await subscription.claimBonus(1, [5]);
@@ -319,10 +319,10 @@ describe("Subscription (generations above 1st)", function () {
       newPendingBonus.claimed, 
       newPendingBonus.unlocked, 
       newPendingBonus.locked,
-      // newPendingBonus.timeLeft,
+      newPendingBonus.timeLeft,
     );
 
-    expect(oldPendingBonus.unlocked).to.be.equal(
+    expect(oldPendingBonus.totalClaimable).to.be.equal(
       await stackToken.balanceOf(owner.address)
     );
   })
@@ -359,7 +359,7 @@ describe("Subscription (generations above 1st)", function () {
       oldPendingBonus.claimed, 
       oldPendingBonus.unlocked, 
       oldPendingBonus.locked,
-      // oldPendingBonus.timeLeft,
+      oldPendingBonus.timeLeft,
     );
 
     await subscription.claimBonus(2, [1]);
@@ -369,7 +369,7 @@ describe("Subscription (generations above 1st)", function () {
       newPendingBonus.claimed, 
       newPendingBonus.unlocked, 
       newPendingBonus.locked,
-      // newPendingBonus.timeLeft,
+      newPendingBonus.timeLeft,
     );
     await provider.send("evm_increaseTime", [dripPeriod / 2]); 
     await provider.send("evm_mine"); 
@@ -383,7 +383,7 @@ describe("Subscription (generations above 1st)", function () {
       newPendingBonus.claimed, 
       newPendingBonus.unlocked, 
       newPendingBonus.locked,
-      // newPendingBonus.timeLeft,
+      newPendingBonus.timeLeft,
     );
     expect(
       newPendingBonus.unlocked
