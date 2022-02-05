@@ -728,8 +728,7 @@ contract Subscription is Ownable, ReentrancyGuard {
         view
         returns (
             uint256 unlocked, 
-            uint256 totalClaimable, 
-            uint256 locked, 
+            uint256 locked,
             uint256 timeLeft 
         )
     {
@@ -756,8 +755,8 @@ contract Subscription is Ownable, ReentrancyGuard {
                     bonus.releasePeriod * bonus.lockedAmount / bonus.total;
             }
         }
-
-        totalClaimable = unlocked + bonusDripped[_generationId][_tokenId];
+        
+        unlocked += bonusDripped[_generationId][_tokenId];
     }
 
     /*

@@ -322,7 +322,7 @@ describe("Subscription (generations above 1st)", function () {
       newPendingBonus.timeLeft,
     );
 
-    expect(oldPendingBonus.totalClaimable).to.be.equal(
+    expect(oldPendingBonus.unlocked).to.be.equal(
       await stackToken.balanceOf(owner.address)
     );
   })
