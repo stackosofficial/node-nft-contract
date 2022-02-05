@@ -79,7 +79,8 @@ contract Royalty is Ownable, ReentrancyGuard {
         checkDelegationsForFirstCycle();
 
         // take fee from deposits
-        uint256 feePart = ((msg.value * feePercent) / HUNDRED_PERCENT);
+        uint256 feePart = msg.value * feePercent / HUNDRED_PERCENT;
+        uint256 valuePart = msg.value - feePart;
 
         // is current cycle lasts enough?
         if (
@@ -93,37 +94,27 @@ contract Royalty is Ownable, ReentrancyGuard {
                 // save count of delegates that exists on start of cycle
                 cycles[counter.current()].delegatedCount = totalDelegated;
                 cycles[counter.current()].startTimestamp = block.timestamp;
-
-                cycles[counter.current()].balance += (msg.value - feePart);
-            } else {
-                cycles[counter.current()].balance += (msg.value - feePart);
             }
-        } else {
-            cycles[counter.current()].balance += (msg.value - feePart);
         }
+
+        cycles[counter.current()].balance += valuePart;
 
         (bool success, ) = feeAddress.call{value: feePart}("");
         require(success, "Transfer failed.");
     }
 
     /**
-     * @dev Ensures that a cycle cannot start if there is no delegated StackOS NFTs.
+     * @dev Ensures that first cycle cannot start if there is no delegated tokens.
      */
     function checkDelegationsForFirstCycle() private {
         // this should be true for the first cycle only, 
-        // even if there is already delegates exists, this cycle still dont know about it
+        // even if there is already delegated tokens, the cycle is unaware
         if (cycles[counter.current()].delegatedCount == 0) {
             // we can't start first cycle without delegated NFTs, so with this we 'restart' first cycle,
-            // this dont allow to end first cycle with perTokenReward = 0 and balance > 0
+            // without this the cycle might end up with unclaimable royalties (0 delegated / any balance = 0)
             cycles[counter.current()].startTimestamp = block.timestamp;
-            /*
-                The following check is need to prevent ETH hang on first cycle forever.
-                If first ever delegation happens at the same block with receiving eth here,
-                then no one can claim for the first cycle, because when claiming royalty
-                there is check: tokenDelegationTime < cycleStartTime
-            */
+
             if (totalDelegated > 0) {
-                // we can still get 0 here, then in next ifs we will just receive eth for cycle
                 cycles[counter.current()]
                     .delegatedCount = totalDelegated;
             }
@@ -153,7 +144,7 @@ contract Royalty is Ownable, ReentrancyGuard {
     }
 
     /*
-     * @title Set fee percent taken of each deposit
+     * @title Set fee percent taken every time new royalties received
      * @param fee basis points
      * @dev Could only be invoked by the contract owner.
      */
@@ -172,7 +163,7 @@ contract Royalty is Ownable, ReentrancyGuard {
     function claim(uint256 _generationId, uint256[] calldata _tokenIds)
         external
     {
-        _claim(_generationId, _tokenIds, 0, false, false);
+        _claim(_generationId, _tokenIds, 0, false);
     }
 
     /*
@@ -184,7 +175,7 @@ contract Royalty is Ownable, ReentrancyGuard {
         external
     {
         require(address(WETH) != address(0), "Wrong WETH address");
-        _claim(_generationId, _tokenIds, 0, false, true);
+        _claim(_generationId, _tokenIds, 0, true);
     }
 
     /*
@@ -204,20 +195,21 @@ contract Royalty is Ownable, ReentrancyGuard {
         nonReentrant 
     {
         require(_generationId > 0, "Must be not first generation");
-        _claim(_generationId, _tokenIds, _mintNum, true, false);
+        require(_mintNum > 0, "Mint num is zero");
+        _claim(_generationId, _tokenIds, _mintNum, false);
     }
 
     function _claim(
         uint256 generationId,
         uint256[] calldata tokenIds,
         uint256 _mintNum,
-        bool _mint,
         bool _claimWETH
     ) internal {
         require(address(this).balance > 0, "No royalty");
-        IStackOsNFT stack = generations.get(generationId);
+        IStackOsNFTBasic stackOsNft = 
+            IStackOsNFTBasic(address(generations.get(generationId)));
         require(
-            stack.balanceOf(msg.sender) > 0 ||
+            stackOsNft.balanceOf(msg.sender) > 0 ||
                 darkMatter.balanceOf(msg.sender) > 0,
             "You dont have NFTs"
         );
@@ -251,7 +243,7 @@ contract Royalty is Ownable, ReentrancyGuard {
                     "Not owner"
                 );
                 require(
-                    stack.getDelegatee(tokenId) != address(0),
+                    stackOsNft.getDelegatee(tokenId) != address(0),
                     "NFT should be delegated"
                 );
 
@@ -271,7 +263,7 @@ contract Royalty is Ownable, ReentrancyGuard {
             }
 
             if (reward > 0) {
-                if (_mint == false) {
+                if (_mintNum == 0) {
                     if(_claimWETH) {
                         uint256 wethReceived = exchange.swapExactETHForTokens{value: reward}(WETH);
                         require(WETH.transfer(msg.sender, wethReceived), "WETH: transfer failed");
@@ -282,13 +274,11 @@ contract Royalty is Ownable, ReentrancyGuard {
                         require(success, "Transfer failed");
                     }
                 } else {
-                    IStackOsNFTBasic stackNFT = 
-                        IStackOsNFTBasic(address(generations.get(generationId)));
                     uint256 stackReceived = 
                         exchange.swapExactETHForTokens{value: reward}(stackToken);
-                    stackToken.approve(address(stackNFT), stackReceived);
+                    stackToken.approve(address(stackOsNft), stackReceived);
 
-                    uint256 spendAmount = stackNFT.mintFromRoyaltyRewards(
+                    uint256 spendAmount = stackOsNft.mintFromRoyaltyRewards(
                         _mintNum,
                         msg.sender
                     );
@@ -308,7 +298,7 @@ contract Royalty is Ownable, ReentrancyGuard {
         uint256 generationId,
         uint256[] calldata tokenIds
     ) external view returns (uint256 withdrawableRoyalty) {
-        IStackOsNFT stack = generations.get(generationId);
+        IStackOsNFT stackOsNft = generations.get(generationId);
 
         uint256 _counterCurrent = counter.current();
         if (
@@ -327,7 +317,7 @@ contract Royalty is Ownable, ReentrancyGuard {
             for (uint256 i; i < tokenIds.length; i++) {
                 uint256 tokenId = tokenIds[i];
 
-                if(stack.getDelegatee(tokenId) == address(0))
+                if(stackOsNft.getDelegatee(tokenId) == address(0))
                     continue;
 
                 for (uint256 o; o < _counterCurrent; o++) {
