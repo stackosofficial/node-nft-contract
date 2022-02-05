@@ -369,9 +369,10 @@ contract StackOsNFTBasic is
         uint256 _stackAmount,
         address _to
     ) external {
-        require(msg.sender == address(subscription));
-
-        stackToken.transferFrom(msg.sender, address(this), _stackAmount);
+        require(
+            msg.sender == address(subscription) ||
+            msg.sender == address(sub0)
+        );
 
         _stackAmount = sendFees(_stackAmount);
 

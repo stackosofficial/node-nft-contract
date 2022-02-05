@@ -12,7 +12,6 @@ import "./interfaces/IDecimals.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-
 contract Subscription is Ownable, ReentrancyGuard {
 
     event SetOnlyFirstGeneration();
@@ -610,9 +609,9 @@ contract Subscription is Ownable, ReentrancyGuard {
 
             require(amountWithdraw > stackToSpend, "Not enough earnings");
 
-            stackToken.approve(
-                address(generations.get(purchaseGenerationId)), 
-               stackToSpend 
+            stackToken.transfer(
+                address(stack), 
+                stackToSpend 
             );
 
             stack.mintFromSubscriptionRewards(
