@@ -90,7 +90,7 @@ describe("Measure withdraw() and updateBonuses() gas", function () {
     // 10 tokens = 5569688 (~13$ gas)
     let tokens = [...Array(TOKENS_NUM).keys()];
     console.log(formatEther(await subscription.estimateGas.withdraw(1, tokens)));
-    await subscription.harvestBonus(1, tokens);
+    await subscription.claimBonus(1, tokens);
   });
 
   it("Revert EVM state", async function () {

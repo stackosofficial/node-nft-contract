@@ -87,7 +87,7 @@ describe("Subscription (generations above 1st)", function () {
     await expect(subscription.subscribe(0, 0, parseEther("100"), usdt.address, false)).to.be.revertedWith(
       "Generaion shouldn't be 0"
     );
-    await expect(subscription.harvestReward(0, [0], [0])).to.be.revertedWith(
+    await expect(subscription.claimReward(0, [0], [0])).to.be.revertedWith(
       "Generaion shouldn't be 0"
     );
   });
@@ -295,7 +295,7 @@ describe("Subscription (generations above 1st)", function () {
     print("owner: ", (await stackToken.balanceOf(owner.address)));
   });
 
-  it("Harvest bonus", async function () {
+  it("Claim bonus", async function () {
     // clear owner balance for simplicity
     await stackToken.transfer(
       subscription.address,
@@ -305,19 +305,24 @@ describe("Subscription (generations above 1st)", function () {
     print("owner: ", await stackToken.balanceOf(owner.address));
     oldPendingBonus = await subscription.pendingBonus(1, 5);
     print("gen 1 token 5 pending bonus: ", 
-      oldPendingBonus.withdrawable,  
+      oldPendingBonus.claimed, 
+      oldPendingBonus.unlocked, 
       oldPendingBonus.locked,
+      // oldPendingBonus.timeLeft,
     );
 
-    await subscription.harvestBonus(1, [5]);
+    await subscription.claimBonus(1, [5]);
 
     print("owner: ", (await stackToken.balanceOf(owner.address)));
+    newPendingBonus = await subscription.pendingBonus(1, 5);
     print("gen 1 token 5 pending bonus: ", 
-      (await subscription.pendingBonus(1, 5)).withdrawable,
-      (await subscription.pendingBonus(1, 5)).locked
+      newPendingBonus.claimed, 
+      newPendingBonus.unlocked, 
+      newPendingBonus.locked,
+      // newPendingBonus.timeLeft,
     );
 
-    expect(oldPendingBonus.withdrawable).to.be.equal(
+    expect(oldPendingBonus.unlocked).to.be.equal(
       await stackToken.balanceOf(owner.address)
     );
   })
@@ -333,6 +338,7 @@ describe("Subscription (generations above 1st)", function () {
       await provider.send("evm_increaseTime", [MONTH]); 
       await provider.send("evm_mine"); 
     }
+    await subscription.withdraw(2, [1]);
   });
   it("Test bonus logic", async function () {
     // clear owner balance for simplicity
@@ -350,26 +356,37 @@ describe("Subscription (generations above 1st)", function () {
 
     oldPendingBonus = await subscription.pendingBonus(2, 1);
     print("gen 2 token 1 pending bonus: ", 
-      oldPendingBonus.withdrawable, 
+      oldPendingBonus.claimed, 
+      oldPendingBonus.unlocked, 
       oldPendingBonus.locked,
-      // oldPendingBonus.fullRelease
+      // oldPendingBonus.timeLeft,
     );
-    
-    await subscription.withdraw(2, [1]);
-    await subscription.harvestBonus(2, [1]);
 
+    await subscription.claimBonus(2, [1]);
+
+    newPendingBonus = await subscription.pendingBonus(2, 1);
+    print("gen 2 token 1 pending bonus: ", 
+      newPendingBonus.claimed, 
+      newPendingBonus.unlocked, 
+      newPendingBonus.locked,
+      // newPendingBonus.timeLeft,
+    );
     await provider.send("evm_increaseTime", [dripPeriod / 2]); 
     await provider.send("evm_mine"); 
 
-    await subscription.harvestBonus(2, [1]);
+    await subscription.claimBonus(2, [1]);
 
     print("owner: ", await stackToken.balanceOf(owner.address));
+
+    newPendingBonus = await subscription.pendingBonus(2, 1);
     print("gen 2 token 1 pending bonus: ", 
-      (await subscription.pendingBonus(2, 1)).withdrawable,
-      (await subscription.pendingBonus(2, 1)).locked
+      newPendingBonus.claimed, 
+      newPendingBonus.unlocked, 
+      newPendingBonus.locked,
+      // newPendingBonus.timeLeft,
     );
     expect(
-      (await subscription.pendingBonus(2, 1)).withdrawable
+      newPendingBonus.unlocked
     ).to.be.equal(0);
   })
 
