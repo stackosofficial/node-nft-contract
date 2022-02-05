@@ -469,14 +469,13 @@ contract Subscription is Ownable, ReentrancyGuard {
         uint256 tokenId
     ) private {
         Deposit storage deposit = deposits[generationId][tokenId];
-        uint256 index;
+        // number of fully unlocked bonuses
+        uint256 unlockedNum; 
         uint256 len = deposit.bonuses.length;
         uint256 drippedAmount;
 
         for (uint256 i; i < len; i++) {
-            // TODO: probably should be able to optimize
-            // (put `bonus` in memory and then update it in storage at the end)
-            Bonus storage bonus = deposit.bonuses[i];
+            Bonus memory bonus = deposit.bonuses[i];
 
             uint256 withdrawAmount = 
                 (bonus.total / bonus.releasePeriod) * 
@@ -494,18 +493,15 @@ contract Subscription is Ownable, ReentrancyGuard {
             // we shift all + down to replace all -, then our array is [++--]
             // Then we can pop all - as we only able to remove elements from the end of array.
             if(bonus.lockedAmount == 0) 
-                index = i+1;
-            else if(index > 0) {
-                uint256 currentIndex = i - index;
-                deposit.bonuses[currentIndex] = 
-                    deposit.bonuses[i];
-                delete deposit.bonuses[i];
-            }
+                unlockedNum = i+1;
+            else if(unlockedNum > 0)
+                deposit.bonuses[i - unlockedNum] = bonus;
+            else
+                deposit.bonuses[i] = bonus;
         }
         bonusDripped[generationId][tokenId] += drippedAmount;
 
-        for (uint256 i = deposit.bonuses.length; i > 0; i--) {
-            if(deposit.bonuses[i - 1].lockedAmount > 0) break;
+        for (uint256 i = unlockedNum; i > 0; i--) {
             deposit.bonuses.pop();
         }
     }

@@ -74,7 +74,7 @@ describe("Measure withdraw() and updateBonuses() gas", function () {
   });
 
   it("Subscribe", async function () {
-    TOKENS_NUM = 1;
+    TOKENS_NUM = 5;
     BONUSES_NUM = 30;
     await usdt.approve(subscription.address, ethers.constants.MaxUint256);
     for (let i = 0; i < BONUSES_NUM; i++) {
