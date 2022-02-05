@@ -3,7 +3,6 @@ pragma solidity ^0.8.0;
 
 import "./DarkMatter.sol";
 import "./GenerationManager.sol";
-import "./Royalty.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
@@ -208,11 +207,8 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeab
 
         (bool success, ) = daoAddress.call{value: daoPart}("");
         require(success, "Transfer failed");
-
-        // (success, ) = royaltyAddress.call{value: royaltyPart}("");
-        // require(success, "Transfer failed");
-        Royalty(payable(royaltyAddress)).onReceive{value: royaltyPart}(generationId);
-
+        (success, ) = royaltyAddress.call{value: royaltyPart}("");
+        require(success, "Transfer failed");
         (success, ) = payable(lot.seller).call{value: sellerPart}("");
         require(success, "Transfer failed");
 

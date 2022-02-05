@@ -116,24 +116,24 @@ describe("Royalty", function () {
       to: royalty.address,
       value: parseEther("2.0"),
     });
-    await royalty.connect(partner).claim(0, [0], [0], [0]); // just (re)sets first cycle's timestamp
+    await royalty.connect(partner).claim(0, [0]); // just (re)sets first cycle's timestamp
     await provider.send("evm_increaseTime", [CYCLE_DURATION]); // at this point first cycle have enough royalty and passed time, but no delegates
     await provider.send("evm_mine");
-    await royalty.connect(partner).claim(0, [0], [0], [0]); // just (re)sets first cycle's timestamp, there is still no delegates
+    await royalty.connect(partner).claim(0, [0]); // just (re)sets first cycle's timestamp, there is still no delegates
     await stackOsNFT.connect(partner).delegate(owner.address, [0]); // first cycle is special, it won't start if delegates dont exist!
 
-    await royalty.connect(partner).claim(0, [0], [0], [0]); // first cycle STARTed.
+    await royalty.connect(partner).claim(0, [0]); // first cycle STARTed.
     await provider.send("evm_increaseTime", [CYCLE_DURATION / 2]);
-    await royalty.connect(partner).claim(0, [0], [0], [0]); // this will not reset cycle's timestamp, it's just 'empty call'
+    await royalty.connect(partner).claim(0, [0]); // this will not reset cycle's timestamp, it's just 'empty call'
     await provider.send("evm_increaseTime", [CYCLE_DURATION / 2]);
     await provider.send("evm_mine");
-    await royalty.connect(partner).claim(0, [0], [0], [0]); // second cycle STARTed
+    await royalty.connect(partner).claim(0, [0]); // second cycle STARTed
 
     print(
       await partner.getBalance(),
       await provider.getBalance(royalty.address)
     );
-    await expect(royalty.connect(partner).claim(0, [0], [0], [0])).to.be.revertedWith(
+    await expect(royalty.connect(partner).claim(0, [0])).to.be.revertedWith(
       "No royalty"
     );
 
@@ -152,7 +152,7 @@ describe("Royalty", function () {
       await provider.getBalance(royalty.address)
     );
     expect(await royalty.pendingRoyalty(0, [0])).to.be.equal(parseEther("1.8"));
-    await expect(royalty.connect(partner).claim(0, [0], [0, 1], [0])).to.be.not.reverted; //(claim 5.4 eth) third cycle starts, it counts 2 delegated tokens
+    await expect(royalty.connect(partner).claim(0, [0])).to.be.not.reverted; //(claim 5.4 eth) third cycle starts, it counts 2 delegated tokens
     print(
       await partner.getBalance(),
       await provider.getBalance(royalty.address)
@@ -170,7 +170,7 @@ describe("Royalty", function () {
     await stackOsNFT.connect(partner).delegate(stackOsNFT.address, [1]); // will claim this later, this delegate will be counted from cycle 4
 
     expect(await partner.getBalance()).to.be.lt(parseEther("10006.0"));
-    await expect(royalty.connect(partner).claim(0, [0], [0, 1, 2], [0])).to.be.not.reverted; // 4 cycle starts here (claim 0.9 eth, 6.3 total)
+    await expect(royalty.connect(partner).claim(0, [0])).to.be.not.reverted; // 4 cycle starts here (claim 0.9 eth, 6.3 total)
     expect(await partner.getBalance()).to.be.gt(parseEther("10006.0"));
     print(
       await partner.getBalance(),
@@ -178,7 +178,7 @@ describe("Royalty", function () {
     );
   });
   it("Can't claim claimed", async function () {
-    await royalty.connect(partner).claim(0, [0], [0, 1, 2], [0]); // 'empty call', already claimed for 3 cycles, 4 is still growing
+    await royalty.connect(partner).claim(0, [0]); // 'empty call', already claimed for 3 cycles, 4 is still growing
   });
   it("Multiple claimers", async function () {
     await stackOsNFT.whitelistPartner(vera.address, 2);
@@ -200,8 +200,8 @@ describe("Royalty", function () {
     await usdt.approve(stackOsNFT.address, parseEther("5.0"));
     await stackOsNFT.partnerMint(1);
 
-    await expect(royalty.claim(0, [0], [0], [0])).to.be.revertedWith("Not owner");
-    await expect(royalty.connect(vera).claim(0, [4], [0], [0])).to.be.revertedWith(
+    await expect(royalty.claim(0, [0])).to.be.revertedWith("Not owner");
+    await expect(royalty.connect(vera).claim(0, [4])).to.be.revertedWith(
       "NFT should be delegated"
     );
     // +3 delegates for 5 cycle
@@ -228,10 +228,10 @@ describe("Royalty", function () {
       await bob.getBalance(),
       await vera.getBalance()
     );
-    await royalty.claim(0, [5], [0, 1, 2, 3, 4], [0]); // 6 cycle start
-    await royalty.connect(bob).claim(0, [3], [0, 1, 2, 3, 4], [0]);
-    await royalty.connect(vera).claim(0, [4], [0, 1, 2, 3, 4], [0]);
-    await royalty.connect(partner).claim(0, [0, 1, 2], [0, 1, 2, 3, 4], [0]);
+    await royalty.claim(0, [5]); // 6 cycle start
+    await royalty.connect(bob).claim(0, [3]);
+    await royalty.connect(vera).claim(0, [4]);
+    await royalty.connect(partner).claim(0, [0, 1, 2]);
     print(
       await partner.getBalance(),
       await owner.getBalance(),
@@ -303,10 +303,9 @@ describe("Royalty", function () {
       await bob.getBalance(),
       await vera.getBalance()
     );
-    cycleIds = [...Array(7).keys()];
-    await royalty.connect(bob).claim(0, [6], cycleIds, [0]); // 8 cycle start
-    await royalty.connect(vera).claim(0, [7], cycleIds, [0]);
-    await royalty.claim(0, [8], cycleIds, [0]);
+    await royalty.connect(bob).claim(0, [6]); // 8 cycle start
+    await royalty.connect(vera).claim(0, [7]);
+    await royalty.claim(0, [8]);
     print(
       await owner.getBalance(),
       await bob.getBalance(),
@@ -315,13 +314,13 @@ describe("Royalty", function () {
 
     // print("balance after add generation: ", (await provider.getBalance(royalty.address)));
 
-    await royalty.claim(1, [2], cycleIds, [0]);
+    await royalty.claim(1, [2]);
 
     // print((await owner.getBalance()), (await bob.getBalance()), (await vera.getBalance()))
-    await royalty.claim(0, [5], cycleIds, [0]);
-    await royalty.connect(bob).claim(0, [3], cycleIds, [0]);
-    await royalty.connect(vera).claim(0, [4], cycleIds, [0]);
-    await royalty.connect(partner).claim(0, [0, 1, 2], cycleIds, [0]);
+    await royalty.claim(0, [5]);
+    await royalty.connect(bob).claim(0, [3]);
+    await royalty.connect(vera).claim(0, [4]);
+    await royalty.connect(partner).claim(0, [0, 1, 2]);
     // print((await owner.getBalance()), (await bob.getBalance()), (await vera.getBalance()));
 
     await expect(
@@ -336,20 +335,19 @@ describe("Royalty", function () {
     await provider.send("evm_increaseTime", [CYCLE_DURATION]); // 8 can end
     await provider.send("evm_mine");
 
-    cycleIds = [...Array(8).keys()];
-    await royalty.connect(bob).claim(0, [6], cycleIds, [0]); // 9 cycle start, gen2 delegates counted for it, should be 12 total
-    await royalty.connect(vera).claim(0, [7], cycleIds, [0]);
-    await royalty.claim(0, [8], cycleIds, [0]);
+    await royalty.connect(bob).claim(0, [6]); // 9 cycle start, gen2 delegates counted for it, should be 12 total
+    await royalty.connect(vera).claim(0, [7]);
+    await royalty.claim(0, [8]);
 
-    await royalty.claim(1, [2], cycleIds, [0]);
-    await royalty.connect(bob).claim(1, [0], cycleIds, [0]);
-    await royalty.connect(vera).claim(1, [1], cycleIds, [0]);
-    await royalty.claim(1, [2], cycleIds, [0]);
+    await royalty.claim(1, [2]);
+    await royalty.connect(bob).claim(1, [0]);
+    await royalty.connect(vera).claim(1, [1]);
+    await royalty.claim(1, [2]);
 
-    await royalty.claim(0, [5], cycleIds, [0]);
-    await royalty.connect(bob).claim(0, [3], cycleIds, [0]);
-    await royalty.connect(vera).claim(0, [4], cycleIds, [0]);
-    await royalty.connect(partner).claim(0, [0, 1, 2], cycleIds, [0]);
+    await royalty.claim(0, [5]);
+    await royalty.connect(bob).claim(0, [3]);
+    await royalty.connect(vera).claim(0, [4]);
+    await royalty.connect(partner).claim(0, [0, 1, 2]);
 
     await expect(
       dude.sendTransaction({
@@ -363,23 +361,22 @@ describe("Royalty", function () {
     await provider.send("evm_increaseTime", [CYCLE_DURATION]); // 9 can end
     await provider.send("evm_mine");
 
-    cycleIds = [...Array(9).keys()];
-    await royalty.connect(bob).claim(0, [6], cycleIds, [0]); // 10 cycle start, now generation2 tokens can claim for cycle 9
-    await royalty.connect(vera).claim(0, [7], cycleIds, [0]);
-    await royalty.claim(0, [8], cycleIds, [0]);
+    await royalty.connect(bob).claim(0, [6]); // 10 cycle start, now generation2 tokens can claim for cycle 9
+    await royalty.connect(vera).claim(0, [7]);
+    await royalty.claim(0, [8]);
 
-    await royalty.connect(bob).claim(1, [0], cycleIds, [0]);
-    await royalty.connect(vera).claim(1, [1], cycleIds, [0]);
-    await royalty.claim(1, [2], cycleIds, [0]);
+    await royalty.connect(bob).claim(1, [0]);
+    await royalty.connect(vera).claim(1, [1]);
+    await royalty.claim(1, [2]);
 
     expect(
       await royalty.pendingRoyalty(0, [0, 1, 2, 3, 4, 5])
     ).to.be.equal(parseEther("450.0"));
 
-    await royalty.claim(0, [5], cycleIds, [0]);
-    await royalty.connect(bob).claim(0, [3], cycleIds, [0]);
-    await royalty.connect(vera).claim(0, [4], cycleIds, [0]);
-    await royalty.connect(partner).claim(0, [0, 1, 2], cycleIds, [0]);
+    await royalty.claim(0, [5]);
+    await royalty.connect(bob).claim(0, [3]);
+    await royalty.connect(vera).claim(0, [4]);
+    await royalty.connect(partner).claim(0, [0, 1, 2]);
 
     // should be zero + last cycle unclaimed
     print(await provider.getBalance(royalty.address));
@@ -431,10 +428,9 @@ describe("Royalty", function () {
     await provider.send("evm_increaseTime", [CYCLE_DURATION]); // 10 can end
     await provider.send("evm_mine");
 
-    cycleIds = [...Array(10).keys()];
-    await royalty.claim(2, [2], cycleIds, [0]); // 11 cycle started, though owner didn't get ether
+    await royalty.claim(2, [2]); // 11 cycle started, though owner didn't get ether
 
-    await royalty.connect(bob).claim(0, [6], cycleIds, [0]);
+    await royalty.connect(bob).claim(0, [6]);
 
     await expect(
       dude.sendTransaction({
@@ -448,23 +444,22 @@ describe("Royalty", function () {
     await provider.send("evm_increaseTime", [CYCLE_DURATION]); // 11 can end
     await provider.send("evm_mine");
 
-    cycleIds = [...Array(11).keys()];
-    await royalty.connect(bob).claim(2, [0], cycleIds, [0]); // 12 cycle start (zero-based index 11)
-    await royalty.connect(vera).claim(2, [1], cycleIds, [0]);
-    await royalty.claim(2, [2], cycleIds, [0]);
+    await royalty.connect(bob).claim(2, [0]); // 12 cycle start (zero-based index 11)
+    await royalty.connect(vera).claim(2, [1]);
+    await royalty.claim(2, [2]);
 
-    await royalty.connect(bob).claim(0, [6], cycleIds, [0]);
-    await royalty.connect(vera).claim(0, [7], cycleIds, [0]);
-    await royalty.claim(0, [8], cycleIds, [0]);
+    await royalty.connect(bob).claim(0, [6]);
+    await royalty.connect(vera).claim(0, [7]);
+    await royalty.claim(0, [8]);
 
-    await royalty.connect(bob).claim(1, [0], cycleIds, [0]);
-    await royalty.connect(vera).claim(1, [1], cycleIds, [0]);
-    await royalty.claim(1, [2], cycleIds, [0]);
+    await royalty.connect(bob).claim(1, [0]);
+    await royalty.connect(vera).claim(1, [1]);
+    await royalty.claim(1, [2]);
 
-    await royalty.claim(0, [5], cycleIds, [0]);
-    await royalty.connect(bob).claim(0, [3], cycleIds, [0]);
-    await royalty.connect(vera).claim(0, [4], cycleIds, [0]);
-    await royalty.connect(partner).claim(0, [0, 1, 2], cycleIds, [0]);
+    await royalty.claim(0, [5]);
+    await royalty.connect(bob).claim(0, [3]);
+    await royalty.connect(vera).claim(0, [4]);
+    await royalty.connect(partner).claim(0, [0, 1, 2]);
 
     print(await provider.getBalance(royalty.address));
     expect(await provider.getBalance(royalty.address)).to.be.closeTo(
@@ -499,8 +494,7 @@ describe("Royalty", function () {
       await bob.getBalance()
     );
 
-    cycleIds = [...Array(12).keys()];
-    await expect(() => royalty.purchaseNewNft(1, [2], 5, cycleIds, [0]))
+    await expect(() => royalty.purchaseNewNft(1, [2], 5))
       .to.changeTokenBalance(stackOsNFTgen2, owner, 5);
 
     print(
@@ -526,11 +520,10 @@ describe("Royalty", function () {
     await provider.send("evm_increaseTime", [CYCLE_DURATION]);
     await provider.send("evm_mine");
 
-    cycleIds = [...Array(13).keys()];
-    await royalty.claimWETH(2, [2], cycleIds, [0]);
+    await royalty.claimWETH(2, [2]);
 
     print("bob weth (before claim): ", await weth.balanceOf(bob.address));
-    await royalty.connect(bob).claimWETH(0, [6], cycleIds, [0]);
+    await royalty.connect(bob).claimWETH(0, [6]);
 
     await expect(
       dude.sendTransaction({
@@ -543,23 +536,22 @@ describe("Royalty", function () {
     await provider.send("evm_increaseTime", [CYCLE_DURATION]); // 11 can end
     await provider.send("evm_mine");
 
-    cycleIds = [...Array(14).keys()];
-    await royalty.connect(bob).claimWETH(2, [0], cycleIds, [0]); // 12 cycle start (zero-based index 11)
-    await royalty.connect(vera).claimWETH(2, [1], cycleIds, [0]);
-    await royalty.claimWETH(2, [2], cycleIds, [0]);
+    await royalty.connect(bob).claimWETH(2, [0]); // 12 cycle start (zero-based index 11)
+    await royalty.connect(vera).claimWETH(2, [1]);
+    await royalty.claimWETH(2, [2]);
 
-    await royalty.connect(bob).claimWETH(0, [6], cycleIds, [0]);
-    await royalty.connect(vera).claimWETH(0, [7], cycleIds, [0]);
-    await royalty.claimWETH(0, [8], cycleIds, [0]);
+    await royalty.connect(bob).claimWETH(0, [6]);
+    await royalty.connect(vera).claimWETH(0, [7]);
+    await royalty.claimWETH(0, [8]);
 
-    await royalty.connect(bob).claimWETH(1, [0], cycleIds, [0]);
-    await royalty.connect(vera).claimWETH(1, [1], cycleIds, [0]);
-    await royalty.claimWETH(1, [2], cycleIds, [0]);
+    await royalty.connect(bob).claimWETH(1, [0]);
+    await royalty.connect(vera).claimWETH(1, [1]);
+    await royalty.claimWETH(1, [2]);
 
-    await royalty.claimWETH(0, [5], cycleIds, [0]);
-    await royalty.connect(bob).claimWETH(0, [3], cycleIds, [0]);
-    await royalty.connect(vera).claimWETH(0, [4], cycleIds, [0]);
-    await royalty.connect(partner).claimWETH(0, [0, 1, 2], cycleIds, [0]);
+    await royalty.claimWETH(0, [5]);
+    await royalty.connect(bob).claimWETH(0, [3]);
+    await royalty.connect(vera).claimWETH(0, [4]);
+    await royalty.connect(partner).claimWETH(0, [0, 1, 2]);
 
     print(await provider.getBalance(royalty.address));
     expect(await provider.getBalance(royalty.address)).to.be.closeTo(
