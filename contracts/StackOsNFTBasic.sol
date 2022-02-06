@@ -511,7 +511,10 @@ contract StackOsNFTBasic is
         _safeMint(_address, _current);
         _setTokenURI(_current, URI);
 
-        if(totalSupply == maxSupply) {
+        if(
+            totalSupply == maxSupply && 
+            generations.getIDByAddress(address(this)) == generations.count() - 1
+        ) {
             generations.deployNextGenPreset();
         }
     }
