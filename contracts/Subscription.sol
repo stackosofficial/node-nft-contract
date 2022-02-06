@@ -5,10 +5,10 @@ import "./DarkMatter.sol";
 import "./GenerationManager.sol";
 import "./StableCoinAcceptor.sol";
 import "./Exchange.sol";
+import "./StackOsNFTBasic.sol";
+import "./interfaces/IDecimals.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-import "./interfaces/IStackOsNFTBasic.sol";
-import "./interfaces/IDecimals.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
@@ -585,14 +585,12 @@ contract Subscription is Ownable, ReentrancyGuard {
 
         if (allocationStatus == withdrawStatus.purchase) {
 
-            IStackOsNFTBasic stack = IStackOsNFTBasic(
+            StackOsNFTBasic stack = StackOsNFTBasic(
                 address(generations.get(purchaseGenerationId))
             );
 
-            // frontrun protection
             // most of the following should be on stack contract side, but code size limit...
-            if (amountToMint > stack.getMaxSupply() - stack.totalSupply())
-                amountToMint = stack.getMaxSupply() - stack.totalSupply();
+            amountToMint = stack.clampToMaxSupply(amountToMint);
 
             // adjust decimals
             uint256 mintPrice = stack.mintPrice() * 

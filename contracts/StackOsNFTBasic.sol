@@ -259,9 +259,7 @@ contract StackOsNFTBasic is
 
         uint256 ticketAmount = amountUsd.div(mintPriceDiscounted);
 
-        // frontrun protection
-        if (ticketAmount > maxSupply - totalSupply)
-            ticketAmount = maxSupply - totalSupply;
+        ticketAmount = clampToMaxSupply(ticketAmount);
 
         uint256 usdToSpend = mintPriceDiscounted.mul(ticketAmount);
         uint256 stackToSpend = exchange.getAmountIn(
@@ -292,9 +290,7 @@ contract StackOsNFTBasic is
 
     function mint(uint256 _nftAmount) external {
 
-        // frontrun protection
-        if (_nftAmount > maxSupply - totalSupply)
-            _nftAmount = maxSupply - totalSupply;
+        _nftAmount = clampToMaxSupply(_nftAmount);
 
         IERC20 stablecoin = stableAcceptor.stablecoins(0);
         uint256 amountOut = adjustDecimals(
@@ -329,9 +325,7 @@ contract StackOsNFTBasic is
     function mintForUsd(uint256 _nftAmount, IERC20 _stablecoin) external {
         require(stableAcceptor.supportsCoin(_stablecoin));
 
-        // frontrun protection
-        if (_nftAmount > maxSupply - totalSupply)
-            _nftAmount = maxSupply - totalSupply;
+        _nftAmount = clampToMaxSupply(_nftAmount);
 
         uint256 usdToSpend = adjustDecimals(
             mintPrice, 
@@ -401,9 +395,7 @@ contract StackOsNFTBasic is
     {
         require(msg.sender == address(royaltyAddress));
 
-        // frontrun protection
-        if (_mintNum > maxSupply - totalSupply)
-            _mintNum = maxSupply - totalSupply;
+        _mintNum = clampToMaxSupply(_mintNum);
         
         IERC20 stablecoin = stableAcceptor.stablecoins(0);
         uint256 price = adjustDecimals(
@@ -517,6 +509,18 @@ contract StackOsNFTBasic is
         ) {
             generations.deployNextGenPreset();
         }
+    }
+ 
+    // frontrun protection helper function
+    function clampToMaxSupply(uint256 value) 
+        public
+        view
+        returns (uint256 clamped)
+    {
+        // frontrun protection
+        if (value > maxSupply - totalSupply)
+            value = maxSupply - totalSupply;
+        return value;
     }
 
     // Adjusts amount's decimals to token's decimals
