@@ -57,11 +57,6 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
         uint256 amount, 
         uint256 placeInAuction
     );
-    event Delegate(
-        address indexed delegator, 
-        address delegatee, 
-        uint256 tokenId
-    );
     event AdminWithdraw(address admin, uint256 withdrawAmount);
 
     enum TicketStatus {
@@ -96,7 +91,6 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
     mapping(uint256 => TicketStatus) public ticketStatus;
     mapping(uint256 => uint256) public topBids;
     mapping(uint256 => address) public topBiders;
-    mapping(uint256 => address) private delegates;
     mapping(address => uint256) private strategicPartner;
 
     bool private auctionFinalized;
@@ -180,16 +174,6 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
     function getMaxSupply() external view returns (uint256) {
         return maxSupply;
     }
-
-    /*
-     * @title Get token's delegatee.
-     * @dev Returns zero-address if token not delegated.
-     */
-
-    function getDelegatee(uint256 _tokenId) external view returns (address) {
-        return delegates[_tokenId];
-    }
-
 
     function _baseURI() internal pure override returns (string memory) {
         return "";
@@ -462,36 +446,6 @@ contract StackOsNFT is VRFConsumerBase, ERC721, ERC721URIStorage, Whitelist {
             if (topBiders[i] != address(0)) {
                 mint(topBiders[i]);
             }
-        }
-    }
-
-    function _delegate(address _delegatee, uint256 tokenId) private {
-        require(_delegatee != address(0), "Delegatee is zero-address");
-        require(
-            msg.sender ==
-                darkMatter.ownerOfStackOrDarkMatter(
-                    IStackOsNFT(address(this)),
-                    tokenId
-                ),
-            "Not owner"
-        );
-        require(delegates[tokenId] == address(0), "Already delegated");
-        delegates[tokenId] = _delegatee;
-        royaltyAddress.onDelegate(tokenId);
-        emit Delegate(msg.sender, _delegatee, tokenId);
-    }
-
-    /*
-     * @title Delegate NFT.
-     * @param Address of delegatee.
-     * @param tokenIds to delegate.
-     * @dev Caller must be owner of NFT.
-     * @dev Delegation can be done only once.
-     */
-
-    function delegate(address _delegatee, uint256[] calldata tokenIds) external {
-        for(uint256 i; i < tokenIds.length; i++) {
-            _delegate(_delegatee, tokenIds[i]);
         }
     }
 

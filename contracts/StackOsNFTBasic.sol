@@ -31,11 +31,6 @@ contract StackOsNFTBasic is
     );
     event SetRewardDiscount(uint256 _rewardDiscount);
     event SetFees(uint256 subs, uint256 dao);
-    event Delegate(
-        address indexed delegator, 
-        address delegatee, 
-        uint256 tokenId
-    );
     event AdminWithdraw(address admin, uint256 withdrawAmount);
 
     string private _name;
@@ -66,7 +61,6 @@ contract StackOsNFTBasic is
     // this is max amount to drip, dripping is 1 per minute
     uint256 public constant maxMintRate = 10;
 
-    mapping(uint256 => address) private delegates;
     mapping(address => uint256) private totalMinted;
     mapping(address => uint256) private lastMintAt;
 
@@ -113,7 +107,9 @@ contract StackOsNFTBasic is
         timeLock = block.timestamp + _timeLock;
     }
 
-    // Set mint price
+    /**
+     *  @notice `_price` should have 18 decimals
+     */
     function setPrice(uint256 _price) external onlyOwner {
         mintPrice = _price;
         emit SetPrice(_price);
@@ -209,15 +205,6 @@ contract StackOsNFTBasic is
 
     function exists(uint256 tokenId) public view returns (bool) {
         return _exists(tokenId);
-    }
-
-    /*
-     * @title Get token's delegatee.
-     * @dev Returns zero-address if token not delegated.
-     */
-
-    function getDelegatee(uint256 _tokenId) external view returns (address) {
-        return delegates[_tokenId];
     }
 
     /*
@@ -448,35 +435,6 @@ contract StackOsNFTBasic is
             daoPart += (subsPartHalf);
         }
         stackToken.transfer(address(daoAddress), daoPart);
-    }
-
-    function _delegate(address _delegatee, uint256 tokenId) private {
-        require(_delegatee != address(0));
-        require(
-            msg.sender ==
-                darkMatter.ownerOfStackOrDarkMatter(
-                    IStackOsNFT(address(this)),
-                    tokenId
-                )
-        );
-        require(delegates[tokenId] == address(0));
-        delegates[tokenId] = _delegatee;
-        royaltyAddress.onDelegate(tokenId);
-        emit Delegate(msg.sender, _delegatee, tokenId);
-    }
-
-    /*
-     * @title Delegate NFT.
-     * @param Address of delegatee.
-     * @param tokenIds to delegate.
-     * @dev Caller must own token.
-     * @dev Delegation can be done only once.
-     */
-
-    function delegate(address _delegatee, uint256[] calldata tokenIds) external {
-        for (uint256 i; i < tokenIds.length; i++) {
-            _delegate(_delegatee, tokenIds[i]);
-        }
     }
 
     function _mint(address _address) internal {

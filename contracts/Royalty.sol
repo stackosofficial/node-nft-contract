@@ -8,6 +8,7 @@ import "./DarkMatter.sol";
 import "./interfaces/IStackOsNFT.sol";
 import "./interfaces/IStackOsNFTBasic.sol";
 import "./Exchange.sol";
+import "hardhat/console.sol";
 
 contract Royalty is Ownable, ReentrancyGuard {
     using Counters for Counters.Counter;
@@ -30,16 +31,25 @@ contract Royalty is Ownable, ReentrancyGuard {
     uint256 private minEthToStartCycle;
     uint256 private constant CYCLE_DURATION = 30 days;
 
+    struct GenData {
+        // total received by each generation in cycle
+        uint256 balance;
+        // whether reward for this token in this cycle for this generation is claimed
+        mapping(uint256 => mapping(uint256 => bool)) isClaimed; 
+    }
+
     struct Cycle {
-        uint256 startTimestamp; // cycle started timestamp
-        uint256 balance; // how much deposited during cycle
-        uint256 delegatedCount; // how much tokens delegated when cycle started
-        mapping(uint256 => mapping(uint256 => bool)) isClaimed; // whether reward for this token in this cycle is claimed
+        // cycle started timestamp
+        uint256 startTimestamp; 
+        // total received in cycle
+        uint256 totalBalance; 
+        // per generation balance
+        mapping(uint256 => GenData) genData; 
     }
 
     mapping(uint256 => Cycle) public cycles; 
-    mapping(uint256 => mapping(uint256 => int256)) public addedAt; // at which cycle the token were added
-    uint256 public totalDelegated;
+    // generationId => total maxSupply of generations below plus this one
+    mapping(uint256 => uint256) public maxSupplys; 
 
     constructor(
         GenerationManager _generations,
@@ -58,25 +68,11 @@ contract Royalty is Ownable, ReentrancyGuard {
     }
 
     /*
-     * @title Callback called when Stack NFT is delegated.
-     */
-    function onDelegate(uint256 tokenId) public {
-        require(
-            generations.isAdded(msg.sender), 
-            "Caller must be StackNFT contract"
-        );
-        uint256 generationId = generations.getIDByAddress(msg.sender);
-        addedAt[generationId][tokenId] = int256(counter.current());
-        if (cycles[counter.current()].delegatedCount == 0)
-            addedAt[generationId][tokenId] = -1;
-        totalDelegated += 1;
-    }
-
-    /*
      * @title Deposit royalty so that NFT holders can claim it later.
      */
     receive() external payable {
-        checkDelegationsForFirstCycle();
+
+        uint256 generationId = 0;
 
         // take fee from deposits
         uint256 feePart = msg.value * feePercent / HUNDRED_PERCENT;
@@ -88,36 +84,62 @@ contract Royalty is Ownable, ReentrancyGuard {
             block.timestamp
         ) {
             // is current cycle got enough ether?
-            if (cycles[counter.current()].balance >= minEthToStartCycle) {
+            if (cycles[counter.current()].totalBalance >= minEthToStartCycle) {
                 // start new cycle
                 counter.increment();
-                // save count of delegates that exists on start of cycle
-                cycles[counter.current()].delegatedCount = totalDelegated;
                 cycles[counter.current()].startTimestamp = block.timestamp;
             }
         }
 
-        cycles[counter.current()].balance += valuePart;
+        console.log(valuePart / 1e18, counter.current());
+
+        cycles[counter.current()].totalBalance += valuePart;
+        cycles[counter.current()].genData[generationId].balance += valuePart;
 
         (bool success, ) = feeAddress.call{value: feePart}("");
         require(success, "Transfer failed.");
     }
 
-    /**
-     * @dev Ensures that first cycle cannot start if there is no delegated tokens.
+    /*
+     * @title Deposit royalty so that NFT holders can claim it later.
      */
-    function checkDelegationsForFirstCycle() private {
-        // this should be true for the first cycle only, 
-        // even if there is already delegated tokens, the cycle is unaware
-        if (cycles[counter.current()].delegatedCount == 0) {
-            // we can't start first cycle without delegated NFTs, so with this we 'restart' first cycle,
-            // without this the cycle might end up with unclaimable royalties (0 delegated / any balance = 0)
-            cycles[counter.current()].startTimestamp = block.timestamp;
+    function onReceive(uint256 generationId) external payable nonReentrant {
 
-            if (totalDelegated > 0) {
-                cycles[counter.current()]
-                    .delegatedCount = totalDelegated;
+        // take fee from deposits
+        uint256 feePart = msg.value * feePercent / HUNDRED_PERCENT;
+        uint256 valuePart = msg.value - feePart;
+
+        // is current cycle lasts enough?
+        if (
+            cycles[counter.current()].startTimestamp + CYCLE_DURATION <
+            block.timestamp
+        ) {
+            // is current cycle got enough ether?
+            if (cycles[counter.current()].totalBalance >= minEthToStartCycle) {
+                // start new cycle
+                counter.increment();
+                cycles[counter.current()].startTimestamp = block.timestamp;
             }
+        }
+
+        console.log("onReceive", generationId, counter.current(), valuePart);
+        cycles[counter.current()].totalBalance += valuePart;
+        cycles[counter.current()].genData[generationId].balance += valuePart;
+
+        (bool success, ) = feeAddress.call{value: feePart}("");
+        require(success, "Transfer failed.");
+    }
+
+    function onGenerationAdded(
+        uint256 generationId, 
+        IStackOsNFT stack
+    ) external {
+        require(address(msg.sender) == address(generations));
+        if(generationId == 0) {
+            maxSupplys[generationId] = stack.getMaxSupply();
+        } else {
+            maxSupplys[generationId] =
+                maxSupplys[generationId - 1] + stack.getMaxSupply();
         }
     }
 
@@ -133,7 +155,7 @@ contract Royalty is Ownable, ReentrancyGuard {
     }    
 
     /*
-     * @title Set WETH address, probably should be used on Matic network
+     * @title Set WETH address
      * @param WETH address
      * @dev Could only be invoked by the contract owner.
      */
@@ -144,7 +166,7 @@ contract Royalty is Ownable, ReentrancyGuard {
     }
 
     /*
-     * @title Set fee percent taken every time new royalties received
+     * @title Set fee percent taken of each deposit
      * @param fee basis points
      * @dev Could only be invoked by the contract owner.
      */
@@ -154,112 +176,111 @@ contract Royalty is Ownable, ReentrancyGuard {
         emit SetFeePercent(_percent);
     }
 
-    /*
-     * @title Claim royalty for holding delegated NFTs 
-     * @param StackOS generation id 
-     * @param Token ids
-     * @dev tokens must be delegated and owned by the caller
+    /**
+     * @notice Claim royalty for holding tokens
+     * @param _generationId Generation id of tokens to claim royalty
+     * @param _tokenIds Token ids who will claim royalty
+     * @param _cycleIds Cycle ids to claim royalties
+     * @param _genIds Ids of generations to claim royalties
+     * @dev Tokens must be owned by the caller
      */
-    function claim(uint256 _generationId, uint256[] calldata _tokenIds)
+    function claim(
+        uint256 _generationId, 
+        uint256[] calldata _tokenIds,
+        uint256[] calldata _cycleIds,
+        uint256[] calldata _genIds
+    )
         external
     {
-        _claim(_generationId, _tokenIds, 0, false);
+        _claim(_generationId, _tokenIds, 0, false, _cycleIds, _genIds);
     }
 
     /*
      * @title Same as `claim` but holders receive WETH
-     * @dev tokens must be delegated and owned by the caller
+     * @dev Tokens must be owned by the caller
      * @dev WETH address must be set by the admin
      */
-    function claimWETH(uint256 _generationId, uint256[] calldata _tokenIds)
+    function claimWETH(
+        uint256 _generationId, 
+        uint256[] calldata _tokenIds,
+        uint256[] calldata _cycleIds,
+        uint256[] calldata _genIds
+    )
         external
     {
         require(address(WETH) != address(0), "Wrong WETH address");
-        _claim(_generationId, _tokenIds, 0, true);
+        _claim(_generationId, _tokenIds, 0, true, _cycleIds, _genIds);
     }
 
-    /*
-     * @title Purchase StackNFTs for royalties, caller will receive the left over amount of royalties
-     * @param StackNFT generation id
-     * @param Token ids
-     * @param Amount to mint
-     * @param Supported stablecoin to use to buy stack token
-     * @dev tokens must be delegated and owned by the caller
+    /**
+     * @notice Purchase StackNFTs for royalties
+     * @notice Caller will receive the left over amount of royalties as STACK tokens
+     * @param _generationId Generation id to claim royalty for and purchase, should be greater than 0
+     * @param _tokenIds Token ids that can claim royalty 
+     * @param _mintNum Amount to mint
+     * @param _cycleIds Cycle ids to claim royalties
+     * @param _genIds Ids of generations to claim royalties
+     * @dev Tokens must be owned by the caller
+     * @dev `_generationId` should be greater than 0
      */
     function purchaseNewNft(
         uint256 _generationId,
         uint256[] calldata _tokenIds,
-        uint256 _mintNum
+        uint256 _mintNum,
+        uint256[] calldata _cycleIds,
+        uint256[] calldata _genIds
     ) 
         external 
         nonReentrant 
     {
         require(_generationId > 0, "Must be not first generation");
-        require(_mintNum > 0, "Mint num is zero");
-        _claim(_generationId, _tokenIds, _mintNum, false);
+        require(_mintNum > 0, "Mint num is 0");
+        _claim(_generationId, _tokenIds, _mintNum, false, _cycleIds, _genIds);
     }
 
     function _claim(
         uint256 generationId,
         uint256[] calldata tokenIds,
         uint256 _mintNum,
-        bool _claimWETH
+        bool _claimWETH,
+        uint256[] calldata _cycleIds,
+        uint256[] calldata _genIds
     ) internal {
         require(address(this).balance > 0, "No royalty");
-        IStackOsNFTBasic stackOsNft = 
+        IStackOsNFTBasic stack = 
             IStackOsNFTBasic(address(generations.get(generationId)));
-        require(
-            stackOsNft.balanceOf(msg.sender) > 0 ||
-                darkMatter.balanceOf(msg.sender) > 0,
-            "You dont have NFTs"
-        );
-
-        checkDelegationsForFirstCycle();
 
         if (
             cycles[counter.current()].startTimestamp + CYCLE_DURATION <
             block.timestamp
         ) {
-            if (cycles[counter.current()].balance >= minEthToStartCycle) {
+            if (
+                cycles[counter.current()].totalBalance >= minEthToStartCycle
+            ) {
                 counter.increment();
-                cycles[counter.current()].delegatedCount = totalDelegated;
                 cycles[counter.current()].startTimestamp = block.timestamp;
             }
         }
+
+        console.log(counter.current());
 
         if (counter.current() > 0) {
             uint256 reward;
 
             // iterate over tokens from args
             for (uint256 i; i < tokenIds.length; i++) {
-                uint256 tokenId = tokenIds[i];
 
                 require(
                     darkMatter.isOwnStackOrDarkMatter(
                         msg.sender,
                         generationId,
-                        tokenId
+                        tokenIds[i]
                     ),
                     "Not owner"
                 );
-                require(
-                    stackOsNft.getDelegatee(tokenId) != address(0),
-                    "NFT should be delegated"
-                );
 
-                for (uint256 o; o < counter.current(); o++) {
-                    if (
-                        // make sure its unclaimed
-                        cycles[o].isClaimed[generationId][tokenId] == false
-                        // make sure token is delegated before this cycle start
-                        && addedAt[generationId][tokenId] < int256(o)
-                    ) {
-                        reward += cycles[o].balance / cycles[o].delegatedCount;
-                        cycles[o].isClaimed[generationId][
-                            tokenId
-                        ] = true;
-                    }
-                }
+                reward += calcReward(generationId, tokenIds[i], _cycleIds, _genIds);
+
             }
 
             if (reward > 0) {
@@ -276,9 +297,10 @@ contract Royalty is Ownable, ReentrancyGuard {
                 } else {
                     uint256 stackReceived = 
                         exchange.swapExactETHForTokens{value: reward}(stackToken);
-                    stackToken.approve(address(stackOsNft), stackReceived);
+                    stackToken.approve(address(stack), stackReceived);
 
-                    uint256 spendAmount = stackOsNft.mintFromRoyaltyRewards(
+                    console.log("MINT:", _mintNum);
+                    uint256 spendAmount = stack.mintFromRoyaltyRewards(
                         _mintNum,
                         msg.sender
                     );
@@ -288,24 +310,54 @@ contract Royalty is Ownable, ReentrancyGuard {
         }
     }
 
+    function calcReward(
+        uint256 generationId,
+        uint256 tokenId,
+        uint256[] calldata _cycleIds,
+        uint256[] calldata _genIds
+    )   
+        private 
+        returns (uint256 reward) 
+    {
+        for (uint256 o; o < _cycleIds.length; o++) {
+            uint256 cycleId = _cycleIds[o];
+            require(cycleId < counter.current(), "Bad cycle id");
+
+            for (uint256 j; j < _genIds.length; j++) {
+                require(_genIds[j] >= generationId, "Bad gen id");
+                require(_genIds[j] < generations.count(), "genId not exists");
+                GenData storage genData = cycles[cycleId].genData[_genIds[j]];
+
+                console.log(counter.current(), genData.balance, reward, maxSupplys[_genIds[j]]);
+                if (
+                    genData.balance > 0 &&
+                    // verify reward is unclaimed
+                    genData.isClaimed[generationId][tokenId] == false
+                ) {
+                    reward += genData.balance / maxSupplys[_genIds[j]];
+                    genData.isClaimed[generationId][tokenId] = true;
+                }
+            }
+        }
+    }
+
     /*
      * @title Get pending royalty for NFT
      * @param StackOS generation id 
      * @param Token ids
-     * @dev Not delegated tokens are ignored
      */
     function pendingRoyalty(
         uint256 generationId,
         uint256[] calldata tokenIds
     ) external view returns (uint256 withdrawableRoyalty) {
-        IStackOsNFT stackOsNft = generations.get(generationId);
+        IStackOsNFT stack = generations.get(generationId);
 
         uint256 _counterCurrent = counter.current();
         if (
             cycles[counter.current()].startTimestamp + CYCLE_DURATION <
             block.timestamp
         ) {
-            if (cycles[counter.current()].balance >= minEthToStartCycle) {
+            if (cycles[counter.current()].totalBalance >= minEthToStartCycle) {
                 _counterCurrent += 1;
             }
         }
@@ -317,17 +369,19 @@ contract Royalty is Ownable, ReentrancyGuard {
             for (uint256 i; i < tokenIds.length; i++) {
                 uint256 tokenId = tokenIds[i];
 
-                if(stackOsNft.getDelegatee(tokenId) == address(0))
-                    continue;
-
                 for (uint256 o; o < _counterCurrent; o++) {
-                    if (
-                        // should be able to claim only once for cycle
-                        cycles[o].isClaimed[generationId][tokenId] == false
-                        // is this token delegated before this cycle start?
-                        && addedAt[generationId][tokenId] < int256(o)
-                    ) {
-                        reward += cycles[o].balance / cycles[o].delegatedCount;
+                    // id is zero-based, that's why <=
+                    for (uint256 j; j <= generationId; j++) {
+                        if (
+                            cycles[o].genData[j].balance > 0 &&
+                            // verify reward is unclaimed
+                            cycles[o].genData[j].isClaimed[generationId][tokenId] == false
+                        ) {
+                            reward += cycles[o].genData[j].balance / maxSupplys[j];
+                            console.log("pending", 
+                            o, j,
+                            reward / 1e18);
+                        }
                     }
                 }
             }
