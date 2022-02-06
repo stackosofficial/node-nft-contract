@@ -78,55 +78,15 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         );
     }
 
-    /*
-     * @title Save settings for auto deployment.
-     * @param _maxSupplyGrowthPercent increase max supply for new contract by this percent.
+    /**
+     * @notice Save settings for auto deployment.
+     * @param settings Structure of parameters to use for next generation deployment.
      * @dev Could only be invoked by the contract owner.
      */
     function setupDeploy(
-        string memory _name,
-        string memory _symbol,
-        address _stackToken,
-        address _darkMatter,
-        address _subscription,
-        address _sub0,
-        uint256 _mintPrice,
-        uint256 _subsFee,
-        uint256 _maxSupplyGrowthPercent,
-        uint256 _transferDiscount,
-        uint256 _timeLock,
-        address _royaltyAddress
+        Deployment calldata settings
     ) public onlyOwner {
-        deployment.name = _name;
-        deployment.symbol = _symbol;
-        deployment.stackToken = _stackToken;
-        deployment.darkMatter = _darkMatter;
-        deployment.subscription = _subscription;
-        deployment.sub0 = _sub0;
-        deployment.mintPrice = _mintPrice;
-        deployment.subsFee = _subsFee;
-        deployment.maxSupplyGrowthPercent = _maxSupplyGrowthPercent;
-        deployment.transferDiscount = _transferDiscount;
-        deployment.timeLock = _timeLock;
-        deployment.royaltyAddress = _royaltyAddress;
-    }
-
-    /*
-     * @title Save additional settings for auto deployment.
-     * @param Address of market.
-     * @dev Could only be invoked by the contract owner.
-     * @dev Must be called along with first setup function.
-     */
-    function setupDeploy2(
-        address _market,
-        uint256 _daoFee,
-        string calldata _uri,
-        uint256 _rewardDiscount
-    ) public onlyOwner {
-        deployment.market = _market;
-        deployment.daoFee = _daoFee;
-        deployment.URI = _uri;
-        deployment.rewardDiscount = _rewardDiscount;
+        deployment = settings;
     }
 
     /*
@@ -186,10 +146,13 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         return IStackOsNFTBasic(address(stack));
     }
 
-    /*
-     * @title Add next generation of StackNFT.
-     * @param IStackOsNFT address.
-     * @dev Could only be invoked by the contract owner or StackNFT contract.
+    /**
+     * @notice Add next generation of StackNFT. To be called automatically.
+     * @notice Royalty address has to be set with setupDeploy.
+     * @param _stackOS IStackOsNFT address.
+     * @dev Royalty address has to be set with setupDeploy.
+     * @dev Could only be invoked by the contract owner to add 1st generation.
+     * @dev Could only be invoked by StackNFT contract.
      * @dev Address should be unique.
      */
     function add(IStackOsNFT _stackOS) public {
@@ -197,6 +160,8 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         require(address(_stackOS) != address(0)); // forbid 0 address
         require(isAdded(address(_stackOS)) == false); // forbid duplicates
         ids[address(_stackOS)] = generations.length;
+        Royalty(payable(deployment.royaltyAddress))
+            .onGenerationAdded(generations.length, _stackOS);
         generations.push(_stackOS);
     }
 

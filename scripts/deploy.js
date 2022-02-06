@@ -279,9 +279,6 @@ async function main() {
   // Allow Market to transfer DarkMatter
   await darkMatter.whitelist(marketProxy.address);
 
-  // Add 1st generation in GenerationManager
-  await generationManager.add(stackOsNFT.address);
-
   // Additional settings for StackNFT
   await stackOsNFT.setUri(URI);
   await stackOsNFT.adjustAddressSettings(
@@ -321,26 +318,27 @@ async function main() {
   await royalty.setWETH(WETH_ADDRESS);
 
   // Settings for auto deploy
-  await generationManager.setupDeploy(
-    NAME_2,
-    SYMBOL_2,
-    STACK_TOKEN,
-    darkMatter.address,
-    subscription.address,
-    sub0.address,
-    PRICE_2,
-    SUBS_FEE_2,
-    MAX_SUPPLY_GROWTH,
-    TRANSFER_DISCOUNT_2,
-    TIMELOCK_2,
-    royalty.address
-  );
-  await generationManager.setupDeploy2(
-    marketProxy.address,
-    DAO_FEE_2,
-    URI_2,
-    REWARD_DISCOUNT
-  )
+  await generationManager.setupDeploy({
+    name: NAME_2,
+    symbol: SYMBOL_2,
+    stackToken: STACK_TOKEN,
+    darkMatter: darkMatter.address,
+    subscription: subscription.address,
+    sub0: sub0.address,
+    mintPrice: PRICE_2,
+    subsFee: SUBS_FEE_2,
+    daoFee: DAO_FEE_2,
+    maxSupplyGrowthPercent: MAX_SUPPLY_GROWTH,
+    transferDiscount: TRANSFER_DISCOUNT_2,
+    rewardDiscount: REWARD_DISCOUNT,
+    timeLock: TIMELOCK_2,
+    royaltyAddress: royalty.address,
+    market: marketProxy.address,
+    URI: URI_2
+  });
+
+  // Add 1st generation in GenerationManager
+  await generationManager.add(stackOsNFT.address);
 
   // TRANSFER OWNERSHIP
   if(OWNERSHIP) {
