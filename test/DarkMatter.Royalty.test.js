@@ -41,7 +41,7 @@ describe("DarkMatter doesn't corrupt Royalty contract logic", function () {
 
   });
   it("Bank takes percent", async function () {
-    await owner.sendTransaction({
+    await owner.sendTransaction({ // cycle 0 start
         from: owner.address,
         to: royalty.address,
         value: parseEther("2.0")
@@ -49,8 +49,7 @@ describe("DarkMatter doesn't corrupt Royalty contract logic", function () {
     expect(await bank.getBalance()).to.be.gt(parseEther("10000.19"))
     expect(await provider.getBalance(royalty.address)).to.equal(parseEther("1.8"))
   })
-  it("Claim royalty for delegated NFTs", async function () { 
-    await stackOsNFT.delegate(owner.address, [0]); 
+  it("Claim royalty for NFTs", async function () { 
     await owner.sendTransaction({
       from: owner.address,
       to: royalty.address,
@@ -58,10 +57,12 @@ describe("DarkMatter doesn't corrupt Royalty contract logic", function () {
     });
     await provider.send("evm_increaseTime", [CYCLE_DURATION]); 
     await provider.send("evm_mine");
-    await royalty.claim(0, [0]);
+    let tokenIds = [...Array(5).keys()];
+    await royalty.claim(0, tokenIds, [0], [0]); // cycle 1 start
 
     print((await owner.getBalance()), (await provider.getBalance(royalty.address)));
-    await expect(royalty.claim(0, [0])).to.be.revertedWith("No royalty");
+    // 3.6 - 0.18, the 0.18 comes from 3.6 / 100 total maxSupply * 5 tokens
+    await expect((await provider.getBalance(royalty.address))).to.be.equal(parseEther("3.42"))
   });
   it("Mint 3rd DarkMatter NFT on stack generation 2", async function () {
 
@@ -78,8 +79,7 @@ describe("DarkMatter doesn't corrupt Royalty contract logic", function () {
     expect(await stackOsNFTGen2.balanceOf(owner.address)).to.be.equal(0);
     expect(await darkMatter.balanceOf(owner.address)).to.be.equal(2);
   });
-  it("Claim royalty for delegated NFTs (two generations)", async function () { 
-    await stackOsNFTGen2.delegate(owner.address, [0]); 
+  it("Claim royalty for NFTs (two generations)", async function () { 
     await owner.sendTransaction({
       from: owner.address,
       to: royalty.address,
@@ -88,7 +88,12 @@ describe("DarkMatter doesn't corrupt Royalty contract logic", function () {
     await provider.send("evm_increaseTime", [CYCLE_DURATION]); 
     await provider.send("evm_mine");
 
-    await royalty.claim(0, [0]);
+    let tokenIds = [...Array(5).keys()];
+    // cycle 0 already claimed thus ignored
+    // cycle 1 has only 2nd gen balance, thus gen 1 is ignore in cycle 1 here 
+    await royalty.claim(0, tokenIds, [0, 1], [0, 1]); // cycle 2 start
+    // 0 cycle's 3.42 + 2nd cycle's 1.8 - 1.8 / 200 * 5
+    await expect((await provider.getBalance(royalty.address))).to.be.equal(parseEther("5.175"))
 
     await owner.sendTransaction({
       from: owner.address,
@@ -99,12 +104,16 @@ describe("DarkMatter doesn't corrupt Royalty contract logic", function () {
     await provider.send("evm_mine");
 
     print((await owner.getBalance()), (await provider.getBalance(royalty.address)));
-    await royalty.claim(0, [0]);
-    await royalty.claim(1, [0]);
+    // cycle 0, 1 already claimed, cycle 2 has 1.8 in gen 1 balance
+    await royalty.claim(0, tokenIds, [0, 1, 2], [0, 1]); // cycle 3 start
+    await expect((await provider.getBalance(royalty.address))).to.be.equal(parseEther("6.93"))
+    // gen 1 cant claim from gen 0 balance, claiming cycle 1, 2
+    await royalty.claim(1, tokenIds, [0, 1, 2], [1]);
+    await expect((await provider.getBalance(royalty.address))).to.be.equal(parseEther("6.84"))
 
     print((await owner.getBalance()), (await provider.getBalance(royalty.address)));
-    await expect(royalty.claim(0, [0])).to.be.revertedWith("No royalty");
-    await expect(royalty.claim(1, [0])).to.be.revertedWith("No royalty");
+    await expect(royalty.claim(1, [0], [3], [0])).to.be.revertedWith("Bad cycle id");
+    await expect(royalty.claim(1, [0], [0], [0])).to.be.revertedWith("Bad gen id");
   });
   
   it("Revert EVM state", async function () {

@@ -192,7 +192,6 @@ describe("Market", function () {
 
     /*  
         Scenario, 2 generations
-        Delegate all tokens
         Trade gen 1, fail to claim royalty by gen 2
         Trade gen 2, claim royalty by gen 1
     */
@@ -221,11 +220,9 @@ describe("Market", function () {
 
     // should fail to claim 
     await expect(royalty.claim(1, [10], [0], [0])).to.be.revertedWith("Bad gen id");
-    // 3rd cycle start
+    // cycle 3rd start
     // claim by gen 1 the gen 2 royalties
-    await expect(() => royalty.claim(0, [10], [1], [0, 1]))
-      .to.changeEtherBalance(owner, 0);
-
+    await royalty.claim(0, [10], [0], [0, 1]);
   });
 
   it("Revert EVM state", async function () {

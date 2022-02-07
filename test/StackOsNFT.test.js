@@ -169,15 +169,6 @@ describe("StackOS NFT", function () {
     // );
   });
 
-  it("Owners can delegate their NFTs", async function () {
-    expect(await stackOsNFT.getDelegatee(0)).to.equal(
-      ethers.constants.AddressZero
-    );
-    await stackOsNFT.delegate(joe.address, [0]);
-    await expect(stackOsNFT.delegate(joe.address, [0])).to.be.reverted;
-    expect(await stackOsNFT.getDelegatee(0)).to.equal(joe.address);
-  });
-
   async function logBids (text) {
     let topBids = [];
     for(let i = 0; i <= AUCTIONED_NFTS; i++) {

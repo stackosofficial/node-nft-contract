@@ -17,7 +17,7 @@ contract Royalty is Ownable, ReentrancyGuard {
     event SetWETH(IERC20 WETH);
     event SetFeePercent(uint256 _percent);
 
-    Counters.Counter private counter; // counting cycles
+    Counters.Counter public counter; // counting cycles
 
     uint256 private constant HUNDRED_PERCENT = 10000;
     GenerationManager private immutable generations;
@@ -65,33 +65,26 @@ contract Royalty is Ownable, ReentrancyGuard {
         feeAddress = _feeAddress;
         stackToken = _stackToken;
         minEthToStartCycle = _minEthToStartCycle;
+
+        cycles[counter.current()].startTimestamp = block.timestamp;
     }
 
-    /*
-     * @title Deposit royalty so that NFT holders can claim it later.
+    /** 
+     * @notice Deposit royalty so that NFT holders can claim it later.
+     * @notice Deposits to the latest generation at this time,
+     *         so that any generation below can claim that.
      */
     receive() external payable {
 
-        uint256 generationId = 0;
+        uint256 generationId = generations.count() - 1;
 
         // take fee from deposits
         uint256 feePart = msg.value * feePercent / HUNDRED_PERCENT;
         uint256 valuePart = msg.value - feePart;
 
-        // is current cycle lasts enough?
-        if (
-            cycles[counter.current()].startTimestamp + CYCLE_DURATION <
-            block.timestamp
-        ) {
-            // is current cycle got enough ether?
-            if (cycles[counter.current()].totalBalance >= minEthToStartCycle) {
-                // start new cycle
-                counter.increment();
-                cycles[counter.current()].startTimestamp = block.timestamp;
-            }
-        }
+        updateCycle();
 
-        console.log(valuePart / 1e18, counter.current());
+        // console.log(valuePart, counter.current());
 
         cycles[counter.current()].totalBalance += valuePart;
         cycles[counter.current()].genData[generationId].balance += valuePart;
@@ -100,27 +93,18 @@ contract Royalty is Ownable, ReentrancyGuard {
         require(success, "Transfer failed.");
     }
 
-    /*
-     * @title Deposit royalty so that NFT holders can claim it later.
+    /**
+     * @notice Deposit royalty so that NFT holders can claim it later.
+     * @notice To be called by Market contract.
      */
     function onReceive(uint256 generationId) external payable nonReentrant {
+        require(generationId < generations.count(), "Wrong generationId");
 
         // take fee from deposits
         uint256 feePart = msg.value * feePercent / HUNDRED_PERCENT;
         uint256 valuePart = msg.value - feePart;
 
-        // is current cycle lasts enough?
-        if (
-            cycles[counter.current()].startTimestamp + CYCLE_DURATION <
-            block.timestamp
-        ) {
-            // is current cycle got enough ether?
-            if (cycles[counter.current()].totalBalance >= minEthToStartCycle) {
-                // start new cycle
-                counter.increment();
-                cycles[counter.current()].startTimestamp = block.timestamp;
-            }
-        }
+        updateCycle();
 
         console.log("onReceive", generationId, counter.current(), valuePart);
         cycles[counter.current()].totalBalance += valuePart;
@@ -128,6 +112,21 @@ contract Royalty is Ownable, ReentrancyGuard {
 
         (bool success, ) = feeAddress.call{value: feePart}("");
         require(success, "Transfer failed.");
+    }
+
+    function updateCycle() private {
+        // is current cycle lasts enough?
+        if (
+            cycles[counter.current()].startTimestamp + CYCLE_DURATION <
+            block.timestamp
+        ) {
+            // is current cycle got enough ether?
+            if (cycles[counter.current()].totalBalance >= minEthToStartCycle) {
+                // start new cycle
+                counter.increment();
+                cycles[counter.current()].startTimestamp = block.timestamp;
+            }
+        }
     }
 
     function onGenerationAdded(
@@ -250,26 +249,15 @@ contract Royalty is Ownable, ReentrancyGuard {
         IStackOsNFTBasic stack = 
             IStackOsNFTBasic(address(generations.get(generationId)));
 
-        if (
-            cycles[counter.current()].startTimestamp + CYCLE_DURATION <
-            block.timestamp
-        ) {
-            if (
-                cycles[counter.current()].totalBalance >= minEthToStartCycle
-            ) {
-                counter.increment();
-                cycles[counter.current()].startTimestamp = block.timestamp;
-            }
-        }
-
-        console.log(counter.current());
+        updateCycle();
 
         if (counter.current() > 0) {
             uint256 reward;
 
             // iterate over tokens from args
             for (uint256 i; i < tokenIds.length; i++) {
-
+                
+                // console.log("tokenId claim ", tokenIds[i]);
                 require(
                     darkMatter.isOwnStackOrDarkMatter(
                         msg.sender,
@@ -299,7 +287,7 @@ contract Royalty is Ownable, ReentrancyGuard {
                         exchange.swapExactETHForTokens{value: reward}(stackToken);
                     stackToken.approve(address(stack), stackReceived);
 
-                    console.log("MINT:", _mintNum);
+                    // console.log("MINT:", _mintNum);
                     uint256 spendAmount = stack.mintFromRoyaltyRewards(
                         _mintNum,
                         msg.sender
@@ -328,7 +316,6 @@ contract Royalty is Ownable, ReentrancyGuard {
                 require(_genIds[j] < generations.count(), "genId not exists");
                 GenData storage genData = cycles[cycleId].genData[_genIds[j]];
 
-                console.log(counter.current(), genData.balance, reward, maxSupplys[_genIds[j]]);
                 if (
                     genData.balance > 0 &&
                     // verify reward is unclaimed
@@ -336,7 +323,9 @@ contract Royalty is Ownable, ReentrancyGuard {
                 ) {
                     reward += genData.balance / maxSupplys[_genIds[j]];
                     genData.isClaimed[generationId][tokenId] = true;
+                    // console.log(123, address(this).balance);
                 }
+                // console.log(cycleId, _genIds[j], genData.balance, reward);
             }
         }
     }
@@ -378,9 +367,9 @@ contract Royalty is Ownable, ReentrancyGuard {
                             cycles[o].genData[j].isClaimed[generationId][tokenId] == false
                         ) {
                             reward += cycles[o].genData[j].balance / maxSupplys[j];
-                            console.log("pending", 
-                            o, j,
-                            reward / 1e18);
+                            // console.log("pending", 
+                            // o, j,
+                            // reward / 1e18);
                         }
                     }
                 }

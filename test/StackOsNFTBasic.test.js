@@ -71,37 +71,28 @@ describe("StackOS NFT Basic", function () {
     await stackOsNFTBasic.mint(1);
   });
 
-  it("Owners can delegate their NFTs", async function () {
-    expect(await stackOsNFTBasic.getDelegatee(0)).to.equal(
-      ethers.constants.AddressZero
-    );
-    await stackOsNFTBasic.delegate(joe.address, [0]);
-    await expect(stackOsNFTBasic.delegate(joe.address, [0])).to.be.reverted;
-    expect(await stackOsNFTBasic.getDelegatee(0)).to.equal(joe.address);
-  });
-
   it("Setup auto deploy", async function () {
-    ROYALTY = royalty.address;
-    await generationManager.setupDeploy(
-      NAME,
-      SYMBOL,
-      STACK_TOKEN,
-      DARK_MATTER_ADDRESS,
-      SUBSCRIPTION,
-      sub0.address,
-      PRICE,
-      SUBS_FEE,
-      MAX_SUPPLY_GROWTH,
-      TRANSFER_DISCOUNT,
-      TIMELOCK,
-      ROYALTY
-    );
-    await generationManager.setupDeploy2(
-      owner.address, // fake market address
-      DAO_FEE,
-      URI,
-      REWARD_DISCOUNT
-    )
+    // ROYALTY = royalty.address;
+    // await generationManager.setupDeploy(
+    //   NAME,
+    //   SYMBOL,
+    //   STACK_TOKEN,
+    //   DARK_MATTER_ADDRESS,
+    //   SUBSCRIPTION,
+    //   sub0.address,
+    //   PRICE,
+    //   SUBS_FEE,
+    //   MAX_SUPPLY_GROWTH,
+    //   TRANSFER_DISCOUNT,
+    //   TIMELOCK,
+    //   ROYALTY
+    // );
+    // await generationManager.setupDeploy2(
+    //   owner.address, // fake market address
+    //   DAO_FEE,
+    //   URI,
+    //   REWARD_DISCOUNT
+    // )
   });
 
   it("Trigger auto deploy of the next generation", async function () {
