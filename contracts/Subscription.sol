@@ -5,13 +5,12 @@ import "./DarkMatter.sol";
 import "./GenerationManager.sol";
 import "./StableCoinAcceptor.sol";
 import "./Exchange.sol";
+import "./StackOsNFTBasic.sol";
+import "./interfaces/IDecimals.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-import "./interfaces/IStackOsNFTBasic.sol";
-import "./interfaces/IDecimals.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-
 
 contract Subscription is Ownable, ReentrancyGuard {
 
@@ -57,11 +56,11 @@ contract Subscription is Ownable, ReentrancyGuard {
         uint256 amountWithdrawn
     );
 
-    event HarvestBonus(
+    event ClaimBonus(
         address indexed subscriberWallet,
         uint256 generationId,
         uint256 tokenId,
-        uint256 bonusHarvested
+        uint256 amountWithdrawn
     );
 
     IERC20 internal immutable stackToken;
@@ -121,7 +120,7 @@ contract Subscription is Ownable, ReentrancyGuard {
 
     mapping(uint256 => Period) public periods;
     mapping(uint256 => mapping(uint256 => Deposit)) public deposits; // generationId => tokenId => Deposit
-    mapping(uint256 => mapping(uint256 => uint256)) public bonusDripped; // generationId => tokenId => withdraw amount
+    mapping(uint256 => mapping(uint256 => uint256)) public bonusDripped; // generationId => tokenId => total bonuses unlocked
 
     modifier restrictGeneration(uint256 generationId) {
         requireCorrectGeneration(generationId);
@@ -411,7 +410,7 @@ contract Subscription is Ownable, ReentrancyGuard {
      *  @dev Periods must be ended and tokens should have subscription during periods
      */
      
-    function harvestReward(
+    function claimReward(
         uint256 generationId, 
         uint256[] calldata tokenIds,
         uint256[] calldata periodIds
@@ -469,14 +468,13 @@ contract Subscription is Ownable, ReentrancyGuard {
         uint256 tokenId
     ) private {
         Deposit storage deposit = deposits[generationId][tokenId];
-        uint256 index;
+        // number of fully unlocked bonuses
+        uint256 unlockedNum; 
         uint256 len = deposit.bonuses.length;
         uint256 drippedAmount;
 
         for (uint256 i; i < len; i++) {
-            // TODO: probably should be able to optimize
-            // (put `bonus` in memory and then update it in storage at the end)
-            Bonus storage bonus = deposit.bonuses[i];
+            Bonus memory bonus = deposit.bonuses[i];
 
             uint256 withdrawAmount = 
                 (bonus.total / bonus.releasePeriod) * 
@@ -494,18 +492,15 @@ contract Subscription is Ownable, ReentrancyGuard {
             // we shift all + down to replace all -, then our array is [++--]
             // Then we can pop all - as we only able to remove elements from the end of array.
             if(bonus.lockedAmount == 0) 
-                index = i+1;
-            else if(index > 0) {
-                uint256 currentIndex = i - index;
-                deposit.bonuses[currentIndex] = 
-                    deposit.bonuses[i];
-                delete deposit.bonuses[i];
-            }
+                unlockedNum = i+1;
+            else if(unlockedNum > 0)
+                deposit.bonuses[i - unlockedNum] = bonus;
+            else
+                deposit.bonuses[i] = bonus;
         }
         bonusDripped[generationId][tokenId] += drippedAmount;
 
-        for (uint256 i = deposit.bonuses.length; i > 0; i--) {
-            if(deposit.bonuses[i - 1].lockedAmount > 0) break;
+        for (uint256 i = unlockedNum; i > 0; i--) {
             deposit.bonuses.pop();
         }
     }
@@ -590,14 +585,12 @@ contract Subscription is Ownable, ReentrancyGuard {
 
         if (allocationStatus == withdrawStatus.purchase) {
 
-            IStackOsNFTBasic stack = IStackOsNFTBasic(
+            StackOsNFTBasic stack = StackOsNFTBasic(
                 address(generations.get(purchaseGenerationId))
             );
 
-            // frontrun protection
             // most of the following should be on stack contract side, but code size limit...
-            if (amountToMint > stack.getMaxSupply() - stack.totalSupply())
-                amountToMint = stack.getMaxSupply() - stack.totalSupply();
+            amountToMint = stack.clampToMaxSupply(amountToMint);
 
             // adjust decimals
             uint256 mintPrice = stack.mintPrice() * 
@@ -614,9 +607,9 @@ contract Subscription is Ownable, ReentrancyGuard {
 
             require(amountWithdraw > stackToSpend, "Not enough earnings");
 
-            stackToken.approve(
-                address(generations.get(purchaseGenerationId)), 
-               stackToSpend 
+            stackToken.transfer(
+                address(stack), 
+                stackToSpend 
             );
 
             stack.mintFromSubscriptionRewards(
@@ -676,11 +669,12 @@ contract Subscription is Ownable, ReentrancyGuard {
      *  @dev Be careful with gas consumption.
      */
      
-    function harvestBonus(
+    function claimBonus(
         uint256 generationId,
         uint256[] calldata tokenIds
     ) external {
 
+        uint256 totalWithdraw;
         for (uint256 i; i < tokenIds.length; i++) {
             uint256 tokenId = tokenIds[i];
 
@@ -695,26 +689,26 @@ contract Subscription is Ownable, ReentrancyGuard {
             );
 
             updateBonuses(generationId, tokenId);
-            uint256 bonusAmount = bonusDripped[generationId][tokenId];
+            uint256 unlockedBonus = bonusDripped[generationId][tokenId];
+            totalWithdraw += unlockedBonus;
             bonusDripped[generationId][tokenId] = 0;
 
-            uint256 contractBalance = stackToken.balanceOf(address(this));
-            require(
-                // make sure bonus amount won't touch balances of deposits or rewards 
-                bonusAmount <= 
-                    contractBalance - totalRewards - totalDeposited,
-                "Bonus balance is too low"
-            );
-
-            stackToken.transfer(msg.sender, bonusAmount);
-
-            emit HarvestBonus(
+            emit ClaimBonus(
                 msg.sender,
                 generationId,
                 tokenId,
-                bonusAmount
+                unlockedBonus
             );
         }
+
+        uint256 contractBalance = stackToken.balanceOf(address(this));
+        require(
+            // make sure bonus won't withdraw balances of deposits or rewards
+            totalWithdraw <= 
+                contractBalance - totalRewards - totalDeposited,
+            "Bonus balance is too low"
+        );
+        stackToken.transfer(msg.sender, totalWithdraw);
     }
 
    /*
@@ -723,19 +717,21 @@ contract Subscription is Ownable, ReentrancyGuard {
      * @param Token id
      * @returns Withdrawable amount of bonuses
      * @returns Locked amount of bonuses
-     * @returns Array contains seconds needed to fully release locked amount (so this is per bonus array)
+     * @returns Per-bonus array containing time left to fully release locked amount
      */
 
     function pendingBonus(uint256 _generationId, uint256 _tokenId)
         external
         view
-        returns (uint256 withdrawable, uint256 locked, uint256[] memory fullRelease)
+        returns (
+            uint256 unlocked, 
+            uint256 locked,
+            uint256 timeLeft 
+        )
     {
         Deposit memory deposit = deposits[_generationId][_tokenId];
 
-        uint256 totalPending; 
         uint256 len = deposit.bonuses.length;
-        fullRelease = new uint256[](len);
 
         for (uint256 i; i < len; i++) {
             Bonus memory bonus = deposit.bonuses[i];
@@ -746,15 +742,18 @@ contract Subscription is Ownable, ReentrancyGuard {
 
             if (amount > bonus.lockedAmount)
                 amount = bonus.lockedAmount;
-            totalPending += amount;
+
+            unlocked += amount;
             bonus.lockedAmount -= amount;
             locked += bonus.lockedAmount;
 
-            fullRelease[i] = 
-                (bonus.releasePeriod) * bonus.lockedAmount / bonus.total;
+            if(i+1 == len) {
+                timeLeft = 
+                    bonus.releasePeriod * bonus.lockedAmount / bonus.total;
+            }
         }
-
-        withdrawable = totalPending + bonusDripped[_generationId][_tokenId];
+        
+        unlocked += bonusDripped[_generationId][_tokenId];
     }
 
     /*

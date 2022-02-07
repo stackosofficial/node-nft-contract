@@ -223,6 +223,7 @@ async function setup() {
   await royalty.setFeePercent(DEPOSIT_FEE_PERCENT);
   await royalty.setWETH(weth.address);
   console.log("royalty", royalty.address);
+
   
   NAME = "STACK OS NFT";
   SYMBOL = "SON";
@@ -243,32 +244,33 @@ async function setup() {
   MAX_SUPPLY_GROWTH = 2000;
   TRANSFER_DISCOUNT = 2000;
   REWARD_DISCOUNT = 2000;
+  
+  await setupDeployment();
+
   let StackOS = await ethers.getContractFactory("StackOsNFT");
   stackOsNFT = await deployStackOS();
 
 }
 
 async function setupDeployment() {
-    await generationManager.setupDeploy(
-      NAME,
-      SYMBOL,
-      STACK_TOKEN,
-      DARK_MATTER_ADDRESS,
-      subscription.address,
-      sub0.address,
-      PRICE,
-      SUBS_FEE,
-      MAX_SUPPLY_GROWTH,
-      TRANSFER_DISCOUNT,
-      TIMELOCK,
-      royalty.address
-    );
-    await generationManager.setupDeploy2(
-      owner.address, // fake market address
-      DAO_FEE,
-      URI,
-      REWARD_DISCOUNT
-    )
+    await generationManager.setupDeploy({
+      name: NAME,
+      symbol: SYMBOL,
+      stackToken: STACK_TOKEN,
+      darkMatter: DARK_MATTER_ADDRESS,
+      subscription: subscription.address,
+      sub0: sub0.address,
+      mintPrice: PRICE,
+      subsFee: SUBS_FEE,
+      daoFee: DAO_FEE,
+      maxSupplyGrowthPercent: MAX_SUPPLY_GROWTH,
+      transferDiscount: TRANSFER_DISCOUNT,
+      rewardDiscount: REWARD_DISCOUNT,
+      timeLock: TIMELOCK,
+      royaltyAddress: royalty.address,
+      market: owner.address, // fake market address
+      URI: URI,
+    });
 }
 
 async function setupLiquidity() {

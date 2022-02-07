@@ -14,6 +14,7 @@ describe("Market", function () {
     [owner, partner, joe, bank, bob, vera, tax, homer, dao, royaltyDistribution] =
       await hre.ethers.getSigners();
     MONTH = 60 * 60 * 24 * 30;
+    CYCLE_DURATION = 60 * 60 * 24 * 31;
   });
 
   it("Deploy full SETUP", async function () {
@@ -23,8 +24,6 @@ describe("Market", function () {
   });
 
   it("Deploy Market", async function () {
-    GENERATION_MANAGER_ADDRESS = generationManager.address;
-    DARK_MATTER_ADDRESS = darkMatter.address;
     DAO_ADDRESS = dao.address;
     DAO_FEE = 1000;
     ROYALTY_FEE = 1000;
@@ -32,8 +31,8 @@ describe("Market", function () {
     market = await upgrades.deployProxy(
       Market,
       [
-        GENERATION_MANAGER_ADDRESS,
-        DARK_MATTER_ADDRESS,
+        generationManager.address,
+        darkMatter.address,
         DAO_ADDRESS,
         royalty.address,
         DAO_FEE,
@@ -191,29 +190,41 @@ describe("Market", function () {
 
   it("Royalty handle fees correctly", async function () {
 
-    /*  Scenario, 2 generations
+    /*  
+        Scenario, 2 generations
         Delegate all tokens
-        Sell gen 1, fail to claim royalty by gen 2
-        Sell gen 2, claim royalty by gen 1
+        Trade gen 1, fail to claim royalty by gen 2
+        Trade gen 2, claim royalty by gen 1
     */
 
     // mint
-    // await stackOsNFT.whitelistPartner(owner.address, 10);
-    // await usdt.approve(stackOsNFT.address, parseEther("100.0"));
-    // await stackOsNFT.partnerMint(5); // start from id 9
+    await stackOsNFT.whitelistPartner(owner.address, 10);
+    await usdt.approve(stackOsNFT.address, parseEther("100.0"));
+    await stackOsNFT.partnerMint(5); // start from id 9
 
-    // await stackToken.approve(stackOsNFTgen2.address, parseEther("100.0"));
-    // await provider.send("evm_increaseTime", [60 * 60]); 
-    // await stackOsNFTgen2.mint(2); // start from id 2
-
-    // delegate
-    console.log(await stackOsNFT.totalSupply());
-    await stackOsNFT.delegate(owner.address, [9]);
-    // await stackOsNFTgen2.delegate(owner.address, [2]);
+    await stackToken.approve(stackOsNFTgen2.address, parseEther("1000.0"));
+    await provider.send("evm_increaseTime", [60 * 60]); 
+    await stackOsNFTgen2.mint(10); // start from id 2
 
     // sell to send fee
-    // await market.listStackNFT(0, 9, parseEther("100.0"));
-    // await market.buyStack(0, 9, { value: parseEther("100.0") });
+    await stackOsNFT.approve(market.address, 10);
+    await stackOsNFTgen2.approve(market.address, 10);
+    await stackOsNFTgen2.whitelist(market.address);
+    await market.listStackNFT(0, 10, parseEther("100.0"));
+    await market.buyStack(0, 10, { value: parseEther("100.0") });
+    await market.listStackNFT(1, 10, parseEther("0.00001"));
+    await market.buyStack(1, 10, { value: parseEther("0.00001") });
+
+    // pass time, there is enough eth
+    await provider.send("evm_increaseTime", [CYCLE_DURATION]); 
+    await provider.send("evm_mine");
+
+    // should fail to claim 
+    await expect(royalty.claim(1, [10], [0], [0])).to.be.revertedWith("Bad gen id");
+    // 3rd cycle start
+    // claim by gen 1 the gen 2 royalties
+    await expect(() => royalty.claim(0, [10], [1], [0, 1]))
+      .to.changeEtherBalance(owner, 0);
 
   });
 

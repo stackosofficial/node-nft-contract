@@ -31,11 +31,6 @@ contract StackOsNFTBasic is
     );
     event SetRewardDiscount(uint256 _rewardDiscount);
     event SetFees(uint256 subs, uint256 dao);
-    event Delegate(
-        address indexed delegator, 
-        address delegatee, 
-        uint256 tokenId
-    );
     event AdminWithdraw(address admin, uint256 withdrawAmount);
 
     string private _name;
@@ -66,7 +61,6 @@ contract StackOsNFTBasic is
     // this is max amount to drip, dripping is 1 per minute
     uint256 public constant maxMintRate = 10;
 
-    mapping(uint256 => address) private delegates;
     mapping(address => uint256) private totalMinted;
     mapping(address => uint256) private lastMintAt;
 
@@ -113,7 +107,9 @@ contract StackOsNFTBasic is
         timeLock = block.timestamp + _timeLock;
     }
 
-    // Set mint price
+    /**
+     *  @notice `_price` should have 18 decimals
+     */
     function setPrice(uint256 _price) external onlyOwner {
         mintPrice = _price;
         emit SetPrice(_price);
@@ -212,15 +208,6 @@ contract StackOsNFTBasic is
     }
 
     /*
-     * @title Get token's delegatee.
-     * @dev Returns zero-address if token not delegated.
-     */
-
-    function getDelegatee(uint256 _tokenId) external view returns (address) {
-        return delegates[_tokenId];
-    }
-
-    /*
      * @title Get max supply
      */
     function getMaxSupply() external view returns (uint256) {
@@ -259,9 +246,7 @@ contract StackOsNFTBasic is
 
         uint256 ticketAmount = amountUsd.div(mintPriceDiscounted);
 
-        // frontrun protection
-        if (ticketAmount > maxSupply - totalSupply)
-            ticketAmount = maxSupply - totalSupply;
+        ticketAmount = clampToMaxSupply(ticketAmount);
 
         uint256 usdToSpend = mintPriceDiscounted.mul(ticketAmount);
         uint256 stackToSpend = exchange.getAmountIn(
@@ -292,9 +277,7 @@ contract StackOsNFTBasic is
 
     function mint(uint256 _nftAmount) external {
 
-        // frontrun protection
-        if (_nftAmount > maxSupply - totalSupply)
-            _nftAmount = maxSupply - totalSupply;
+        _nftAmount = clampToMaxSupply(_nftAmount);
 
         IERC20 stablecoin = stableAcceptor.stablecoins(0);
         uint256 amountOut = adjustDecimals(
@@ -329,9 +312,7 @@ contract StackOsNFTBasic is
     function mintForUsd(uint256 _nftAmount, IERC20 _stablecoin) external {
         require(stableAcceptor.supportsCoin(_stablecoin));
 
-        // frontrun protection
-        if (_nftAmount > maxSupply - totalSupply)
-            _nftAmount = maxSupply - totalSupply;
+        _nftAmount = clampToMaxSupply(_nftAmount);
 
         uint256 usdToSpend = adjustDecimals(
             mintPrice, 
@@ -369,9 +350,10 @@ contract StackOsNFTBasic is
         uint256 _stackAmount,
         address _to
     ) external {
-        require(msg.sender == address(subscription));
-
-        stackToken.transferFrom(msg.sender, address(this), _stackAmount);
+        require(
+            msg.sender == address(subscription) ||
+            msg.sender == address(sub0)
+        );
 
         _stackAmount = sendFees(_stackAmount);
 
@@ -400,9 +382,7 @@ contract StackOsNFTBasic is
     {
         require(msg.sender == address(royaltyAddress));
 
-        // frontrun protection
-        if (_mintNum > maxSupply - totalSupply)
-            _mintNum = maxSupply - totalSupply;
+        _mintNum = clampToMaxSupply(_mintNum);
         
         IERC20 stablecoin = stableAcceptor.stablecoins(0);
         uint256 price = adjustDecimals(
@@ -457,35 +437,6 @@ contract StackOsNFTBasic is
         stackToken.transfer(address(daoAddress), daoPart);
     }
 
-    function _delegate(address _delegatee, uint256 tokenId) private {
-        require(_delegatee != address(0));
-        require(
-            msg.sender ==
-                darkMatter.ownerOfStackOrDarkMatter(
-                    IStackOsNFT(address(this)),
-                    tokenId
-                )
-        );
-        require(delegates[tokenId] == address(0));
-        delegates[tokenId] = _delegatee;
-        royaltyAddress.onDelegate(tokenId);
-        emit Delegate(msg.sender, _delegatee, tokenId);
-    }
-
-    /*
-     * @title Delegate NFT.
-     * @param Address of delegatee.
-     * @param tokenIds to delegate.
-     * @dev Caller must own token.
-     * @dev Delegation can be done only once.
-     */
-
-    function delegate(address _delegatee, uint256[] calldata tokenIds) external {
-        for (uint256 i; i < tokenIds.length; i++) {
-            _delegate(_delegatee, tokenIds[i]);
-        }
-    }
-
     function _mint(address _address) internal {
         require(totalSupply < maxSupply);
 
@@ -510,9 +461,24 @@ contract StackOsNFTBasic is
         _safeMint(_address, _current);
         _setTokenURI(_current, URI);
 
-        if(totalSupply == maxSupply) {
+        if(
+            totalSupply == maxSupply && 
+            generations.getIDByAddress(address(this)) == generations.count() - 1
+        ) {
             generations.deployNextGenPreset();
         }
+    }
+ 
+    // frontrun protection helper function
+    function clampToMaxSupply(uint256 value) 
+        public
+        view
+        returns (uint256 clamped)
+    {
+        // frontrun protection
+        if (value > maxSupply - totalSupply)
+            value = maxSupply - totalSupply;
+        return value;
     }
 
     // Adjusts amount's decimals to token's decimals

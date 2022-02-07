@@ -29,6 +29,7 @@ contract DarkMatter is Whitelist, ERC721, ReentrancyGuard {
     // owner => DarkMatter ids
     mapping(address => uint256[]) private toBeMinted; 
 
+    // need this to distinguish from default 0
     struct ValidId {
         uint256 id;
         bool written;
