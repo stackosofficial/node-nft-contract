@@ -111,7 +111,7 @@ async function main() {
   // Address to send fees when royalties received by Royalty contract
   DEPOSIT_FEE_ADDRESS = "0xF90fF6d484331399f4eAa13f73D03b8B18eA1373";
   // Amount of eth required to allow new cycle start (Royalty)
-  MIN_CYCLE_ETHER = parseEther("1");
+  MIN_ETH_PER_CYCLE = parseEther("1");
   // Fee percent to take when royalties received by Royalty contract
   DEPOSIT_FEE_PERCENT = 1000;
   // Set weth address to be able to claim royalty in WETH on matic network.
@@ -212,7 +212,7 @@ async function main() {
     exchange.address,
     DEPOSIT_FEE_ADDRESS,
     STACK_TOKEN,
-    MIN_CYCLE_ETHER
+    MIN_ETH_PER_CYCLE
   );
 
   await royalty.deployed();

@@ -206,7 +206,7 @@ async function setup() {
 
 
   DEPOSIT_FEE_ADDRESS = bank.address;
-  MIN_CYCLE_ETHER = parseEther("1");
+  MIN_ETH_PER_CYCLE = parseEther("1");
   DEPOSIT_FEE_PERCENT = 1000;
 
   const Royalty = await ethers.getContractFactory("Royalty");
@@ -216,7 +216,7 @@ async function setup() {
     exchange.address,
     DEPOSIT_FEE_ADDRESS,
     stackToken.address,
-    MIN_CYCLE_ETHER
+    MIN_ETH_PER_CYCLE
   );
   await royalty.deployed();
   ROYALTY_ADDRESS = royalty.address;

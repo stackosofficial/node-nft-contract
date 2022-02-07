@@ -16,6 +16,7 @@ contract Royalty is Ownable, ReentrancyGuard {
     event SetFeeAddress(address payable _feeAddress);
     event SetWETH(IERC20 WETH);
     event SetFeePercent(uint256 _percent);
+    event SetMinEthPerCycle(uint256 amount);
 
     Counters.Counter public counter; // counting cycles
 
@@ -28,8 +29,8 @@ contract Royalty is Ownable, ReentrancyGuard {
     IERC20 private stackToken;
     uint256 private feePercent;
 
-    uint256 private minEthToStartCycle;
-    uint256 private constant CYCLE_DURATION = 30 days;
+    uint256 public minEthPerCycle;
+    uint256 public constant CYCLE_DURATION = 30 days;
 
     struct GenData {
         // total received by each generation in cycle
@@ -57,14 +58,14 @@ contract Royalty is Ownable, ReentrancyGuard {
         Exchange _exchange,
         address payable _feeAddress,
         IERC20 _stackToken,
-        uint256 _minEthToStartCycle
+        uint256 _minEthPerCycle
     ) {
         generations = _generations;
         darkMatter = _darkMatter;
         exchange = _exchange;
         feeAddress = _feeAddress;
         stackToken = _stackToken;
-        minEthToStartCycle = _minEthToStartCycle;
+        minEthPerCycle = _minEthPerCycle;
 
         cycles[counter.current()].startTimestamp = block.timestamp;
     }
@@ -121,7 +122,7 @@ contract Royalty is Ownable, ReentrancyGuard {
             block.timestamp
         ) {
             // is current cycle got enough ether?
-            if (cycles[counter.current()].totalBalance >= minEthToStartCycle) {
+            if (cycles[counter.current()].totalBalance >= minEthPerCycle) {
                 // start new cycle
                 counter.increment();
                 cycles[counter.current()].startTimestamp = block.timestamp;
@@ -162,6 +163,17 @@ contract Royalty is Ownable, ReentrancyGuard {
         require(address(_WETH) != address(0), "Must be not zero-address");
         WETH = _WETH;
         emit SetWETH(_WETH);
+    }
+
+    /**
+     * @notice Set minimum eth needed to end cycle
+     * @param amount Amount eth
+     * @dev Could only be invoked by the contract owner.
+     */
+    function setMinEthPerCycle(uint256 amount) external onlyOwner {
+        require(amount > 0);
+        minEthPerCycle = amount;
+        emit SetMinEthPerCycle(amount);
     }
 
     /*
@@ -339,14 +351,13 @@ contract Royalty is Ownable, ReentrancyGuard {
         uint256 generationId,
         uint256[] calldata tokenIds
     ) external view returns (uint256 withdrawableRoyalty) {
-        IStackOsNFT stack = generations.get(generationId);
 
         uint256 _counterCurrent = counter.current();
         if (
             cycles[counter.current()].startTimestamp + CYCLE_DURATION <
             block.timestamp
         ) {
-            if (cycles[counter.current()].totalBalance >= minEthToStartCycle) {
+            if (cycles[counter.current()].totalBalance >= minEthPerCycle) {
                 _counterCurrent += 1;
             }
         }
