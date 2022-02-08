@@ -301,24 +301,42 @@ async function main() {
     console.log("failed to estimateGas.setupDeploy");
   }
   // Settings for auto deploy
-  await generationManager.setupDeploy({
-    name: NAME_2,
-    symbol: SYMBOL_2,
-    stackToken: STACK_TOKEN,
-    darkMatter: darkMatter.address,
-    subscription: subscription.address,
-    sub0: sub0.address,
-    mintPrice: PRICE_2,
-    subsFee: SUBS_FEE_2,
-    daoFee: DAO_FEE_2,
-    maxSupplyGrowthPercent: MAX_SUPPLY_GROWTH,
-    transferDiscount: TRANSFER_DISCOUNT_2,
-    rewardDiscount: REWARD_DISCOUNT,
-    timeLock: TIMELOCK_2,
-    royaltyAddress: royalty.address,
-    market: marketProxy.address,
-    baseURI: baseURI_2
-  }, { gasLimit: 1e6 });
+  // await generationManager.setupDeploy({
+  //   name: NAME_2,
+  //   symbol: SYMBOL_2,
+  //   stackToken: STACK_TOKEN,
+  //   darkMatter: darkMatter.address,
+  //   subscription: subscription.address,
+  //   sub0: sub0.address,
+  //   mintPrice: PRICE_2,
+  //   subsFee: SUBS_FEE_2,
+  //   daoFee: DAO_FEE_2,
+  //   maxSupplyGrowthPercent: MAX_SUPPLY_GROWTH,
+  //   transferDiscount: TRANSFER_DISCOUNT_2,
+  //   rewardDiscount: REWARD_DISCOUNT,
+  //   timeLock: TIMELOCK_2,
+  //   royaltyAddress: royalty.address,
+  //   market: marketProxy.address,
+  //   baseURI: baseURI_2
+  // }, { gasLimit: 1e6 });
+  await generationManager.setupDeploy([
+    NAME_2,
+    SYMBOL_2,
+    STACK_TOKEN,
+    darkMatter.address,
+    subscription.address,
+    sub0.address,
+    PRICE_2,
+    SUBS_FEE_2,
+    DAO_FEE_2,
+    MAX_SUPPLY_GROWTH,
+    TRANSFER_DISCOUNT_2,
+    REWARD_DISCOUNT,
+    TIMELOCK_2,
+    royalty.address,
+    marketProxy.address,
+    baseURI_2
+  ], { gasLimit: 1e6 });
 
   // Add 1st generation in GenerationManager
   await generationManager.add(stackOsNFT.address);
