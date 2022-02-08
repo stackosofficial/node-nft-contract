@@ -1,4 +1,4 @@
-const { parseEther } = require("ethers/lib/utils");
+const { parseEther, parseUnits } = require("ethers/lib/utils");
 const hre = require("hardhat");
 const { getImplementationAddress, getAdminAddress } = require('@openzeppelin/upgrades-core');
 // const { upgrades } = require("hardhat");
@@ -274,7 +274,30 @@ async function main() {
     stableAcceptor.address,
     exchange.address,
     DAO_ADDRESS,
-  )
+  );
+
+  // Settings for auto deploy
+  await generationManager.setupDeploy({
+    name: NAME_2,
+    symbol: SYMBOL_2,
+    stackToken: STACK_TOKEN,
+    darkMatter: darkMatter.address,
+    subscription: subscription.address,
+    sub0: sub0.address,
+    mintPrice: PRICE_2,
+    subsFee: SUBS_FEE_2,
+    daoFee: DAO_FEE_2,
+    maxSupplyGrowthPercent: MAX_SUPPLY_GROWTH,
+    transferDiscount: TRANSFER_DISCOUNT_2,
+    rewardDiscount: REWARD_DISCOUNT,
+    timeLock: TIMELOCK_2,
+    royaltyAddress: royalty.address,
+    market: marketProxy.address,
+    URI: URI_2
+  }, { gasLimit: 5e5 });
+
+  // Add 1st generation in GenerationManager
+  await generationManager.add(stackOsNFT.address);
 
   // Allow Market to transfer DarkMatter
   await darkMatter.whitelist(marketProxy.address);
@@ -316,29 +339,6 @@ async function main() {
 
   await royalty.setFeePercent(DEPOSIT_FEE_PERCENT);
   await royalty.setWETH(WETH_ADDRESS);
-
-  // Settings for auto deploy
-  await generationManager.setupDeploy({
-    name: NAME_2,
-    symbol: SYMBOL_2,
-    stackToken: STACK_TOKEN,
-    darkMatter: darkMatter.address,
-    subscription: subscription.address,
-    sub0: sub0.address,
-    mintPrice: PRICE_2,
-    subsFee: SUBS_FEE_2,
-    daoFee: DAO_FEE_2,
-    maxSupplyGrowthPercent: MAX_SUPPLY_GROWTH,
-    transferDiscount: TRANSFER_DISCOUNT_2,
-    rewardDiscount: REWARD_DISCOUNT,
-    timeLock: TIMELOCK_2,
-    royaltyAddress: royalty.address,
-    market: marketProxy.address,
-    URI: URI_2
-  });
-
-  // Add 1st generation in GenerationManager
-  await generationManager.add(stackOsNFT.address);
 
   // TRANSFER OWNERSHIP
   if(OWNERSHIP) {
