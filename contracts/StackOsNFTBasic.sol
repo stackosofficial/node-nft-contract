@@ -50,7 +50,6 @@ contract StackOsNFTBasic is
     address private daoAddress;
 
     uint256 public timeLock;
-    uint256 public adminWithdrawableAmount;
     uint256 public rewardDiscount;
     uint256 private maxSupply;
     uint256 public totalSupply;
@@ -248,6 +247,7 @@ contract StackOsNFTBasic is
 
         ticketAmount = clampToMaxSupply(ticketAmount);
 
+
         uint256 usdToSpend = mintPriceDiscounted.mul(ticketAmount);
         uint256 stackToSpend = exchange.getAmountIn(
             usdToSpend,
@@ -263,7 +263,9 @@ contract StackOsNFTBasic is
 
         stackToSpend = sendFees(stackToSpend);
 
-        adminWithdrawableAmount += stackToSpend;
+        // admin gets the payment after fees
+        stackToken.transfer(owner(), stackToSpend);
+
         for (uint256 i; i < ticketAmount; i++) {
             _mint(_ticketOwner);
         }
@@ -296,7 +298,9 @@ contract StackOsNFTBasic is
 
         stackAmount = sendFees(stackAmount);
 
-        adminWithdrawableAmount += stackAmount;
+        // admin gets the payment after fees
+        stackToken.transfer(owner(), stackAmount);
+
         for (uint256 i; i < _nftAmount; i++) {
             _mint(msg.sender);
         }
@@ -323,14 +327,16 @@ contract StackOsNFTBasic is
         _stablecoin.transferFrom(msg.sender, address(this), usdToSpend);
         _stablecoin.approve(address(exchange), usdToSpend);
         uint256 stackAmount = exchange.swapExactTokensForTokens(
-            usdToSpend, 
+            usdToSpend,
             _stablecoin,
             stackToken
         );
 
         stackAmount = sendFees(stackAmount);
 
-        adminWithdrawableAmount += stackAmount;
+        // admin gets the payment after fees
+        stackToken.transfer(owner(), stackAmount);
+
         for (uint256 i; i < _nftAmount; i++) {
             _mint(msg.sender);
         }
@@ -357,7 +363,9 @@ contract StackOsNFTBasic is
 
         _stackAmount = sendFees(_stackAmount);
 
-        adminWithdrawableAmount += _stackAmount;
+        // admin gets the payment after fees
+        stackToken.transfer(owner(), _stackAmount);
+
         for (uint256 i; i < _nftAmount; i++) {
             // frontrun protection is in Subscription contract
             _mint(_to);
@@ -406,7 +414,9 @@ contract StackOsNFTBasic is
 
         stackAmount = sendFees(stackAmount);
 
-        adminWithdrawableAmount += stackAmount;
+        // admin gets the payment after fees
+        stackToken.transfer(owner(), stackAmount);
+
         for (uint256 i; i < _mintNum; i++) {
             _mint(_to);
         }
@@ -424,15 +434,16 @@ contract StackOsNFTBasic is
         amountAfterFees = _amount - subsPart - daoPart;
 
         uint256 subsPartHalf = subsPart / 2;
+        uint256 subsPartHalfTwo = subsPart - subsPartHalf;
 
         stackToken.approve(address(sub0), subsPartHalf);
-        stackToken.approve(address(subscription), subsPartHalf);
+        stackToken.approve(address(subscription), subsPartHalfTwo);
         // if subs contract don't take it, send to dao 
         if(sub0.onReceiveStack(subsPartHalf) == false) {
             daoPart += (subsPartHalf);
         }
-        if(subscription.onReceiveStack(subsPartHalf) == false) {
-            daoPart += (subsPartHalf);
+        if(subscription.onReceiveStack(subsPartHalfTwo) == false) {
+            daoPart += (subsPartHalfTwo);
         }
         stackToken.transfer(address(daoAddress), daoPart);
     }
@@ -532,16 +543,4 @@ contract StackOsNFTBasic is
             string(abi.encodePacked(baseURI_, generationId, "/", tokenId.toString())) :
             "";
     }
-
-    /*
-     * @title Contract owner can withdraw collected fees.
-     * @dev Caller must be contract owner, timelock should be passed.
-     */
-    function adminWithdraw() external onlyOwner {
-        require(block.timestamp > timeLock);
-        stackToken.transfer(msg.sender, adminWithdrawableAmount);
-        emit AdminWithdraw(msg.sender, adminWithdrawableAmount);
-        adminWithdrawableAmount = 0;
-    }
-
 }

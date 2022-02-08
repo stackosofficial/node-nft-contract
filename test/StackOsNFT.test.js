@@ -391,12 +391,15 @@ describe("Test transferTickets and transferFromLastGen", function () {
     await provider.send("evm_mine"); 
     let toTransfer = notWinning.slice(0, 20);
     // print("transfering tickets", toTransfer);
+    let oldOwnerBalance = await stackToken.balanceOf(owner.address);
     await stackOsNFT.transferTicket(toTransfer, stackOsNFTBasic.address);
+    let newOwnerBalance = await stackToken.balanceOf(owner.address);
     expect(await stackToken.balanceOf(stackOsNFT.address)).to.be.equal(
       parseEther("10.0")
     );
-    expect(await stackToken.balanceOf(stackOsNFTBasic.address)).to.be.closeTo(
-      parseEther("1.27"), parseEther("0.01")
+    expect(await stackToken.balanceOf(stackOsNFTBasic.address)).to.be.equal(0);
+    expect(newOwnerBalance.sub(oldOwnerBalance)).to.be.closeTo(
+      parseEther("1.68"), parseEther("0.01")
     );
 
     print("Tickets transfered!");

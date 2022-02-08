@@ -199,10 +199,14 @@ describe("StackOS NFT Basic", function () {
 
   it("Mint for USD", async function () {
     await usdc.approve(stackOsNFTBasicgen3.address, parseEther("1"));
-    let oldBalance = await stackToken.balanceOf(stackOsNFTBasicgen3.address);
+    let oldOwnerBalance = await stackToken.balanceOf(owner.address);
     await stackOsNFTBasicgen3.mintForUsd(1, usdc.address);
-    let newBalance = await stackToken.balanceOf(stackOsNFTBasicgen3.address);
-    expect(newBalance.sub(oldBalance)).to.be.closeTo(parseEther("0.48"), parseEther("0.01"))
+    let newOwnerBalance = await stackToken.balanceOf(owner.address);
+    expect(await stackToken.balanceOf(stackOsNFTBasicgen3.address)).to.be.equal(0);
+    expect(newOwnerBalance.sub(oldOwnerBalance)).to.be.closeTo(
+      parseEther("0.48"), 
+      parseEther("0.01")
+    );
   });
 
   it("Whitelist address and transfer from it", async function () {
@@ -227,20 +231,6 @@ describe("StackOS NFT Basic", function () {
       baseURI + "4/2"
     );
     await expect(stackOsNFTBasicgen3.tokenURI(1337)).to.be.reverted;
-  });
-
-  it("Admin tried to withdraw before time lock expires.", async function () {
-    var adminWithdrawableAmount = await stackOsNFTBasic.adminWithdrawableAmount();
-    print(adminWithdrawableAmount);
-    await expect(stackOsNFTBasic.adminWithdraw()).to.be.reverted;
-  });
-
-  it("Admin withdraws after time lock.", async function () {
-    deadline = Math.floor(Date.now() / 1000) + 1000;
-    await ethers.provider.send("evm_setNextBlockTimestamp", [
-      deadline + TIMELOCK,
-    ]);
-    await stackOsNFTBasic.adminWithdraw();
   });
 
   it("Revert EVM state", async function () {
