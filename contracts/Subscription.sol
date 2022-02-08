@@ -715,15 +715,14 @@ contract Subscription is Ownable, ReentrancyGuard {
         stackToken.transfer(msg.sender, totalWithdraw);
     }
 
-   /*
-     * @title Get pending bonus amount and locked amount
-     * @param StackNFT generation id
-     * @param Token id
-     * @returns Withdrawable amount of bonuses
-     * @returns Locked amount of bonuses
-     * @returns Per-bonus array containing time left to fully release locked amount
+   /**
+     * @notice Get pending bonus amount and locked amount
+     * @param _generationId StackNFT generation id
+     * @param _tokenId NFT id
+     * @return unlocked Withdrawable amount of bonuses
+     * @return locked Locked amount of bonuses
+     * @return timeLeft Per-bonus array containing time left to fully release locked amount
      */
-
     function pendingBonus(uint256 _generationId, uint256 _tokenId)
         external
         view
@@ -751,10 +750,11 @@ contract Subscription is Ownable, ReentrancyGuard {
             bonus.lockedAmount -= amount;
             locked += bonus.lockedAmount;
 
-            if(i+1 == bonusesLength) {
-                timeLeft = 
-                    bonus.releasePeriod * bonus.lockedAmount / bonus.total;
-            }
+            // find max timeleft
+            uint256 _timeLeft = 
+                bonus.releasePeriod * bonus.lockedAmount / bonus.total;
+
+            if(_timeLeft > timeLeft) timeLeft = _timeLeft;
         }
         
         unlocked += bonusDripped[_generationId][_tokenId];
