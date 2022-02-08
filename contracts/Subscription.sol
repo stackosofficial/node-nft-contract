@@ -470,10 +470,14 @@ contract Subscription is Ownable, ReentrancyGuard {
         Deposit storage deposit = deposits[generationId][tokenId];
         // number of fully unlocked bonuses
         uint256 unlockedNum; 
-        uint256 len = deposit.bonuses.length;
+        // current number of token's bonuses
+        uint256 bonusesLength = deposit.bonuses.length;
+        // total dripped of each bonus
         uint256 drippedAmount;
 
-        for (uint256 i; i < len; i++) {
+        for (uint256 i; i < bonusesLength; i++) {
+            // this should saves gas, but probably not
+            // in case where 0 fully unlocked bonuses
             Bonus memory bonus = deposit.bonuses[i];
 
             uint256 withdrawAmount = 
@@ -487,12 +491,12 @@ contract Subscription is Ownable, ReentrancyGuard {
             bonus.lockedAmount -= withdrawAmount;
             bonus.lastTxDate = block.timestamp;
 
-            // We assume that bonuses drained one by one starting from the first one.
-            // Then if our array looks like this [--++] where - is drained bonuses,
-            // we shift all + down to replace all -, then our array is [++--]
-            // Then we can pop all - as we only able to remove elements from the end of array.
+            // We need to remove all drained bonuses from the array.
+            // If our array looks like this [+--+-] where - is drained bonuses,
+            // then we move all - to be after all +, so we get [++---]
+            // Then we can pop all - from the end of array.
             if(bonus.lockedAmount == 0) 
-                unlockedNum = i+1;
+                unlockedNum += 1;
             else if(unlockedNum > 0)
                 deposit.bonuses[i - unlockedNum] = bonus;
             else
@@ -731,9 +735,9 @@ contract Subscription is Ownable, ReentrancyGuard {
     {
         Deposit memory deposit = deposits[_generationId][_tokenId];
 
-        uint256 len = deposit.bonuses.length;
+        uint256 bonusesLength = deposit.bonuses.length;
 
-        for (uint256 i; i < len; i++) {
+        for (uint256 i; i < bonusesLength; i++) {
             Bonus memory bonus = deposit.bonuses[i];
 
             uint256 amount = 
@@ -747,7 +751,7 @@ contract Subscription is Ownable, ReentrancyGuard {
             bonus.lockedAmount -= amount;
             locked += bonus.lockedAmount;
 
-            if(i+1 == len) {
+            if(i+1 == bonusesLength) {
                 timeLeft = 
                     bonus.releasePeriod * bonus.lockedAmount / bonus.total;
             }
