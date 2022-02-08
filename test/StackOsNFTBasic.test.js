@@ -90,7 +90,7 @@ describe("StackOS NFT Basic", function () {
     // await generationManager.setupDeploy2(
     //   owner.address, // fake market address
     //   DAO_FEE,
-    //   URI,
+    //   baseURI,
     //   REWARD_DISCOUNT
     // )
   });
@@ -127,7 +127,7 @@ describe("StackOS NFT Basic", function () {
     expect(await stackAutoDeployed.getMaxSupply()).to.be.equal(
       MAX_SUPPLY * (10000 + MAX_SUPPLY_GROWTH) / 10000
     );
-    await expect(generationManager.deployNextGenPreset()).to.be.reverted;
+    await expect(generationManager.autoDeployNextGeneration()).to.be.reverted;
   });
 
   it("Trigger auto deploy of the next generation 2", async function () {
@@ -151,7 +151,7 @@ describe("StackOS NFT Basic", function () {
     await expect(stackAutoDeployed.mint(1)).to.be.reverted;
 
     expect(await stackAutoDeployed.tokenURI(0)).to.be.equal(
-      "site.com"
+      baseURI + "2/0"
     );
     expect(await generationManager.count()).to.be.equal(
       oldGenerationsCount + 1
@@ -214,6 +214,19 @@ describe("StackOS NFT Basic", function () {
     await expect(
       stackOsNFTBasic.connect(joe).transferFrom(joe.address, owner.address, 0)
     ).to.be.revertedWith("Not whitelisted for transfers");
+  });
+
+  it("tokenURI function should work as expected", async () => {
+    expect(await stackOsNFTBasic.tokenURI(0)).to.be.equal(
+      baseURI + "1/0"
+    );
+    expect(await stackAutoDeployed.tokenURI(1)).to.be.equal(
+      baseURI + "2/1"
+    );
+    expect(await stackOsNFTBasicgen3.tokenURI(2)).to.be.equal(
+      baseURI + "4/2"
+    );
+    await expect(stackOsNFTBasicgen3.tokenURI(1337)).to.be.reverted;
   });
 
   it("Admin tried to withdraw before time lock expires.", async function () {

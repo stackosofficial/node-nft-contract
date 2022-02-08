@@ -376,7 +376,7 @@ contract Subscription is Ownable, ReentrancyGuard {
             currentPeriodId += 1;
             periods[currentPeriodId].endAt = block.timestamp + MONTH;
         }
-    }    
+    }
 
     /*
      *  @title Handle fee sent from minting

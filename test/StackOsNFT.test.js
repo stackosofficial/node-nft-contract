@@ -125,9 +125,6 @@ describe("StackOS NFT", function () {
     expect(await stackOsNFT.balanceOf(owner.address)).to.be.equal(
       winningTickets.length
     );  
-    expect(await stackOsNFT.tokenURI(0)).to.be.equal(
-      "site.com"
-    );
   });
   it("Partners can't mint", async function () {
     await expect(stackOsNFT.partnerMint(4)).to.be.revertedWith(
@@ -463,7 +460,7 @@ describe("Test transferTickets and transferFromLastGen", function () {
     expect(await stackAutoDeployed.getMaxSupply()).to.be.equal(
       MAX_SUPPLY * (10000 + MAX_SUPPLY_GROWTH) / 10000
     );
-    await expect(generationManager.deployNextGenPreset()).to.be.reverted;
+    await expect(generationManager.autoDeployNextGeneration()).to.be.reverted;
   });
   it("Revert EVM state", async function () {
     await ethers.provider.send("evm_revert", [snapshotId]);
@@ -576,6 +573,16 @@ describe("Test manual deploy before max supply reached", function () {
     expect(await stackOsNFT.totalSupply()).to.be.equal(
       await stackOsNFT.getMaxSupply()
     );
+  });
+
+  it("tokenURI function should work as expected", async () => {
+    expect(await stackOsNFT.tokenURI(0)).to.be.equal(
+      baseURI + "0/0"
+    );
+    expect(await stackOsNFT.tokenURI(1)).to.be.equal(
+      baseURI + "0/1"
+    );
+    await expect(stackOsNFT.tokenURI(1337)).to.be.reverted;
   });
 
   it("Revert EVM state", async function () {

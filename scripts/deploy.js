@@ -72,7 +72,7 @@ async function main() {
   // Token symbol
   SYMBOL = "SON";
   // Set uri for newly minted tokens
-  URI = "google.com";
+  baseURI = "https://stackos.com/";
   // Ticket price in STACK
   PRICE = parseEther("0.1");
   // Max amount of NFT in 1st generation
@@ -98,7 +98,7 @@ async function main() {
 
   /** 
    * You can add more partners, just copy-paste inner array and adjust parameters for each partner.
-   * Or remove that inner array for no whitelisted partners initially.
+   * Or comment out that inner array for no whitelisted partners initially.
    * 
    * Params
    * Address - address who will be allowed to mint
@@ -129,8 +129,8 @@ async function main() {
   SUBS_FEE_2 = 2000;
   // Mint fee percent for DAO
   DAO_FEE_2 = 500;
-  // Set uri for newly minted tokens
-  URI_2 = "google.com";
+  // Base uri
+  baseURI_2 = "https://stackos.com/";
   // How much to grow max supply in percents.
   // For example value of 25% will increase max supply from 100 to 125.
   MAX_SUPPLY_GROWTH = 2000;
@@ -294,7 +294,7 @@ async function main() {
         timeLock: TIMELOCK_2,
         royaltyAddress: royalty.address,
         market: marketProxy.address,
-        URI: URI_2
+        baseURI: baseURI_2
       }, { gasLimit: 1e6 })
     );
   } catch (error) {
@@ -317,7 +317,7 @@ async function main() {
     timeLock: TIMELOCK_2,
     royaltyAddress: royalty.address,
     market: marketProxy.address,
-    URI: URI_2
+    baseURI: baseURI_2
   }, { gasLimit: 1e6 });
 
   // Add 1st generation in GenerationManager
@@ -327,7 +327,7 @@ async function main() {
   await darkMatter.whitelist(marketProxy.address);
 
   // Additional settings for StackNFT
-  await stackOsNFT.setUri(URI);
+  await stackOsNFT.setBaseURI(baseURI);
   await stackOsNFT.adjustAddressSettings(
     generationManager.address,
     stableAcceptor.address,

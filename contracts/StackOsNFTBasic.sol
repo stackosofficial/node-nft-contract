@@ -1,7 +1,7 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
@@ -16,14 +16,14 @@ import "./Royalty.sol";
 
 contract StackOsNFTBasic is
     Whitelist,
-    ERC721,
-    ERC721URIStorage
+    ERC721
 {
     using Counters for Counters.Counter;
     using SafeMath for uint256;
+    using Strings for uint256;
 
     event SetPrice(uint256 _price);
-    event SetURI(string uri);
+    event SetBaseURI(string uri);
     event SetName(string name);
     event SetSymbol(string symbol);
     event AdjustAddressSettings(
@@ -64,7 +64,7 @@ contract StackOsNFTBasic is
     mapping(address => uint256) private totalMinted;
     mapping(address => uint256) private lastMintAt;
 
-    string private URI;
+    string private baseURI;
 
     bool private initialized;
 
@@ -115,10 +115,10 @@ contract StackOsNFTBasic is
         emit SetPrice(_price);
     }
 
-    // Set URI that is used for new tokens
-    function setUri(string memory _uri) external onlyOwner {
-        URI = _uri;
-        emit SetURI(_uri);
+    // Set baseURI that is used for new tokens
+    function setBaseURI(string memory _uri) external onlyOwner {
+        baseURI = _uri;
+        emit SetBaseURI(_uri);
     }
 
     /*
@@ -199,8 +199,8 @@ contract StackOsNFTBasic is
         emit SetFees(_subs, _dao);
     }
 
-    function _baseURI() internal pure override returns (string memory) {
-        return "";
+    function _baseURI() internal view override returns (string memory) {
+        return baseURI;
     }
 
     function exists(uint256 tokenId) public view returns (bool) {
@@ -459,13 +459,12 @@ contract StackOsNFTBasic is
         _tokenIdCounter.increment();
         totalSupply += 1;
         _safeMint(_address, _current);
-        _setTokenURI(_current, URI);
 
         if(
             totalSupply == maxSupply && 
             generations.getIDByAddress(address(this)) == generations.count() - 1
         ) {
-            generations.deployNextGenPreset();
+            generations.autoDeployNextGeneration();
         }
     }
  
@@ -505,22 +504,33 @@ contract StackOsNFTBasic is
         super._transfer(from, to, tokenId);
     }
 
-    // The following functions are overrides required by Solidity.
-
     function _burn(uint256 tokenId)
         internal
-        override(ERC721, ERC721URIStorage)
+        override(ERC721)
     {
         super._burn(tokenId);
     }
 
-    function tokenURI(uint256 tokenId)
-        public
-        view
-        override(ERC721, ERC721URIStorage)
-        returns (string memory)
+    /**
+     * @dev Returns URI in a form of "baseURI + generationId/tokenId".
+     * @dev BaseURI should have slash at the end.
+     */
+    function tokenURI(uint256 tokenId) 
+        public 
+        view 
+        virtual 
+        override(ERC721)
+        returns (string memory) 
     {
-        return super.tokenURI(tokenId);
+        require(_exists(tokenId), "URI query for nonexistent token");
+
+        string memory baseURI_ = _baseURI();
+        string memory generationId = 
+            generations.getIDByAddress(address(this)).toString();
+
+        return bytes(baseURI_).length > 0 ?
+            string(abi.encodePacked(baseURI_, generationId, "/", tokenId.toString())) :
+            "";
     }
 
     /*

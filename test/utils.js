@@ -24,11 +24,11 @@ async function deployStackOSBasic() {
     ROYALTY_ADDRESS,
   ]
   // get address with callStatic, the call will not change the state
-  let stackOsNFTBasic = await generationManager.callStatic.deployNextGen(
+  let stackOsNFTBasic = await generationManager.callStatic.deployNextGenerationManually(
     ...args
   );
   // actual deploy
-  await generationManager.deployNextGen(
+  await generationManager.deployNextGenerationManually(
     ...args
   );
   stackOsNFTBasic = await ethers.getContractAt(
@@ -64,7 +64,7 @@ async function deployStackOS() {
     exchange.address
   );
   await stackOsNFT.whitelist(darkMatter.address);
-  await stackOsNFT.setUri(URI);
+  await stackOsNFT.setBaseURI(baseURI);
   return stackOsNFT;
 }
 
@@ -239,7 +239,7 @@ async function setup() {
     "0xf86195cf7690c55907b2b611ebb7343a6f649bff128701cc542f0569e2c549da";
   SUBS_FEE = 1000;
   DAO_FEE = 1000;
-  URI = "site.com";
+  baseURI = "https://site.com/";
   TIMELOCK = 6442850;
   MAX_SUPPLY_GROWTH = 2000;
   TRANSFER_DISCOUNT = 2000;
@@ -269,7 +269,7 @@ async function setupDeployment() {
       timeLock: TIMELOCK,
       royaltyAddress: royalty.address,
       market: owner.address, // fake market address
-      URI: URI,
+      baseURI: baseURI,
     });
 }
 

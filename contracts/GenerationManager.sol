@@ -36,7 +36,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         uint256 timeLock;
         address royaltyAddress;
         address market;
-        string URI;
+        string baseURI;
     }
 
     address private stableAcceptor;
@@ -94,7 +94,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
      * @dev Could only be invoked by the last StackOsNFTBasic generation.
      * @dev Generation id is appended to the name. 
      */
-    function deployNextGenPreset() 
+    function autoDeployNextGeneration() 
         public 
         nonReentrant
         returns 
@@ -140,7 +140,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         stack.adjustAddressSettings(dao);
         stack.whitelist(address(deployment.darkMatter));
         stack.whitelist(address(deployment.market));
-        stack.setUri(deployment.URI);
+        stack.setBaseURI(deployment.baseURI);
         stack.transferOwnership(Ownable(msg.sender).owner());
         emit NextGenerationDeploy(address(stack), msg.sender, block.timestamp);
         return IStackOsNFTBasic(address(stack));
@@ -171,7 +171,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
      * @dev adjustAddressSettings must be called in manager prior to calling this.
      */
 
-    function deployNextGen(
+    function deployNextGenerationManually(
         string memory _name,
         string memory _symbol,
         address _stackToken,
@@ -216,7 +216,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         stack.adjustAddressSettings(dao);
         stack.whitelist(address(deployment.darkMatter));
         stack.whitelist(address(deployment.market));
-        stack.setUri(deployment.URI);
+        stack.setBaseURI(deployment.baseURI);
         stack.transferOwnership(msg.sender);
         emit NextGenerationDeploy(address(stack), msg.sender, block.timestamp);
         return IStackOsNFTBasic(address(stack));
