@@ -12,54 +12,54 @@ async function main() {
 
   // This address will be owner of all contracts plus market proxy owner
   // Leave empty if you want the deployer to be owner, you will be able to transfer ownership later
-  OWNERSHIP = "";
+  OWNERSHIP = "0xb08Dfb0Ea68B088B4C379F530D136bD55a27C431";
 
   // Stablecoins supported by the protocol
   STABLES = [
-    "0xeb8f08a975Ab53E34D8a0330E0D34de942C95926"
+    "0xc2132d05d31c914a87c6611c10748aeb04b58e8f"
   ]
 
   // Stack token address
-  STACK_TOKEN = "0x641f40c85e070b92ce14b25c21609a68cd2d8a53";
+  STACK_TOKEN = "0x980111ae1b84e50222c8843e3a7a038f36fecd2b";
 
   // Required deposit amount of StackNFTs to be able to mint DarkMatter
   DARK_MATTER_PRICE = 5;
 
   // IUniswapV2Router02 compatible router
-  ROUTER_ADDRESS = "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D";
+  ROUTER_ADDRESS = "0xA102072A4C07F06EC3B4900FDC4C7B80b6c57429";
   // Address to receive tax of early withdraw subscription
-  TAX_ADDRESS = "0xF90fF6d484331399f4eAa13f73D03b8B18eA1373";
+  TAX_ADDRESS = "0x2966bC0d207A8f1E4Da3c902db044C505e13b41E";
   // Subscription price in USD, should be 18 decimals!
-  SUBSCRIPTION_PRICE = parseEther("100.0");
+  SUBSCRIPTION_PRICE = parseEther("1.0");
   // Subscription bonus percent
   BONUS_PECENT = 8000;
   // Subscription tax reduction amount each month
   // 25% means: 1 month withdraw 75% tax, 2 month 50%, 3 month 25%, 4 month 0%
   TAX_REDUCTION_AMOUNT = 2500;
   // Subscription forgiveness period in seconds
-  FORGIVENESS_PERIOD = 604800;
+  FORGIVENESS_PERIOD = 500;
   // Subscription bonus drip period in seconds
-  DRIP_PERIOD = 31536000;
+  DRIP_PERIOD = 3600;
 
   // Params for subscription contract that is locked to first generation tokens
 
   // Address to receive tax of early withdraw subscription
-  TAX_ADDRESS_2 = "0xF90fF6d484331399f4eAa13f73D03b8B18eA1373";
+  TAX_ADDRESS_2 = "0x2966bC0d207A8f1E4Da3c902db044C505e13b41E";
   // Subscription min price in USD, should be 18 decimals!
-  SUBSCRIPTION_PRICE_2 = parseEther("100.0");
+  SUBSCRIPTION_PRICE_2 = parseEther("1.0");
   // Subscription max price in USD, should be 18 decimals!
-  SUBSCRIPTION_MAX_PRICE_2 = parseEther("5000.0");
+  SUBSCRIPTION_MAX_PRICE_2 = parseEther("5.0");
   // Subscription bonus percent
   BONUS_PECENT_2 = 8000;
   // Subscription tax reduction
   TAX_REDUCTION_AMOUNT_2 = 2500;
   // Subscription forgiveness period in seconds
-  FORGIVENESS_PERIOD_2 = 604800;
+  FORGIVENESS_PERIOD_2 = 500;
   // Subscription bonus drip period in seconds
-  DRIP_PERIOD_2 = 31536000;
+  DRIP_PERIOD_2 = 3600;
   
   // Market and minting dao fee address
-  DAO_ADDRESS = "0xF90fF6d484331399f4eAa13f73D03b8B18eA1373";
+  DAO_ADDRESS = "0x2966bC0d207A8f1E4Da3c902db044C505e13b41E";
   // Market dao fee percent
   DAO_FEE = 1000;
   // Market royalty distribution fee percent
@@ -73,22 +73,22 @@ async function main() {
   SYMBOL = "SON";
   // Set uri for newly minted tokens
   URI = "google.com";
-  // Mint price in STACK
+  // Ticket price in STACK
   PRICE = parseEther("0.1");
   // Max amount of NFT in 1st generation
-  MAX_SUPPLY = 100;
+  MAX_SUPPLY = 10;
   // Lottery prizes amount
-  PRIZES = 60;
+  PRIZES = 6;
   // Auctioned NFTs amount
-  AUCTIONED_NFTS = 20;
+  AUCTIONED_NFTS = 2;
   // Timelock period for admin withdraw
   // If you set this to 60, then admin can withdraw after 60 seconds after deployment
-  TIMELOCK = 6442850;
+  TIMELOCK = 180;
   // For chainlink VRF.
   KEY_HASH =
-    "0x2ed0feb3e7fd2022120aa84fab1945545a9f2ffc9076fd6156fa96eaff4c1311";
-  VRF_COORDINATOR = "0xb3dCcb4Cf7a26f6cf6B120Cf5A73875B7BBc655B";
-  LINK_TOKEN = "0x01BE23585060835E02B77ef475b0Cc51aA1e0709";
+    "0xf86195cf7690c55907b2b611ebb7343a6f649bff128701cc542f0569e2c549da";
+  VRF_COORDINATOR = "0x3d2341ADb2D31f1c5530cDC622016af293177AE0";
+  LINK_TOKEN = "0xb0897686c545045aFc77CF20eC7A532E3120E0F1";
 
   // Set to true if you want partners to be able to mint for themselves (can be started later, after deployment)
   START_PARTNER_SALES = false;
@@ -109,13 +109,13 @@ async function main() {
   ];
   
   // Address to send fees when royalties received by Royalty contract
-  DEPOSIT_FEE_ADDRESS = "0xF90fF6d484331399f4eAa13f73D03b8B18eA1373";
+  DEPOSIT_FEE_ADDRESS = "0x2966bC0d207A8f1E4Da3c902db044C505e13b41E";
   // Amount of eth required to allow new cycle start (Royalty)
-  MIN_ETH_PER_CYCLE = parseEther("1");
+  MIN_ETH_PER_CYCLE = parseEther("0.1");
   // Fee percent to take when royalties received by Royalty contract
   DEPOSIT_FEE_PERCENT = 1000;
   // Set weth address to be able to claim royalty in WETH on matic network.
-  WETH_ADDRESS = "0xc778417E063141139Fce010982780140Aa0cD5Ab";
+  WETH_ADDRESS = "0x4c28f48448720e9000907BC2611F73022fdcE1fA";
 
   // Settings for auto deploy StackNFTBasic (generations after first)
 
@@ -124,7 +124,7 @@ async function main() {
   // Token symbol
   SYMBOL_2 = "STACK NFT";
   // Mint price in USD
-  PRICE_2 = parseEther("100");
+  PRICE_2 = parseEther("2");
   // Mint fee percent for active subs
   SUBS_FEE_2 = 2000;
   // Mint fee percent for DAO
@@ -137,7 +137,7 @@ async function main() {
   // Transfer discount to mint NFTs (when transfer unwon tickets)
   TRANSFER_DISCOUNT_2 = 2000;
   // Timelock period for admin withdraw
-  TIMELOCK_2 = 6442850;
+  TIMELOCK_2 = 180;
   // Royalty & subscription rewards discount to mint NFTs
   REWARD_DISCOUNT = 2000;
 
@@ -276,6 +276,30 @@ async function main() {
     DAO_ADDRESS,
   );
 
+  try {
+    console.log("estimateGas.setupDeploy",   
+      await generationManager.estimateGas.setupDeploy({
+        name: NAME_2,
+        symbol: SYMBOL_2,
+        stackToken: STACK_TOKEN,
+        darkMatter: darkMatter.address,
+        subscription: subscription.address,
+        sub0: sub0.address,
+        mintPrice: PRICE_2,
+        subsFee: SUBS_FEE_2,
+        daoFee: DAO_FEE_2,
+        maxSupplyGrowthPercent: MAX_SUPPLY_GROWTH,
+        transferDiscount: TRANSFER_DISCOUNT_2,
+        rewardDiscount: REWARD_DISCOUNT,
+        timeLock: TIMELOCK_2,
+        royaltyAddress: royalty.address,
+        market: marketProxy.address,
+        URI: URI_2
+      }, { gasLimit: 1e6 })
+    );
+  } catch (error) {
+    console.log("failed to estimateGas.setupDeploy");
+  }
   // Settings for auto deploy
   await generationManager.setupDeploy({
     name: NAME_2,
@@ -294,7 +318,7 @@ async function main() {
     royaltyAddress: royalty.address,
     market: marketProxy.address,
     URI: URI_2
-  }, { gasLimit: 5e5 });
+  }, { gasLimit: 1e6 });
 
   // Add 1st generation in GenerationManager
   await generationManager.add(stackOsNFT.address);
