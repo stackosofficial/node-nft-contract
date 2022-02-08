@@ -132,14 +132,14 @@ contract Royalty is Ownable, ReentrancyGuard {
 
     function onGenerationAdded(
         uint256 generationId, 
-        IStackOsNFT stack
+        address stack
     ) external {
         require(address(msg.sender) == address(generations));
         if(generationId == 0) {
-            maxSupplys[generationId] = stack.getMaxSupply();
+            maxSupplys[generationId] = IStackOsNFT(stack).getMaxSupply();
         } else {
             maxSupplys[generationId] =
-                maxSupplys[generationId - 1] + stack.getMaxSupply();
+                maxSupplys[generationId - 1] + IStackOsNFT(stack).getMaxSupply();
         }
     }
 

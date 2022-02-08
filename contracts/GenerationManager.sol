@@ -134,7 +134,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
             deployment.transferDiscount,
             deployment.timeLock
         );
-        add(IStackOsNFT(address(stack)));
+        add(address(stack));
         stack.setFees(deployment.subsFee, deployment.daoFee);
         stack.setRewardDiscount(deployment.rewardDiscount);
         stack.adjustAddressSettings(dao);
@@ -155,14 +155,14 @@ contract GenerationManager is Ownable, ReentrancyGuard {
      * @dev Could only be invoked by StackNFT contract.
      * @dev Address should be unique.
      */
-    function add(IStackOsNFT _stackOS) public {
+    function add(address _stackOS) public {
         require(owner() == _msgSender() || isAdded(_msgSender()));
         require(address(_stackOS) != address(0)); // forbid 0 address
         require(isAdded(address(_stackOS)) == false); // forbid duplicates
         ids[address(_stackOS)] = generations.length;
         Royalty(payable(deployment.royaltyAddress))
             .onGenerationAdded(generations.length, _stackOS);
-        generations.push(_stackOS);
+        generations.push(IStackOsNFT(_stackOS));
     }
 
     /*
@@ -210,7 +210,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
             _transferDiscount,
             _timeLock
         );
-        add(IStackOsNFT(address(stack)));
+        add(address(stack));
         stack.setFees(deployment.subsFee, deployment.daoFee);
         stack.setRewardDiscount(deployment.rewardDiscount);
         stack.adjustAddressSettings(dao);

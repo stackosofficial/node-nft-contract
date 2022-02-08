@@ -128,6 +128,8 @@ module.exports = {
       url: process.env.MUMBAI_URL || "",
       accounts:
         process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+      // gasPrice: 3e9,
+      // gas: 2100000
     },
   },
   mocha: {
