@@ -367,7 +367,8 @@ describe("Test transferTickets and transferFromLastGen", function () {
   });
 
   it("Deploy stackOsNFTBasic", async function () {
-    PRICE = parseEther("0.016");
+    PRICE = parseEther("0.016"); 
+    await setupDeployment({price: PRICE});
     stackOsNFTBasic = await deployStackOSBasic();
   });
 

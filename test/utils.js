@@ -11,17 +11,7 @@ async function deployStackOSBasic() {
   SUBSCRIPTION = subscription.address;
 
   let args = [
-    NAME,
-    SYMBOL,
-    STACK_TOKEN,
-    darkMatter.address,
-    subscription.address,
-    sub0.address,
-    PRICE,
-    MAX_SUPPLY,
-    TRANSFER_DISCOUNT,
-    TIMELOCK,
-    ROYALTY_ADDRESS,
+    MAX_SUPPLY
   ]
   // get address with callStatic, the call will not change the state
   let stackOsNFTBasic = await generationManager.callStatic.deployNextGenerationManually(
@@ -252,25 +242,28 @@ async function setup() {
 
 }
 
-async function setupDeployment() {
-    await generationManager.setupDeploy({
-      name: NAME,
-      symbol: SYMBOL,
-      stackToken: STACK_TOKEN,
-      darkMatter: DARK_MATTER_ADDRESS,
-      subscription: subscription.address,
-      sub0: sub0.address,
-      mintPrice: PRICE,
-      subsFee: SUBS_FEE,
-      daoFee: DAO_FEE,
-      maxSupplyGrowthPercent: MAX_SUPPLY_GROWTH,
-      transferDiscount: TRANSFER_DISCOUNT,
-      rewardDiscount: REWARD_DISCOUNT,
-      timeLock: TIMELOCK,
-      royaltyAddress: royalty.address,
-      market: owner.address, // fake market address
-      baseURI: baseURI,
-    });
+async function setupDeployment(override = {}) {
+  let settings = {
+    name: NAME,
+    symbol: SYMBOL,
+    stackToken: STACK_TOKEN,
+    darkMatter: DARK_MATTER_ADDRESS,
+    subscription: subscription.address,
+    sub0: sub0.address,
+    mintPrice: PRICE,
+    subsFee: SUBS_FEE,
+    daoFee: DAO_FEE,
+    maxSupplyGrowthPercent: MAX_SUPPLY_GROWTH,
+    transferDiscount: TRANSFER_DISCOUNT,
+    rewardDiscount: REWARD_DISCOUNT,
+    timeLock: TIMELOCK,
+    royaltyAddress: royalty.address,
+    market: owner.address, // fake market address
+    baseURI: baseURI,
+  };
+  await generationManager.setupDeploy(
+    Object.assign(override, settings)
+  );
 }
 
 async function setupLiquidity() {

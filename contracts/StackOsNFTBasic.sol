@@ -49,7 +49,6 @@ contract StackOsNFTBasic is
     Exchange private exchange;
     address private daoAddress;
 
-    uint256 public timeLock;
     uint256 public rewardDiscount;
     uint256 private maxSupply;
     uint256 public totalSupply;
@@ -86,8 +85,7 @@ contract StackOsNFTBasic is
         address _exchange,
         uint256 _mintPrice,
         uint256 _maxSupply,
-        uint256 _transferDiscount,
-        uint256 _timeLock
+        uint256 _transferDiscount
     ) external onlyOwner {
         require(initialized == false);
         initialized = true;
@@ -103,7 +101,6 @@ contract StackOsNFTBasic is
         mintPrice = _mintPrice;
         maxSupply = _maxSupply;
         transferDiscount = _transferDiscount;
-        timeLock = block.timestamp + _timeLock;
     }
 
     /**

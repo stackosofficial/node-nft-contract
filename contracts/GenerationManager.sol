@@ -33,7 +33,6 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         uint256 maxSupplyGrowthPercent;
         uint256 transferDiscount;
         uint256 rewardDiscount;
-        uint256 timeLock;
         address royaltyAddress;
         address market;
         string baseURI;
@@ -131,8 +130,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
                 get(getIDByAddress(msg.sender)).getMaxSupply() * 
                 (deployment.maxSupplyGrowthPercent + 10000) / 10000,
 
-            deployment.transferDiscount,
-            deployment.timeLock
+            deployment.transferDiscount
         );
         add(address(stack));
         stack.setFees(deployment.subsFee, deployment.daoFee);
@@ -165,24 +163,14 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         generations.push(IStackOsNFT(_stackOS));
     }
 
-    /*
-     * @title Deploy new StackOsNFTBasic manually.
-     * @dev Deployment structure must be filled prior to calling this.
-     * @dev adjustAddressSettings must be called in manager prior to calling this.
+    /**
+     * @notice Deploy new StackOsNFTBasic manually.
+     * @notice Deployment structure must be filled before deploy.
+     * @notice `adjustAddressSettings` must be called in GenerationManager before deploy. 
+     * @param _maxSupply Exact max supply for new NFT contract.
      */
-
     function deployNextGenerationManually(
-        string memory _name,
-        string memory _symbol,
-        address _stackToken,
-        address _darkMatter,
-        address _subscription,
-        address _sub0,
-        uint256 _mintPrice,
-        uint256 _maxSupply,
-        uint256 _transferDiscount,
-        uint256 _timeLock,
-        address _royaltyAddress
+        uint256 _maxSupply
     ) 
         public 
         onlyOwner 
@@ -195,20 +183,25 @@ contract GenerationManager is Ownable, ReentrancyGuard {
                 new StackOsNFTBasic()
             )
         );
-        stack.setName(_name);
-        stack.setSymbol(_symbol);
+        stack.setName(
+            string(abi.encodePacked(
+                deployment.name,
+                " ",
+                uint256(count() + 1).toString()
+            ))
+        );
+        stack.setSymbol(deployment.symbol);
         stack.initialize(
-            _stackToken,
-            _darkMatter,
-            _subscription,
-            _sub0,
-            _royaltyAddress,
+            deployment.stackToken,
+            deployment.darkMatter,
+            deployment.subscription,
+            deployment.sub0,
+            deployment.royaltyAddress,
             stableAcceptor,
             exchange,
-            _mintPrice,
+            deployment.mintPrice,
             _maxSupply,
-            _transferDiscount,
-            _timeLock
+            deployment.transferDiscount
         );
         add(address(stack));
         stack.setFees(deployment.subsFee, deployment.daoFee);
