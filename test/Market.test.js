@@ -61,6 +61,7 @@ describe("Market", function () {
   });
 
   it("Deposit NFTs", async function () {
+    await darkMatter.activate();
     await stackOsNFT.setApprovalForAll(darkMatter.address, true);
     await darkMatter.deposit(0, [0, 1, 2]);
     expect(await darkMatter.balanceOf(owner.address)).to.be.equal(0);

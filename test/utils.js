@@ -114,9 +114,9 @@ async function setup() {
   console.log(darkMatter.address);
 
   STABLES = [
-    "0x2f6f107D4Afd43c451B74DA41A6DDA53D2Bf24B1",
-    "0xb9b0c96e4E7181926D2A7ed331C9C346dfa59b4D",
-    "0x905Ad472d7eeB94ed1Fc29D8ff4B53FD4D5a5Eb4",
+    usdt.address,
+    usdc.address,
+    dai.address,
   ]
   const StableCoinAcceptor = await ethers.getContractFactory("StableCoinAcceptor");
   stableAcceptor = await StableCoinAcceptor.deploy(

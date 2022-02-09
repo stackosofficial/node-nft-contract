@@ -31,6 +31,7 @@ describe("DarkMatter doesn't corrupt Royalty contract logic", function () {
     await usdt.approve(stackOsNFT.address, parseEther("10.0"));
     await stackOsNFT.partnerMint(5);
 
+    await darkMatter.activate();
     await stackOsNFT.setApprovalForAll(darkMatter.address, true);
     await darkMatter.deposit(0, [0, 1, 2, 3, 4]);
     await darkMatter.mint();

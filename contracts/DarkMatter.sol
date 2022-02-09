@@ -21,6 +21,10 @@ contract DarkMatter is Whitelist, ERC721, ReentrancyGuard {
     Counters.Counter private _tokenIdCounter;
     
     GenerationManager private immutable generations;
+    
+    // number of StackNFTs that must be deposited in order to be able to mint a DarkMatter.
+    uint256 immutable mintPrice; 
+    bool isActive; 
 
     // total amount of NFT deposited from any generation
     mapping(address => uint256) private deposits; 
@@ -39,15 +43,17 @@ contract DarkMatter is Whitelist, ERC721, ReentrancyGuard {
 
     // DarkMatter id => generation => StackNFT ids 
     mapping(uint256 => mapping(uint256 => uint256[])) private darkMatterToStack; 
-    
-    // number of StackNFTs that must be deposited in order to be able to mint a DarkMatter.
-    uint256 immutable mintPrice; 
+
 
     constructor(GenerationManager _generations, uint256 _mintPrice)
         ERC721("DarkMatter", "DM")
     {
         generations = _generations;
         mintPrice = _mintPrice;
+    }
+
+    function activate() external onlyOwner {
+        isActive = true;
     }
 
     /*
@@ -132,6 +138,7 @@ contract DarkMatter is Whitelist, ERC721, ReentrancyGuard {
         external
         nonReentrant
     {
+        require(isActive, "Inactive");
         require(generationId < generations.count(), "Generation doesn't exist");
         IStackOsNFT stackNFT = generations.get(generationId);
 

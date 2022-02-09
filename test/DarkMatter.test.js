@@ -40,6 +40,16 @@ describe("DarkMatter", function () {
     await stackOsNFTgen2.partnerMint(2);
   });
 
+  it("Unable to deposit when inactive", async function () {
+    await expect(darkMatter.deposit(0, [0, 1, 2])).to.be.revertedWith(
+      "Inactive"
+    );
+  });
+
+  it("Activate DarkMatter contract", async function () {
+    await darkMatter.activate();
+  });
+
   it("Deposit NFTs", async function () {
     await stackOsNFT.setApprovalForAll(darkMatter.address, true);
     await darkMatter.deposit(0, [0, 1, 2]);

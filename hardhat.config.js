@@ -105,7 +105,7 @@ module.exports = {
   },
   networks: {
     localhost: {
-      timeout: 600000
+      timeout: 600000,
     },
     hardhat: {
         forking: {
