@@ -23,25 +23,6 @@ describe("Market", function () {
     await setupLiquidity();
   });
 
-  it("Deploy Market", async function () {
-    DAO_ADDRESS = dao.address;
-    DAO_FEE = 1000;
-    ROYALTY_FEE = 1000;
-    const Market = await ethers.getContractFactory("Market");
-    market = await upgrades.deployProxy(
-      Market,
-      [
-        generationManager.address,
-        darkMatter.address,
-        DAO_ADDRESS,
-        royalty.address,
-        DAO_FEE,
-        ROYALTY_FEE
-      ]
-    );
-    await market.deployed();
-  });
-
   it("Deploy StackOS NFT generation 2", async function () {
     stackOsNFTgen2 = await deployStackOSBasic();
   });
@@ -61,6 +42,7 @@ describe("Market", function () {
   });
 
   it("Deposit NFTs", async function () {
+    await darkMatter.activate();
     await stackOsNFT.setApprovalForAll(darkMatter.address, true);
     await darkMatter.deposit(0, [0, 1, 2]);
     expect(await darkMatter.balanceOf(owner.address)).to.be.equal(0);
@@ -192,7 +174,6 @@ describe("Market", function () {
 
     /*  
         Scenario, 2 generations
-        Delegate all tokens
         Trade gen 1, fail to claim royalty by gen 2
         Trade gen 2, claim royalty by gen 1
     */
@@ -221,11 +202,9 @@ describe("Market", function () {
 
     // should fail to claim 
     await expect(royalty.claim(1, [10], [0], [0])).to.be.revertedWith("Bad gen id");
-    // 3rd cycle start
+    // cycle 3rd start
     // claim by gen 1 the gen 2 royalties
-    await expect(() => royalty.claim(0, [10], [1], [0, 1]))
-      .to.changeEtherBalance(owner, 0);
-
+    await royalty.claim(0, [10], [0], [0, 1]);
   });
 
   it("Revert EVM state", async function () {

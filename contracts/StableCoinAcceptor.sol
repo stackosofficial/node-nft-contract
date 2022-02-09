@@ -20,11 +20,10 @@ contract StableCoinAcceptor {
         stablecoins = _stables;
     }
 
-    /*
-     * @title Whether provided stablecoin is supported.
-     * @param Address to lookup.
+    /**
+     * @notice Returns whether provided stablecoin is supported.
+     * @param _address Address to lookup.
      */
-
     function supportsCoin(IERC20 _address) public view returns (bool) {
         uint256 len = stablecoins.length;
         for(uint256 i; i < len; i++) {

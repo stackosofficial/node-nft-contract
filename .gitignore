@@ -6,3 +6,4 @@ artifacts
 package-lock.json
 .DS_Store
 .openzeppelin/unknown-*.json
+yarn-error.log

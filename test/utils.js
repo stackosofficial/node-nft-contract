@@ -11,24 +11,14 @@ async function deployStackOSBasic() {
   SUBSCRIPTION = subscription.address;
 
   let args = [
-    NAME,
-    SYMBOL,
-    STACK_TOKEN,
-    darkMatter.address,
-    subscription.address,
-    sub0.address,
-    PRICE,
-    MAX_SUPPLY,
-    TRANSFER_DISCOUNT,
-    TIMELOCK,
-    ROYALTY_ADDRESS,
+    MAX_SUPPLY
   ]
   // get address with callStatic, the call will not change the state
-  let stackOsNFTBasic = await generationManager.callStatic.deployNextGen(
+  let stackOsNFTBasic = await generationManager.callStatic.deployNextGenerationManually(
     ...args
   );
   // actual deploy
-  await generationManager.deployNextGen(
+  await generationManager.deployNextGenerationManually(
     ...args
   );
   stackOsNFTBasic = await ethers.getContractAt(
@@ -64,7 +54,7 @@ async function deployStackOS() {
     exchange.address
   );
   await stackOsNFT.whitelist(darkMatter.address);
-  await stackOsNFT.setUri(URI);
+  await stackOsNFT.setBaseURI(baseURI);
   return stackOsNFT;
 }
 
@@ -114,9 +104,9 @@ async function setup() {
   console.log(darkMatter.address);
 
   STABLES = [
-    "0x2f6f107D4Afd43c451B74DA41A6DDA53D2Bf24B1",
-    "0xb9b0c96e4E7181926D2A7ed331C9C346dfa59b4D",
-    "0x905Ad472d7eeB94ed1Fc29D8ff4B53FD4D5a5Eb4",
+    usdt.address,
+    usdc.address,
+    dai.address,
   ]
   const StableCoinAcceptor = await ethers.getContractFactory("StableCoinAcceptor");
   stableAcceptor = await StableCoinAcceptor.deploy(
@@ -206,7 +196,7 @@ async function setup() {
 
 
   DEPOSIT_FEE_ADDRESS = bank.address;
-  MIN_CYCLE_ETHER = parseEther("1");
+  MIN_ETH_PER_CYCLE = parseEther("1");
   DEPOSIT_FEE_PERCENT = 1000;
 
   const Royalty = await ethers.getContractFactory("Royalty");
@@ -216,7 +206,7 @@ async function setup() {
     exchange.address,
     DEPOSIT_FEE_ADDRESS,
     stackToken.address,
-    MIN_CYCLE_ETHER
+    MIN_ETH_PER_CYCLE
   );
   await royalty.deployed();
   ROYALTY_ADDRESS = royalty.address;
@@ -224,6 +214,22 @@ async function setup() {
   await royalty.setWETH(weth.address);
   console.log("royalty", royalty.address);
 
+  DAO_ADDRESS = (await hre.ethers.getSigners())[8].address;
+  DAO_FEE = 1000;
+  ROYALTY_FEE = 1000;
+  const Market = await ethers.getContractFactory("Market");
+  market = await upgrades.deployProxy(
+    Market,
+    [
+      generationManager.address,
+      darkMatter.address,
+      DAO_ADDRESS,
+      royalty.address,
+      DAO_FEE,
+      ROYALTY_FEE
+    ]
+  );
+  await market.deployed();
   
   NAME = "STACK OS NFT";
   SYMBOL = "SON";
@@ -239,7 +245,7 @@ async function setup() {
     "0xf86195cf7690c55907b2b611ebb7343a6f649bff128701cc542f0569e2c549da";
   SUBS_FEE = 1000;
   DAO_FEE = 1000;
-  URI = "site.com";
+  baseURI = "https://site.com/";
   TIMELOCK = 6442850;
   MAX_SUPPLY_GROWTH = 2000;
   TRANSFER_DISCOUNT = 2000;
@@ -252,25 +258,28 @@ async function setup() {
 
 }
 
-async function setupDeployment() {
-    await generationManager.setupDeploy({
-      name: NAME,
-      symbol: SYMBOL,
-      stackToken: STACK_TOKEN,
-      darkMatter: DARK_MATTER_ADDRESS,
-      subscription: subscription.address,
-      sub0: sub0.address,
-      mintPrice: PRICE,
-      subsFee: SUBS_FEE,
-      daoFee: DAO_FEE,
-      maxSupplyGrowthPercent: MAX_SUPPLY_GROWTH,
-      transferDiscount: TRANSFER_DISCOUNT,
-      rewardDiscount: REWARD_DISCOUNT,
-      timeLock: TIMELOCK,
-      royaltyAddress: royalty.address,
-      market: owner.address, // fake market address
-      URI: URI,
-    });
+async function setupDeployment(override = {}) {
+  let settings = {
+    name: NAME,
+    symbol: SYMBOL,
+    stackToken: STACK_TOKEN,
+    darkMatter: DARK_MATTER_ADDRESS,
+    subscription: subscription.address,
+    sub0: sub0.address,
+    mintPrice: PRICE,
+    subsFee: SUBS_FEE,
+    daoFee: DAO_FEE,
+    maxSupplyGrowthPercent: MAX_SUPPLY_GROWTH,
+    transferDiscount: TRANSFER_DISCOUNT,
+    rewardDiscount: REWARD_DISCOUNT,
+    timeLock: TIMELOCK,
+    royaltyAddress: royalty.address,
+    market: owner.address, // fake market address
+    baseURI: baseURI,
+  };
+  await generationManager.setupDeploy(
+    Object.assign(override, settings)
+  );
 }
 
 async function setupLiquidity() {

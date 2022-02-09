@@ -1,7 +1,7 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
@@ -16,14 +16,14 @@ import "./Royalty.sol";
 
 contract StackOsNFTBasic is
     Whitelist,
-    ERC721,
-    ERC721URIStorage
+    ERC721
 {
     using Counters for Counters.Counter;
     using SafeMath for uint256;
+    using Strings for uint256;
 
     event SetPrice(uint256 _price);
-    event SetURI(string uri);
+    event SetBaseURI(string uri);
     event SetName(string name);
     event SetSymbol(string symbol);
     event AdjustAddressSettings(
@@ -49,8 +49,6 @@ contract StackOsNFTBasic is
     Exchange private exchange;
     address private daoAddress;
 
-    uint256 public timeLock;
-    uint256 public adminWithdrawableAmount;
     uint256 public rewardDiscount;
     uint256 private maxSupply;
     uint256 public totalSupply;
@@ -64,7 +62,7 @@ contract StackOsNFTBasic is
     mapping(address => uint256) private totalMinted;
     mapping(address => uint256) private lastMintAt;
 
-    string private URI;
+    string private baseURI;
 
     bool private initialized;
 
@@ -87,8 +85,7 @@ contract StackOsNFTBasic is
         address _exchange,
         uint256 _mintPrice,
         uint256 _maxSupply,
-        uint256 _transferDiscount,
-        uint256 _timeLock
+        uint256 _transferDiscount
     ) external onlyOwner {
         require(initialized == false);
         initialized = true;
@@ -104,7 +101,6 @@ contract StackOsNFTBasic is
         mintPrice = _mintPrice;
         maxSupply = _maxSupply;
         transferDiscount = _transferDiscount;
-        timeLock = block.timestamp + _timeLock;
     }
 
     /**
@@ -115,10 +111,10 @@ contract StackOsNFTBasic is
         emit SetPrice(_price);
     }
 
-    // Set URI that is used for new tokens
-    function setUri(string memory _uri) external onlyOwner {
-        URI = _uri;
-        emit SetURI(_uri);
+    // Set baseURI that is used for new tokens
+    function setBaseURI(string memory _uri) external onlyOwner {
+        baseURI = _uri;
+        emit SetBaseURI(_uri);
     }
 
     /*
@@ -199,8 +195,8 @@ contract StackOsNFTBasic is
         emit SetFees(_subs, _dao);
     }
 
-    function _baseURI() internal pure override returns (string memory) {
-        return "";
+    function _baseURI() internal view override returns (string memory) {
+        return baseURI;
     }
 
     function exists(uint256 tokenId) public view returns (bool) {
@@ -248,6 +244,7 @@ contract StackOsNFTBasic is
 
         ticketAmount = clampToMaxSupply(ticketAmount);
 
+
         uint256 usdToSpend = mintPriceDiscounted.mul(ticketAmount);
         uint256 stackToSpend = exchange.getAmountIn(
             usdToSpend,
@@ -263,7 +260,9 @@ contract StackOsNFTBasic is
 
         stackToSpend = sendFees(stackToSpend);
 
-        adminWithdrawableAmount += stackToSpend;
+        // admin gets the payment after fees
+        stackToken.transfer(owner(), stackToSpend);
+
         for (uint256 i; i < ticketAmount; i++) {
             _mint(_ticketOwner);
         }
@@ -296,7 +295,9 @@ contract StackOsNFTBasic is
 
         stackAmount = sendFees(stackAmount);
 
-        adminWithdrawableAmount += stackAmount;
+        // admin gets the payment after fees
+        stackToken.transfer(owner(), stackAmount);
+
         for (uint256 i; i < _nftAmount; i++) {
             _mint(msg.sender);
         }
@@ -323,14 +324,16 @@ contract StackOsNFTBasic is
         _stablecoin.transferFrom(msg.sender, address(this), usdToSpend);
         _stablecoin.approve(address(exchange), usdToSpend);
         uint256 stackAmount = exchange.swapExactTokensForTokens(
-            usdToSpend, 
+            usdToSpend,
             _stablecoin,
             stackToken
         );
 
         stackAmount = sendFees(stackAmount);
 
-        adminWithdrawableAmount += stackAmount;
+        // admin gets the payment after fees
+        stackToken.transfer(owner(), stackAmount);
+
         for (uint256 i; i < _nftAmount; i++) {
             _mint(msg.sender);
         }
@@ -357,7 +360,9 @@ contract StackOsNFTBasic is
 
         _stackAmount = sendFees(_stackAmount);
 
-        adminWithdrawableAmount += _stackAmount;
+        // admin gets the payment after fees
+        stackToken.transfer(owner(), _stackAmount);
+
         for (uint256 i; i < _nftAmount; i++) {
             // frontrun protection is in Subscription contract
             _mint(_to);
@@ -406,7 +411,9 @@ contract StackOsNFTBasic is
 
         stackAmount = sendFees(stackAmount);
 
-        adminWithdrawableAmount += stackAmount;
+        // admin gets the payment after fees
+        stackToken.transfer(owner(), stackAmount);
+
         for (uint256 i; i < _mintNum; i++) {
             _mint(_to);
         }
@@ -424,15 +431,16 @@ contract StackOsNFTBasic is
         amountAfterFees = _amount - subsPart - daoPart;
 
         uint256 subsPartHalf = subsPart / 2;
+        uint256 subsPartHalfTwo = subsPart - subsPartHalf;
 
         stackToken.approve(address(sub0), subsPartHalf);
-        stackToken.approve(address(subscription), subsPartHalf);
+        stackToken.approve(address(subscription), subsPartHalfTwo);
         // if subs contract don't take it, send to dao 
         if(sub0.onReceiveStack(subsPartHalf) == false) {
             daoPart += (subsPartHalf);
         }
-        if(subscription.onReceiveStack(subsPartHalf) == false) {
-            daoPart += (subsPartHalf);
+        if(subscription.onReceiveStack(subsPartHalfTwo) == false) {
+            daoPart += (subsPartHalfTwo);
         }
         stackToken.transfer(address(daoAddress), daoPart);
     }
@@ -459,13 +467,12 @@ contract StackOsNFTBasic is
         _tokenIdCounter.increment();
         totalSupply += 1;
         _safeMint(_address, _current);
-        _setTokenURI(_current, URI);
 
         if(
             totalSupply == maxSupply && 
             generations.getIDByAddress(address(this)) == generations.count() - 1
         ) {
-            generations.deployNextGenPreset();
+            generations.autoDeployNextGeneration();
         }
     }
  
@@ -505,33 +512,32 @@ contract StackOsNFTBasic is
         super._transfer(from, to, tokenId);
     }
 
-    // The following functions are overrides required by Solidity.
-
     function _burn(uint256 tokenId)
         internal
-        override(ERC721, ERC721URIStorage)
+        override(ERC721)
     {
         super._burn(tokenId);
     }
 
-    function tokenURI(uint256 tokenId)
-        public
-        view
-        override(ERC721, ERC721URIStorage)
-        returns (string memory)
-    {
-        return super.tokenURI(tokenId);
-    }
-
-    /*
-     * @title Contract owner can withdraw collected fees.
-     * @dev Caller must be contract owner, timelock should be passed.
+    /**
+     * @dev Returns URI in a form of "baseURI + generationId/tokenId".
+     * @dev BaseURI should have slash at the end.
      */
-    function adminWithdraw() external onlyOwner {
-        require(block.timestamp > timeLock);
-        stackToken.transfer(msg.sender, adminWithdrawableAmount);
-        emit AdminWithdraw(msg.sender, adminWithdrawableAmount);
-        adminWithdrawableAmount = 0;
-    }
+    function tokenURI(uint256 tokenId) 
+        public 
+        view 
+        virtual 
+        override(ERC721)
+        returns (string memory) 
+    {
+        require(_exists(tokenId), "URI query for nonexistent token");
 
+        string memory baseURI_ = _baseURI();
+        string memory generationId = 
+            generations.getIDByAddress(address(this)).toString();
+
+        return bytes(baseURI_).length > 0 ?
+            string(abi.encodePacked(baseURI_, generationId, "/", tokenId.toString())) :
+            "";
+    }
 }

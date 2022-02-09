@@ -64,7 +64,7 @@ describe("Generation Manager", function () {
     expect(await stackAutoDeployed.getMaxSupply()).to.be.equal(
       oldMaxSupply * (10000 + MAX_SUPPLY_GROWTH) / 10000
     );
-    await expect(generationManager.deployNextGenPreset()).to.be.reverted;
+    await expect(generationManager.autoDeployNextGeneration()).to.be.reverted;
   });
 
   it("Trigger auto deploy of the 4th generation", async function () {

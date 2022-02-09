@@ -12,12 +12,12 @@ abstract contract Whitelist is Ownable {
         _;
     }
 
-    /*
-     *  @title Whitelist address to transfer tokens.
-     *  @param Address to whitelist.
+    /**
+     *  @notice Whitelist address to transfer tokens.
+     *  @param _addres Address to whitelist.
      *  @dev Caller must be owner of the contract.
      */
-    function whitelist(address _addr) public onlyOwner {
-        _whitelist[_addr] = true;
+    function whitelist(address _addres) public onlyOwner {
+        _whitelist[_addres] = true;
     }
 }

@@ -14,6 +14,6 @@ interface IStackOsNFT is IERC721 {
 
     function exists(uint256 _tokenId) external returns (bool);
 
-    function setUri(string calldata _uri) external;
+    function setBaseURI(string calldata _uri) external;
 
 }
