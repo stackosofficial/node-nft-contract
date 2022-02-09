@@ -56,9 +56,10 @@ contract DarkMatter is Whitelist, ERC721, ReentrancyGuard {
         isActive = true;
     }
 
-    /*
-     * @title Return stack token ids owned by DarkMatter token.
-     * @param DarkMatter token id.
+    /**
+     * @notice Get stack token ids used to mint this DarkMatterNFT.
+     * @param _darkMatterId DarkMatter token id.
+     * @return Stack token ids owned by DarkMatterNFT.
      */
     function ID(uint256 _darkMatterId)
         external 
@@ -72,11 +73,12 @@ contract DarkMatter is Whitelist, ERC721, ReentrancyGuard {
         return stackTokenIds;
     }
 
-    /*
-     * @title Returns true if `_wallet` owns either StackNFT or DarkMatterNFT that owns this StackNFT.
-     * @param Address of wallet.
-     * @param StackNFT generation id.
-     * @param StackNFT token id.
+    /**
+     * @notice Get whether wallet owns StackNFT or DarkMatter that owns this StackNFT
+     * @param _wallet Address of wallet.
+     * @param generationId StackNFT generation id.
+     * @param tokenId StackNFT token id.
+     * @return Whether `_wallet` owns either StackNFT or DarkMatterNFT that owns this StackNFT.
      */
     function isOwnStackOrDarkMatter(
         address _wallet,
@@ -93,11 +95,11 @@ contract DarkMatter is Whitelist, ERC721, ReentrancyGuard {
         return generations.get(generationId).ownerOf(tokenId) == _wallet;
     }
 
-    /*
-     * @title Returns owner of StackNFT.
-     * @param StackNFT address.
-     * @param StackNFT token id.
-     * @dev The returned address owns StackNFT or DarkMatter that owns this StackNFT. 
+    /**
+     * @notice Returns owner of either StackNFT or DarkMatter that owns StackNFT. 
+     * @param _stackOsNFT StackNFT address.
+     * @param tokenId StackNFT token id.
+     * @return Address that owns StackNFT or DarkMatter that owns this StackNFT. 
      */
     function ownerOfStackOrDarkMatter(IStackOsNFT _stackOsNFT, uint256 tokenId)
         external
@@ -114,10 +116,11 @@ contract DarkMatter is Whitelist, ERC721, ReentrancyGuard {
         return _stackOsNFT.ownerOf(tokenId);
     }
 
-    /*
-     * @title Returns owner of the DarkMatterNFT that owns StackNFT.
-     * @param StackNFT generation id.
-     * @param StackNFT token id.
+    /**
+     * @notice Get owner of the DarkMatterNFT that owns StackNFT.
+     * @param generationId StackNFT generation id.
+     * @param tokenId StackNFT token id.
+     * @return Owner of the DarkMatterNFT that owns StackNFT.
      */
     function ownerOf(uint256 generationId, uint256 tokenId)
         public
@@ -128,10 +131,10 @@ contract DarkMatter is Whitelist, ERC721, ReentrancyGuard {
         return ownerOf(stackToDarkMatter[generationId][tokenId].id);
     }
 
-    /*
-     *  @title Deposit StackNFTs.
-     *  @param StackNFT generation id.
-     *  @param Token ids.
+    /**
+     *  @notice Deposit enough StackNFTs in order to be able to mint DarkMatter.
+     *  @param generationId StackNFT generation id.
+     *  @param tokenIds Token ids.
      *  @dev StackNFT generation must be added in manager prior to deposit.
      */
     function deposit(uint256 generationId, uint256[] calldata tokenIds)
@@ -167,8 +170,8 @@ contract DarkMatter is Whitelist, ERC721, ReentrancyGuard {
         emit Deposit(msg.sender, generationId, tokenIds);
     }
 
-    /*
-     *  @title Mints a DarkMatterNFT for the caller.
+    /**
+     *  @notice Mints a DarkMatterNFT for the caller.
      *  @dev Caller must have deposited `mintPrice` number of StackNFT of any generation.
      */
     function mint() external nonReentrant {

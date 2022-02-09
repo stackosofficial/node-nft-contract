@@ -96,6 +96,7 @@ contract Royalty is Ownable, ReentrancyGuard {
 
     /**
      * @notice Deposit royalty so that NFT holders can claim it later.
+     * @param generationId Which generation balance receives royalty.
      */
     function onReceive(uint256 generationId) external payable nonReentrant {
         require(generationId < generations.count(), "Wrong generationId");
@@ -129,6 +130,9 @@ contract Royalty is Ownable, ReentrancyGuard {
         }
     }
 
+    /**
+     * @dev Save total max supply of all preveious generations + added one. 
+     */
     function onGenerationAdded(
         uint256 generationId, 
         address stack
@@ -142,9 +146,10 @@ contract Royalty is Ownable, ReentrancyGuard {
         }
     }
 
-    /*
-     * @title Set fee address
-     * @param fee address
+    /**
+     * @notice Set fee address.
+     * @notice Fee transfered when contract receives new royalties.
+     * @param _feeAddress Fee address.
      * @dev Could only be invoked by the contract owner.
      */
     function setFeeAddress(address payable _feeAddress) external onlyOwner {
@@ -153,9 +158,10 @@ contract Royalty is Ownable, ReentrancyGuard {
         emit SetFeeAddress(_feeAddress);
     }    
 
-    /*
-     * @title Set WETH address
-     * @param WETH address
+    /**
+     * @notice Set WETH address.
+     * @notice Used to claim royalty in weth instead of matic.
+     * @param _WETH WETH address.
      * @dev Could only be invoked by the contract owner.
      */
     function setWETH(IERC20 _WETH) external onlyOwner {
@@ -165,8 +171,8 @@ contract Royalty is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @notice Set minimum eth needed to end cycle
-     * @param amount Amount eth
+     * @notice Set minimum eth needed to end cycle.
+     * @param amount Amount of eth.
      * @dev Could only be invoked by the contract owner.
      */
     function setMinEthPerCycle(uint256 amount) external onlyOwner {
@@ -175,9 +181,9 @@ contract Royalty is Ownable, ReentrancyGuard {
         emit SetMinEthPerCycle(amount);
     }
 
-    /*
-     * @title Set fee percent taken of each deposit
-     * @param fee basis points
+    /**
+     * @notice Set fee percent taken everytime royalties recieved.
+     * @param _percent Fee basis points.
      * @dev Could only be invoked by the contract owner.
      */
     function setFeePercent(uint256 _percent) external onlyOwner {
@@ -187,12 +193,17 @@ contract Royalty is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @notice Claim royalty for holding tokens
-     * @param _generationId Generation id of tokens to claim royalty
-     * @param _tokenIds Token ids who will claim royalty
-     * @param _cycleIds Cycle ids to claim royalties
-     * @param _genIds Ids of generations to claim royalties
-     * @dev Tokens must be owned by the caller
+     * @notice Claim royalty for tokens.
+     * @param _generationId Generation id of tokens that will claim royalty.
+     * @param _tokenIds Token ids who will claim royalty.
+     * @param _cycleIds Cycle ids to claim royalties from.
+     * @param _genIds Ids of generation balances to claim royalties.
+     * @dev Tokens must be owned by the caller.
+     * @dev When generation tranded on market, fee is transfered to
+     *      dedicated balance of this generation in royalty contract (_genIds).
+     *      Then tokens that have lower generation id can claim part of this.
+     *      So token of generation 1 can claim from genId 1,2,3.
+     *      But token of generation 5 can't claim from genId 1.
      */
     function claim(
         uint256 _generationId, 
@@ -205,10 +216,9 @@ contract Royalty is Ownable, ReentrancyGuard {
         _claim(_generationId, _tokenIds, 0, false, _cycleIds, _genIds);
     }
 
-    /*
-     * @title Same as `claim` but holders receive WETH
-     * @dev Tokens must be owned by the caller
-     * @dev WETH address must be set by the admin
+    /**
+     * @notice Same as `claim` but caller receives WETH.
+     * @dev WETH address must be set in the contract.
      */
     function claimWETH(
         uint256 _generationId, 
@@ -223,15 +233,16 @@ contract Royalty is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @notice Purchase StackNFTs for royalties
-     * @notice Caller will receive the left over amount of royalties as STACK tokens
-     * @param _generationId Generation id to claim royalty for and purchase, should be greater than 0
-     * @param _tokenIds Token ids that can claim royalty 
-     * @param _mintNum Amount to mint
-     * @param _cycleIds Cycle ids to claim royalties
-     * @param _genIds Ids of generations to claim royalties
-     * @dev Tokens must be owned by the caller
-     * @dev `_generationId` should be greater than 0
+     * @notice Purchase StackNFTs for royalties.
+     * @notice Caller will receive the left over amount of royalties as STACK tokens.
+     * @param _generationId Generation id to claim royalty and purchase, should be greater than 0.
+     * @param _tokenIds Token ids that claim royalty.
+     * @param _mintNum Amount to mint.
+     * @param _cycleIds Cycle ids to claim royalties.
+     * @param _genIds Ids of generation balances to claim royalties.
+     * @dev Tokens must be owned by the caller.
+     * @dev `_generationId` should be greater than 0.
+     * @dev See `claim` function description for info on `_genIds`.
      */
     function purchaseNewNft(
         uint256 _generationId,
@@ -343,10 +354,11 @@ contract Royalty is Ownable, ReentrancyGuard {
         }
     }
 
-    /*
-     * @title Get pending royalty for NFT
-     * @param StackOS generation id 
-     * @param Token ids
+    /**
+     * @notice Get pending royalty for NFT.
+     * @param generationId StackOS generation id.
+     * @param tokenIds Token ids.
+     * @return withdrawableRoyalty Total withdrawable royalty from all cycles and all balances.
      */
     function pendingRoyalty(
         uint256 generationId,

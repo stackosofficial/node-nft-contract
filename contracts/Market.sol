@@ -87,9 +87,9 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeab
         __UUPSUpgradeable_init();
     }
 
-    /*
-     * @title Set dao fee taken of each sell.
-     * @param Fee basis points.
+    /**
+     * @notice Set dao fee taken of each sell.
+     * @param _percent Fee basis points.
      * @dev Could only be called by the contract owner.
      */
     function setDaoFee(uint256 _percent) public onlyOwner {
@@ -98,9 +98,9 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeab
         emit SetDaoFee(_percent);
     }
 
-    /*
-     * @title Set fee percent to send to royalty distribution contract taken of each sell.
-     * @param Fee basis points.
+    /**
+     * @notice Set Royalty contract fee percent that is taken of each sell.
+     * @param _percent Fee basis points.
      * @dev Could only be called by the contract owner.
      */
     function setRoyaltyFee(uint256 _percent) public onlyOwner {
@@ -109,10 +109,11 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeab
         emit SetRoyaltyFee(_percent);
     }
 
-    /*
-     * @title List DarkMatterNFT for selling
-     * @param Token id
-     * @param Price
+    /**
+     * @notice List DarkMatterNFT for selling.
+     * @param tokenId DarkMatterNFT token id.
+     * @param price Price that buyer will pay in matic.
+     * @dev Caller should own the token.
      */
     function listDarkMatterNFT(
         uint256 tokenId,
@@ -129,11 +130,12 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeab
         emit DarkMatterListing(msg.sender, tokenId, price);
     }
 
-    /*
-     * @title List StackNFT for selling
-     * @param StackNFT generation id
-     * @param Token id
-     * @param Price
+    /**
+     * @notice List StackNFT for selling.
+     * @param generationId StackNFT generation id.
+     * @param tokenId StackNFT token id.
+     * @param price Price that buyer will pay in matic.
+     * @dev Caller should own the token.
      */
     function listStackNFT(
         uint256 generationId,
@@ -154,9 +156,9 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeab
         emit StackListing(msg.sender, generationId, tokenId, price);
     }
 
-    /*
-     * @title Delist DarkMatterNFT from selling
-     * @param Token id
+    /**
+     * @notice Delist DarkMatterNFT from selling.
+     * @param tokenId DarkMatterNFT token id.
      */
     function deListDarkMatterNFT(
         uint256 tokenId
@@ -168,10 +170,10 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeab
         delete darkMatterToLot[tokenId];
     }
 
-    /*
-     * @title Delist StackNFT from selling
-     * @param StackNFT generation id
-     * @param Token id
+    /**
+     * @notice Delist StackNFT from selling.
+     * @param generationId StackNFT generation id.
+     * @param tokenId StackNFT token id.
      */
     function deListStackNFT(
         uint256 generationId,
@@ -184,10 +186,11 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeab
         delete stackToLot[generationId][tokenId];
     }
 
-    /*
-     * @title Buy listed StackNFT
-     * @param StackNFT generation id
-     * @param Token id
+    /**
+     * @notice Buy listed StackNFT.
+     * @param generationId StackNFT generation id.
+     * @param tokenId StackNFT token id.
+     * @dev Seller should approve market to spend `tokenId`.
      * @dev Market contract must be whitelisted in StackNFT contract to transfer tokens.
      */
     function buyStack(
@@ -220,9 +223,10 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeab
         delete stackToLot[generationId][tokenId];
     }
 
-    /*
-     * @title Buy listed DarkMatter NFT
-     * @param Token id
+    /**
+     * @notice Buy listed DarkMatter NFT.
+     * @param tokenId DarkMatterNFT token id.
+     * @dev Seller should approve market to spend `tokenId`.
      * @dev Market contract must be whitelisted in StackNFT contract to transfer tokens.
      */
     function buyDarkMatter(

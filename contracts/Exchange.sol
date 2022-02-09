@@ -20,9 +20,10 @@ contract Exchange is Ownable {
         emit SetRouter(_router);
     }
 
-    /*
-     *  @title Swap exact ETH for tokens
-     *  @param Address of token to receive
+    /**
+     *  @notice Swap exact ETH for tokens.
+     *  @param token Address of token to receive.
+     *  @return amountReceived Amount of token received.
      */
     function swapExactETHForTokens(
         IERC20 token
@@ -41,9 +42,12 @@ contract Exchange is Ownable {
         return amounts[1];
     }
 
-    /*
-     *  @title Swap exact tokens for ETH
-     *  @param Address of token to swap
+    /**
+     *  @notice Swap exact tokens for ETH.
+     *  @param token Address of token to swap.
+     *  @param amount Amount of token to swap.
+     *  @param to Receiver of eth.
+     *  @return amountReceived Amount of eth received.
      */
     function swapExactTokensForETH(
         IERC20 token,
@@ -67,13 +71,13 @@ contract Exchange is Ownable {
         return amounts[1];
     }
 
-    /*
-     *  @title Swap exact tokens for tokens using path tokenA > WETH > tokenB
-     *  @param Amount of tokenA to spend
-     *  @param Address of tokenA to spend
-     *  @param Address of tokenB to receive
+    /**
+     *  @notice Swap exact tokens for tokens using path tokenA > WETH > tokenB.
+     *  @param amountA Amount of tokenA to spend.
+     *  @param tokenA Address of tokenA to spend.
+     *  @param tokenB Address of tokenB to receive.
+     *  @return amountReceivedTokenB Amount of tokenB received.
      */
-
     function swapExactTokensForTokens(
         uint256 amountA, 
         IERC20 tokenA, 
@@ -99,10 +103,14 @@ contract Exchange is Ownable {
         return amounts[2];
     }
 
-    /*
-     *  @title Get amount of tokenIn needed to buy amountOut of tokenOut using path tokenIn > WETH > tokenOut
+    /**
+     *  @notice Get amount of tokenIn needed to buy amountOut of tokenOut 
+     *          using path tokenIn > WETH > tokenOut.
+     *  @param amountOut Amount wish to receive.
+     *  @param tokenOut Token wish to receive.
+     *  @param tokenIn Token wish to spend.
+     *  @return amountIn Amount of tokenIn.
      */
-
     function getAmountIn(
         uint256 amountOut, 
         IERC20 tokenOut, 

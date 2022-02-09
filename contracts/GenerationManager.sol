@@ -78,7 +78,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @notice Save settings for auto deployment.
+     * @notice Save settings for manual or auto deployment.
      * @param settings Structure of parameters to use for next generation deployment.
      * @dev Could only be invoked by the contract owner.
      */
@@ -88,10 +88,11 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         deployment = settings;
     }
 
-    /*
-     * @title Called by StackNFTBasic once it reaches max supply.
+    /**
+     * @notice Called by StackNFTBasic once it reaches max supply.
      * @dev Could only be invoked by the last StackOsNFTBasic generation.
      * @dev Generation id is appended to the name. 
+     * @return Address of new StackNFT contract generation.
      */
     function autoDeployNextGeneration() 
         public 
@@ -145,12 +146,13 @@ contract GenerationManager is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @notice Add next generation of StackNFT. To be called automatically.
+     * @notice Add next generation of StackNFT to manager. 
+     * @notice To be called automatically, or when adding 1st generation.
      * @notice Royalty address has to be set with setupDeploy.
      * @param _stackOS IStackOsNFT address.
      * @dev Royalty address has to be set with setupDeploy.
-     * @dev Could only be invoked by the contract owner to add 1st generation.
-     * @dev Could only be invoked by StackNFT contract.
+     * @dev Could only be invoked by the contract owner to add 1st generation
+     *      or by StackNFT contract on auto deployment.
      * @dev Address should be unique.
      */
     function add(address _stackOS) public {
@@ -215,25 +217,27 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         return IStackOsNFTBasic(address(stack));
     }
 
-    /*
-     * @title Get total number of generations added.
+    /**
+     * @notice Get total number of generations added.
      */
     function count() public view returns (uint256) {
         return generations.length;
     }
 
-    /*
-     * @title Get generation of StackNFT contract by id.
-     * @param Generation id.
+    /**
+     * @notice Get address of StackNFT contract by generation id.
+     * @param generationId Generation id to lookup.
      * @dev Must be valid generation id to avoid out-of-bounds error.
+     * @return Address of StackNFT contract.
      */
     function get(uint256 generationId) public view returns (IStackOsNFT) {
         return generations[generationId];
     }
 
-    /*
-     * @title Get generation ID by address.
-     * @param Stack NFT contract address
+    /**
+     * @notice Get generation id by StackNFT contract address.
+     * @param _nftAddress Stack NFT contract address
+     * @return Generation id.
      */
     function getIDByAddress(address _nftAddress) public view returns (uint256) {
         uint256 generationID = ids[_nftAddress];
@@ -243,9 +247,10 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         return generationID;
     }
 
-    /*
-     * @title Returns whether StackNFT contract is added to this manager.
-     * @param Stack NFT contract address
+    /**
+     * @notice Returns whether StackNFT contract is added to this manager.
+     * @param _nftAddress Stack NFT contract address.
+     * @return Whether StackNFT contract is added to manager.
      */
     function isAdded(address _nftAddress) public view returns (bool) {
         uint256 generationID = ids[_nftAddress];

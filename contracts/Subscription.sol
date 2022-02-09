@@ -152,8 +152,9 @@ contract Subscription is Ownable, ReentrancyGuard {
         taxReductionAmount = _taxReductionAmount;
     }    
     
-    /*
-     * @title If set, then only 1st generation allowed to use contract, otherwise only generations above 1st can.
+    /**
+     * @notice If set, then only 1st generation allowed to use contract, 
+     *         otherwise only generation 2 and onward can.
      * @dev Could only be invoked by the contract owner.
      */
     function setOnlyFirstGeneration() external onlyOwner {
@@ -161,9 +162,9 @@ contract Subscription is Ownable, ReentrancyGuard {
         emit SetOnlyFirstGeneration();
     }
 
-    /*
-     * @title Set drip perdiod
-     * @param Amount of seconds required to release bonus
+    /**
+     * @notice Set bonus drip perdiod.
+     * @param _seconds Amount of seconds required to fully release bonus.
      * @dev Could only be invoked by the contract owner.
      */
     function setDripPeriod(uint256 _seconds) external onlyOwner {
@@ -172,9 +173,9 @@ contract Subscription is Ownable, ReentrancyGuard {
         emit SetDripPeriod(_seconds);
     }
 
-    /*
-     * @title Set subscription price
-     * @param New price in USD
+    /**
+     * @notice Set subscription price.
+     * @param _price New price in USD. Must have `PRICE_PRECISION` decimals.
      * @dev Could only be invoked by the contract owner.
      */
     function setPrice(uint256 _price) external onlyOwner {
@@ -183,10 +184,11 @@ contract Subscription is Ownable, ReentrancyGuard {
         emit SetPrice(_price);
     }
 
-    /*
-     * @title Set max subscription price, usde only if contract locked to 1st generation
-     * @param New price in USD
+    /**
+     * @notice Set max subscription price, usde only if contract locked to 1st generation.
+     * @param _maxPrice Max price in USD. Must have `PRICE_PRECISION` decimals.
      * @dev Could only be invoked by the contract owner.
+     * @dev Max price unused in 2nd generation and onward.
      */
     function setMaxPrice(uint256 _maxPrice) external onlyOwner {
         require(_maxPrice > 0, "Cant be zero");
@@ -194,9 +196,9 @@ contract Subscription is Ownable, ReentrancyGuard {
         emit SetMaxPrice(_maxPrice);
     }
 
-    /*
-     * @title Set bonus added for each subscription on top of it's price
-     * @param Bonus percent
+    /**
+     * @notice Set bonus added for each subscription.
+     * @param _percent Bonus percent.
      * @dev Could only be invoked by the contract owner.
      */
     function setBonusPercent(uint256 _percent) external onlyOwner {
@@ -205,10 +207,10 @@ contract Subscription is Ownable, ReentrancyGuard {
         emit SetBonusPercent(_percent);
     }
 
-    /*
-     * @title Set tax reduction amount
-     * @param Amount to subtract from tax on each subscribed month in a row
-     * @dev Could only be invoked by the contract owner
+    /**
+     * @notice Set tax reduction amount.
+     * @param _amount Amount to subtract from tax on each subscribed month in a row.
+     * @dev Could only be invoked by the contract owner.
      */
     function setTaxReductionAmount(uint256 _amount) external onlyOwner {
         require(_amount <= HUNDRED_PERCENT, "invalid basis points");
@@ -216,10 +218,10 @@ contract Subscription is Ownable, ReentrancyGuard {
         emit SetTaxReductionAmount(_amount);
     }
 
-    /*
-     * @title Set time frame that you have to resubscribe to keep TAX reducing
-     * @param Amount of seconds
-     * @dev Could only be invoked by the contract owner
+    /**
+     * @notice Set forgiveness period for resubscribe to keep TAX reducing.
+     * @param _seconds Amount of seconds.
+     * @dev Could only be invoked by the contract owner.
      */
     function setForgivenessPeriod(uint256 _seconds) external onlyOwner {
         require(_seconds > 0, "Cant be zero");
@@ -227,10 +229,9 @@ contract Subscription is Ownable, ReentrancyGuard {
         emit SetForgivenessPeriod(_seconds);
     }  
     
-    /*
-     * @title Reverts if generationId doesn't match contract's desired generation.
-     * @title This is used in modifier.
-     * @dev Could only be invoked by the contract owner.
+    /**
+     * @dev Reverts if generationId doesn't match contract's desired generation.
+     * @dev This is used in modifier.
      */
     function requireCorrectGeneration(uint256 generationId) internal view {
         if(isOnlyFirstGeneration)
@@ -239,13 +240,13 @@ contract Subscription is Ownable, ReentrancyGuard {
             require(generationId > 0, "Generaion shouldn't be 0");
     }
 
-    /*
-     *  @title Pay subscription
-     *  @param Generation id
-     *  @param Token id
-     *  @param Amount user wish to pay, used only in 1st generation subscription contract
-     *  @param Address of supported stablecoin, unused when pay with STACK
-     *  @param Whether to pay with STACK token
+    /**
+     *  @notice Pay subscription.
+     *  @param generationId StackNFT generation id.
+     *  @param tokenId StackNFT token id.
+     *  @param _payAmount Amount to pay, unused if `isOnlyFirstGeneration == false`.
+     *  @param _stablecoin Address of supported stablecoin, unused if `_payWithStack == true`.
+     *  @param _payWithStack Whether to pay with STACK token.
      *  @dev Caller must approve us to spend `price` amount of `_stablecoin`.
      *  @dev If paying with stack, caller must approve stack amount that costs `price` usd.
      */
@@ -368,9 +369,9 @@ contract Subscription is Ownable, ReentrancyGuard {
         );
     }
 
-    /*
-     *  @title End period if its time
-     *  @dev Called automatically from other functions, but can be called manually
+    /**
+     *  @notice Start next period if its time.
+     *  @dev Called automatically from other functions, but can be called manually.
      */
     function updatePeriod() public {
         if (periods[currentPeriodId].endAt < block.timestamp) {
@@ -379,11 +380,12 @@ contract Subscription is Ownable, ReentrancyGuard {
         }
     }
 
-    /*
-     *  @title Handle fee sent from minting
-     *  @return Whether fee received or not
-     *  @dev Called automatically from stack NFT contract, but can be called manually
-     *  @dev Will receive tokens if previous period has active subs
+    /**
+     *  @notice Handle fee sent from minting.
+     *  @param _amount Amount of stack trying to receive.
+     *  @return _isTransfered Whether fee received or not.
+     *  @dev Called automatically from stack NFT contract, but can be called manually.
+     *  @dev Will receive tokens if previous period has active subs.
      */
     function onReceiveStack(uint256 _amount) 
         external 
@@ -402,15 +404,14 @@ contract Subscription is Ownable, ReentrancyGuard {
         return true;
     }
 
-    /*
-     *  @title Withdraw active subs reward
-     *  @param Generation id
-     *  @param Token ids
-     *  @param Period ids
-     *  @dev Caller must own tokens
-     *  @dev Periods must be ended and tokens should have subscription during periods
+    /**
+     *  @notice Withdraw active subs reward which comes from minting fees.
+     *  @param generationId StackNFT generation id.
+     *  @param tokenIds StackNFT token ids.
+     *  @param periodIds Period ids.
+     *  @dev Caller must own tokens.
+     *  @dev Periods must be ended and tokens should have subscription during periods.
      */
-     
     function claimReward(
         uint256 generationId, 
         uint256[] calldata tokenIds,
@@ -461,7 +462,7 @@ contract Subscription is Ownable, ReentrancyGuard {
         );
     }
 
-    /*
+    /**
      *  @dev Calculate dripped amount and remove fully released bonuses from array.
      */
     function updateBonuses(
@@ -510,14 +511,17 @@ contract Subscription is Ownable, ReentrancyGuard {
         }
     }
 
-    /*
-     *  @title Withdraw deposit, accounting for tax
-     *  @param Generation id
-     *  @param Token ids
+    /**
+     *  @notice Withdraw deposit, accounting for tax.
+     *  @param generationId StackNFT generation id.
+     *  @param tokenIds StackNFT token ids.
      *  @dev Caller must own `tokenIds`
-     *  @dev Tax resets to maximum after withdraw
+     *  @dev Tax resets to maximum after withdraw.
      */
-    function withdraw(uint256 generationId, uint256[] calldata tokenIds)
+    function withdraw(
+        uint256 generationId, 
+        uint256[] calldata tokenIds
+    )
         external
         nonReentrant
         restrictGeneration(generationId)
@@ -534,15 +538,19 @@ contract Subscription is Ownable, ReentrancyGuard {
         }
     }
 
-   /*
-     * @title Purchase StackNFTs using money in deposit
-     * @param Generation id to withdraw
-     * @param Token ids to withdraw
-     * @param Generation id to mint
-     * @param Amount to mint
-     * @dev Withdraw tokens must be owned by the caller
-     * @dev Purchase Generation should be greater than 0
-     */
+   /**
+    * @notice Purchase StackNFTs using money in deposit.
+    * @param withdrawGenerationId StackNFT generation id to withdraw fee for.
+    * @param withdrawTokenIds StackNFT token ids to withdraw fee for.
+    * @param purchaseGenerationId Generation id to mint.
+    * @param amountToMint Amount to mint.
+    * @dev Tokens must be owned by the caller.
+    * @dev Purchase Generation should be greater than 0.
+    * @dev Function withdraw token subscription fee, then on received stack tokens
+    *      it mints `amountToMint`, it will do this for every token in `tokenIds`.
+    *      So if `withdrawTokenIds` has 2 subscribed tokens, and `amountToMint == 2`
+    *      Then you'll receive 2 + 2 = 4 new tokens.
+    */
     function purchaseNewNft(
         uint256 withdrawGenerationId,
         uint256[] calldata withdrawTokenIds,
@@ -666,14 +674,12 @@ contract Subscription is Ownable, ReentrancyGuard {
         }
     }
 
-    /*
-     *  @title Withdraw dripped bonuses
-     *  @param Generation id
-     *  @param Token ids
-     *  @dev Caller must own `tokenIds`
-     *  @dev Be careful with gas consumption.
+    /**
+     *  @notice Withdraw dripped bonuses.
+     *  @param generationId StackNFT generation id.
+     *  @param tokenIds StackNFT token ids.
+     *  @dev Caller must own `tokenIds`.
      */
-     
     function claimBonus(
         uint256 generationId,
         uint256[] calldata tokenIds
@@ -717,9 +723,9 @@ contract Subscription is Ownable, ReentrancyGuard {
     }
 
    /**
-     * @notice Get pending bonus amount and locked amount
-     * @param _generationId StackNFT generation id
-     * @param _tokenId NFT id
+     * @notice Get pending bonus amount, locked amount, and longest timeLeft.
+     * @param _generationId StackNFT generation id.
+     * @param _tokenId StackNFT token id.
      * @return unlocked Withdrawable amount of bonuses
      * @return locked Locked amount of bonuses
      * @return timeLeft Per-bonus array containing time left to fully release locked amount
@@ -762,8 +768,11 @@ contract Subscription is Ownable, ReentrancyGuard {
     }
 
    /**
-     * @notice First elemement shows total claimable amount. 
-     * @notice Next elements shows claimable amount per month.
+     * @notice First elemement shows total claimable amount.
+     * @notice Next elements shows claimable amount per next months.
+     * @param _generationId StackNFT generation id.
+     * @param _tokenId StackNFT token id.
+     * @param months Amount of months to get drip rate for.
      */
     function monthlyDripRateBonus(
         uint256 _generationId, 
@@ -826,13 +835,13 @@ contract Subscription is Ownable, ReentrancyGuard {
         // unlocked += bonusDripped[_generationId][_tokenId];
     }
 
-    /*
-     *  @title Get active subs pending reward
-     *  @param Generation id
-     *  @param Token ids
-     *  @param Period ids
-     *  @dev Unsubscribed tokens in period are ignored
-     *  @dev Period ids that are bigger than `currentPeriodId` are ignored
+    /**
+     *  @notice Get active subs pending reward.
+     *  @param generationId StackNFT generation id.
+     *  @param tokenIds StackNFT token id.
+     *  @param periodIds Period ids.
+     *  @dev Unsubscribed tokens in period are ignored.
+     *  @dev Period ids that are bigger than `currentPeriodId` are ignored.
      */
     function pendingReward(
         uint256 generationId, 
@@ -865,8 +874,8 @@ contract Subscription is Ownable, ReentrancyGuard {
         return toWithdraw;
     }
 
-    /*
-     *  @title Subtract function, on underflow returns zero.
+    /**
+     *  @dev Subtract function, on underflow returns zero.
      */
     function subOrZero(uint256 a, uint256 b) internal pure returns (uint256) {
         return a > b ? a - b : 0;
