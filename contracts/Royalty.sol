@@ -96,7 +96,6 @@ contract Royalty is Ownable, ReentrancyGuard {
 
     /**
      * @notice Deposit royalty so that NFT holders can claim it later.
-     * @notice To be called by Market contract.
      */
     function onReceive(uint256 generationId) external payable nonReentrant {
         require(generationId < generations.count(), "Wrong generationId");
@@ -266,7 +265,7 @@ contract Royalty is Ownable, ReentrancyGuard {
         updateCycle();
 
         require(counter.current() > 0, "Still first cycle");
-        
+
         uint256 reward;
 
         // iterate over tokens from args
@@ -337,9 +336,9 @@ contract Royalty is Ownable, ReentrancyGuard {
                 ) {
                     reward += genData.balance / maxSupplys[_genIds[j]];
                     genData.isClaimed[generationId][tokenId] = true;
-                    // console.log(123, address(this).balance);
+                    console.log(address(this).balance);
                 }
-                // console.log(cycleId, _genIds[j], genData.balance, reward);
+                console.log(cycleId, _genIds[j], genData.balance, reward);
             }
         }
     }
@@ -353,6 +352,7 @@ contract Royalty is Ownable, ReentrancyGuard {
         uint256 generationId,
         uint256[] calldata tokenIds
     ) external view returns (uint256 withdrawableRoyalty) {
+        require(generationId < generations.count(), "Wrong generation id");
 
         uint256 _counterCurrent = counter.current();
         if (
@@ -364,31 +364,32 @@ contract Royalty is Ownable, ReentrancyGuard {
             }
         }
 
-        if (_counterCurrent > 0) {
-            uint256 reward;
+        require(_counterCurrent > 0, "Still first cycle");
+        uint256 reward;
 
-            // iterate over tokens from args
-            for (uint256 i; i < tokenIds.length; i++) {
-                uint256 tokenId = tokenIds[i];
+        // iterate over tokens from args
+        for (uint256 i; i < tokenIds.length; i++) {
+            uint256 tokenId = tokenIds[i];
 
-                for (uint256 o; o < _counterCurrent; o++) {
-                    // id is zero-based, that's why <=
-                    for (uint256 j; j <= generationId; j++) {
-                        if (
-                            cycles[o].genData[j].balance > 0 &&
-                            // verify reward is unclaimed
-                            cycles[o].genData[j].isClaimed[generationId][tokenId] == false
-                        ) {
-                            reward += cycles[o].genData[j].balance / maxSupplys[j];
-                            // console.log("pending", 
-                            // o, j,
-                            // reward / 1e18);
-                        }
+            for (uint256 o; o < _counterCurrent; o++) {
+                // j is pool id, should be greater than token generation
+                for (uint256 j = generationId; j < generations.count(); j++) {
+
+                    GenData storage genData = cycles[o].genData[j];
+                    if (
+                        genData.balance > 0 &&
+                        // verify reward is unclaimed
+                        genData.isClaimed[generationId][tokenId] == false
+                    ) {
+                        reward += genData.balance / maxSupplys[j];
+                        // console.log("pending", 
+                        // o, j,
+                        // reward / 1e18);
                     }
                 }
             }
-
-            withdrawableRoyalty = reward;
         }
+
+        withdrawableRoyalty = reward;
     }
 }

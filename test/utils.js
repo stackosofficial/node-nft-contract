@@ -214,6 +214,22 @@ async function setup() {
   await royalty.setWETH(weth.address);
   console.log("royalty", royalty.address);
 
+  DAO_ADDRESS = (await hre.ethers.getSigners())[8].address;
+  DAO_FEE = 1000;
+  ROYALTY_FEE = 1000;
+  const Market = await ethers.getContractFactory("Market");
+  market = await upgrades.deployProxy(
+    Market,
+    [
+      generationManager.address,
+      darkMatter.address,
+      DAO_ADDRESS,
+      royalty.address,
+      DAO_FEE,
+      ROYALTY_FEE
+    ]
+  );
+  await market.deployed();
   
   NAME = "STACK OS NFT";
   SYMBOL = "SON";

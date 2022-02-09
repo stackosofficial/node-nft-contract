@@ -23,25 +23,6 @@ describe("Market", function () {
     await setupLiquidity();
   });
 
-  it("Deploy Market", async function () {
-    DAO_ADDRESS = dao.address;
-    DAO_FEE = 1000;
-    ROYALTY_FEE = 1000;
-    const Market = await ethers.getContractFactory("Market");
-    market = await upgrades.deployProxy(
-      Market,
-      [
-        generationManager.address,
-        darkMatter.address,
-        DAO_ADDRESS,
-        royalty.address,
-        DAO_FEE,
-        ROYALTY_FEE
-      ]
-    );
-    await market.deployed();
-  });
-
   it("Deploy StackOS NFT generation 2", async function () {
     stackOsNFTgen2 = await deployStackOSBasic();
   });

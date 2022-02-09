@@ -109,8 +109,8 @@ module.exports = {
     },
     hardhat: {
         forking: {
-          url: process.env.MATIC_URL, // must be archive node for next line to work
-          blockNumber: 23715560, // block pinning gives x20 perfromance due to caching as stated on hardhat docs 
+          url: process.env.MATIC_URL, 
+          blockNumber: 23715560, // remove this if provider's node is not archival
           enabled: true
         },
     },
