@@ -11,6 +11,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+// import "hardhat/console.sol";
 
 contract Subscription is Ownable, ReentrancyGuard {
 
@@ -758,6 +759,71 @@ contract Subscription is Ownable, ReentrancyGuard {
         }
         
         unlocked += bonusDripped[_generationId][_tokenId];
+    }
+
+   /**
+     * @notice First elemement shows total claimable amount. 
+     * @notice Next elements shows claimable amount per month.
+     */
+    function monthlyDripRateBonus(
+        uint256 _generationId, 
+        uint256 _tokenId,
+        uint256 months
+    )
+        external
+        view
+        returns (
+            uint256[] memory dripRates
+        )
+    {
+        Deposit memory deposit = deposits[_generationId][_tokenId];
+
+        uint256 bonusesLength = deposit.bonuses.length;
+        uint256[] memory monthlyDrip = new uint256[](months);
+
+        uint256 month = 28 days;
+        uint256 blockTimestamp = block.timestamp;
+
+        for (uint256 m; m < months; m++) {
+
+            uint256 unlocked; 
+            // uint256 lastTxDate = block.timestamp + (m - 1) * month;
+
+            for (uint256 i; i < bonusesLength; i++) {
+                Bonus memory bonus = deposit.bonuses[i];
+
+                if(bonus.lockedAmount == 0) continue;
+
+                uint256 amount = 
+                    (bonus.total / bonus.releasePeriod) * 
+                    (blockTimestamp - bonus.lastTxDate);
+
+                if(m == 0)
+                    bonus.lastTxDate = blockTimestamp;
+                else
+                    bonus.lastTxDate += month;
+
+                if (amount > bonus.lockedAmount)
+                    amount = bonus.lockedAmount;
+
+                unlocked += amount;
+                bonus.lockedAmount -= amount;
+                // locked += bonus.lockedAmount;
+
+                // find max timeleft
+                // uint256 _timeLeft = 
+                //     bonus.releasePeriod * bonus.lockedAmount / bonus.total;
+
+                // if(_timeLeft > timeLeft) timeLeft = _timeLeft;
+            }
+            blockTimestamp += month;
+            if(m == 0)
+                unlocked += bonusDripped[_generationId][_tokenId];
+            monthlyDrip[m] = unlocked;
+            unlocked = 0;
+        }
+        dripRates = monthlyDrip;
+        // unlocked += bonusDripped[_generationId][_tokenId];
     }
 
     /*
