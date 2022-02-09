@@ -257,57 +257,59 @@ contract Royalty is Ownable, ReentrancyGuard {
         uint256[] calldata _cycleIds,
         uint256[] calldata _genIds
     ) internal {
+        require(_cycleIds.length > 0, "No cycle ids");
+        require(_genIds.length > 0, "No gen ids");
         require(address(this).balance > 0, "No royalty");
         IStackOsNFTBasic stack = 
             IStackOsNFTBasic(address(generations.get(generationId)));
 
         updateCycle();
 
-        if (counter.current() > 0) {
-            uint256 reward;
+        require(counter.current() > 0, "Still first cycle");
+        
+        uint256 reward;
 
-            // iterate over tokens from args
-            for (uint256 i; i < tokenIds.length; i++) {
-                
-                // console.log("tokenId claim ", tokenIds[i]);
-                require(
-                    darkMatter.isOwnStackOrDarkMatter(
-                        msg.sender,
-                        generationId,
-                        tokenIds[i]
-                    ),
-                    "Not owner"
-                );
+        // iterate over tokens from args
+        for (uint256 i; i < tokenIds.length; i++) {
+            
+            // console.log("tokenId claim ", tokenIds[i]);
+            require(
+                darkMatter.isOwnStackOrDarkMatter(
+                    msg.sender,
+                    generationId,
+                    tokenIds[i]
+                ),
+                "Not owner"
+            );
 
-                reward += calcReward(generationId, tokenIds[i], _cycleIds, _genIds);
-
-            }
-
-            if (reward > 0) {
-                if (_mintNum == 0) {
-                    if(_claimWETH) {
-                        uint256 wethReceived = exchange.swapExactETHForTokens{value: reward}(WETH);
-                        require(WETH.transfer(msg.sender, wethReceived), "WETH: transfer failed");
-                    } else {
-                        (bool success, ) = payable(msg.sender).call{value: reward}(
-                            ""
-                        );
-                        require(success, "Transfer failed");
-                    }
-                } else {
-                    uint256 stackReceived = 
-                        exchange.swapExactETHForTokens{value: reward}(stackToken);
-                    stackToken.approve(address(stack), stackReceived);
-
-                    // console.log("MINT:", _mintNum);
-                    uint256 spendAmount = stack.mintFromRoyaltyRewards(
-                        _mintNum,
-                        msg.sender
-                    );
-                    stackToken.transfer(msg.sender, stackReceived - spendAmount);
-                }
-            }
+            reward += calcReward(generationId, tokenIds[i], _cycleIds, _genIds);
         }
+
+        require(reward > 0, "Nothing to claim");
+
+        if (_mintNum == 0) {
+            if(_claimWETH) {
+                uint256 wethReceived = exchange.swapExactETHForTokens{value: reward}(WETH);
+                require(WETH.transfer(msg.sender, wethReceived), "WETH: transfer failed");
+            } else {
+                (bool success, ) = payable(msg.sender).call{value: reward}(
+                    ""
+                );
+                require(success, "Transfer failed");
+            }
+        } else {
+            uint256 stackReceived = 
+                exchange.swapExactETHForTokens{value: reward}(stackToken);
+            stackToken.approve(address(stack), stackReceived);
+
+            // console.log("MINT:", _mintNum);
+            uint256 spendAmount = stack.mintFromRoyaltyRewards(
+                _mintNum,
+                msg.sender
+            );
+            stackToken.transfer(msg.sender, stackReceived - spendAmount);
+        }
+
     }
 
     function calcReward(
