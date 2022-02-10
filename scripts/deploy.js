@@ -299,7 +299,7 @@ async function main() {
         baseURI: baseURI_2
       }, { gasLimit: 1e6 });
       // console.log(`setupDeploy successfully called`);
-      break
+      break;
     } catch (error) {
       console.log(`setupDeploy is failed ${i+1} times, trying to call again, attemps left ${attemps - i+1}`);
     }
