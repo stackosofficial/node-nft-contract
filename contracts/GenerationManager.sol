@@ -42,7 +42,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
     address private exchange;
     address private dao;
 
-    uint256 private constant GEN2_MAX_SUPPLY = 1000;
+    uint256 private GEN2_MAX_SUPPLY = 1000;
 
     Deployment private deployment;
     IStackOsNFT[] private generations;
@@ -75,6 +75,17 @@ contract GenerationManager is Ownable, ReentrancyGuard {
             _exchange,
             _dao
         );
+    }
+
+    /**
+     * @notice Function for convinience when testing.
+     * @param maxSupply Max supply to use in generation 2 deployment.
+     * @dev Could only be invoked by the contract owner.
+     */
+    function SET_GEN2_MAX_SUPPLY(
+        uint256 maxSupply
+    ) public onlyOwner {
+        GEN2_MAX_SUPPLY = maxSupply;
     }
 
     /**
