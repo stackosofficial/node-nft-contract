@@ -390,6 +390,7 @@ contract Royalty is Ownable, ReentrancyGuard {
                 require(_genIds[j] < generations.count(), "genId not exists");
                 GenData storage genData = cycles[cycleId].genData[_genIds[j]];
 
+                uint256 removeFromCycle;
                 if (
                     genData.balance > 0 &&
                     // verify reward is unclaimed
@@ -397,11 +398,12 @@ contract Royalty is Ownable, ReentrancyGuard {
                 ) {
                     uint256 claimAmount = genData.balance / maxSupplys[_genIds[j]];
                     reward += claimAmount;
-                    cycles[cycleId].totalBalance -= claimAmount;
-                    
+                    removeFromCycle -= claimAmount;
+
                     genData.isClaimed[generationId][tokenId] = true;
                     console.log(address(this).balance);
                 }
+                cycles[cycleId].totalBalance -= removeFromCycle;
                 console.log(cycleId, _genIds[j], genData.balance, reward);
             }
 
