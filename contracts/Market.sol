@@ -203,9 +203,9 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeab
         require(lot.seller != address(0), "Not listed");
         require(lot.price <= msg.value, "Not enough MATIC");
 
-        uint256 daoPart = lot.price * daoFee / HUNDRED_PERCENT;
-        uint256 royaltyPart = lot.price * royaltyFee / HUNDRED_PERCENT;
-        uint256 sellerPart = lot.price - daoPart - royaltyPart;
+        uint256 daoPart = msg.value * daoFee / HUNDRED_PERCENT;
+        uint256 royaltyPart = msg.value * royaltyFee / HUNDRED_PERCENT;
+        uint256 sellerPart = msg.value - daoPart - royaltyPart;
 
         generations.get(generationId).transferFrom(lot.seller, msg.sender, tokenId);
 
@@ -236,9 +236,9 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeab
         require(lot.seller != address(0), "Not listed");
         require(lot.price <= msg.value, "Not enough MATIC");
 
-        uint256 daoPart = lot.price * daoFee / HUNDRED_PERCENT;
-        uint256 royaltyPart = lot.price * royaltyFee / HUNDRED_PERCENT;
-        uint256 sellerPart = lot.price - daoPart - royaltyPart;
+        uint256 daoPart = msg.value * daoFee / HUNDRED_PERCENT;
+        uint256 royaltyPart = msg.value * royaltyFee / HUNDRED_PERCENT;
+        uint256 sellerPart = msg.value - daoPart - royaltyPart;
 
         darkMatter.transferFrom(lot.seller, msg.sender, tokenId);
 
