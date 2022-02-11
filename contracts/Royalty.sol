@@ -395,7 +395,10 @@ contract Royalty is Ownable, ReentrancyGuard {
                     // verify reward is unclaimed
                     genData.isClaimed[generationId][tokenId] == false
                 ) {
-                    reward += genData.balance / maxSupplys[_genIds[j]];
+                    uint256 claimAmount = genData.balance / maxSupplys[_genIds[j]];
+                    reward += claimAmount;
+                    cycles[cycleId].totalBalance -= claimAmount;
+                    
                     genData.isClaimed[generationId][tokenId] = true;
                     console.log(address(this).balance);
                 }
