@@ -17,6 +17,7 @@ contract Royalty is Ownable, ReentrancyGuard {
     event SetWETH(IERC20 WETH);
     event SetFeePercent(uint256 _percent);
     event SetMinEthPerCycle(uint256 amount);
+    event NewCycle(uint256 newCycleId);
 
     Counters.Counter public counter; // counting cycles
 
@@ -126,6 +127,7 @@ contract Royalty is Ownable, ReentrancyGuard {
                 // start new cycle
                 counter.increment();
                 cycles[counter.current()].startTimestamp = block.timestamp;
+                emit NewCycle(counter.current());
             }
         }
     }
