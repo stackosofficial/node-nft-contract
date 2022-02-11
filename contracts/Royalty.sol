@@ -147,17 +147,23 @@ contract Royalty is Ownable, ReentrancyGuard {
         return _feeBalances;
     }
 
-    // function viewCyclesGenDataIsClaimed(
-    //     uint256 cycleId, 
-    //     uint256 generationFeeBalanceId,
-    //     uint256 generationId,
-    //     uint256 tokenId
-    // ) 
-    //     external 
-    //     returns (bool isClaimed) 
-    // {
-    //     return cycles[cycleId].genData[generationFeeBalanceId].balance;
-    // }
+    function viewIsClaimed(
+        uint256 generationFeeBalanceId,
+        uint256 generationId,
+        uint256 tokenId
+    ) 
+        external 
+        returns (bool[] memory isClaimed) 
+    {
+        bool[] memory _isClaimed = new bool[](3);
+        for (uint256 i = 1; i <= 3; i++) {
+            _isClaimed[i] = 
+                cycles[counter.current() - i]
+                    .genData[generationFeeBalanceId]
+                        .isClaimed[generationId][tokenId];
+        }
+        return _isClaimed;
+    }
 
     /**
      * @dev Save total max supply of all preveious generations + added one. 
