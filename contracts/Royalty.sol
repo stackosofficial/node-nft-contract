@@ -34,6 +34,8 @@ contract Royalty is Ownable, ReentrancyGuard {
     uint256 public minEthPerCycle;
     uint256 public cycleDuration = 30 days;
 
+    uint256 public adminWithdrawable;
+
     struct GenData {
         // total received by each generation in cycle
         uint256 balance;
@@ -128,6 +130,14 @@ contract Royalty is Ownable, ReentrancyGuard {
                 // start new cycle
                 counter.increment();
                 cycles[counter.current()].startTimestamp = block.timestamp;
+
+                if(counter.current() > 3) {
+                    // subtract 4 because need to ignore current cycle + 3 cycles before it
+                    uint256 removeIndex = counter.current() - 4;
+                    adminWithdrawable += cycles[removeIndex].totalBalance;
+                    cycles[removeIndex].totalBalance = 0;
+                }
+
                 emit NewCycle(counter.current());
             }
         }
@@ -137,12 +147,14 @@ contract Royalty is Ownable, ReentrancyGuard {
         uint256 generationFeeBalanceId
     ) 
         external 
+        view
         returns (uint256[] memory feesBalances) 
     {
-        uint256[] memory _feeBalances = new uint256[](3);
-        for (uint256 i = 1; i <= 3; i++) {
+        uint256[] memory _feeBalances = new uint256[](4);
+        for (uint256 i = 0; i <= 3; i++) {
             _feeBalances[i] = 
                 cycles[counter.current() - i].genData[generationFeeBalanceId].balance;
+            if(counter.current() - i == 0) break;
         }
         return _feeBalances;
     }
@@ -153,14 +165,16 @@ contract Royalty is Ownable, ReentrancyGuard {
         uint256 tokenId
     ) 
         external 
+        view
         returns (bool[] memory isClaimed) 
     {
-        bool[] memory _isClaimed = new bool[](3);
-        for (uint256 i = 1; i <= 3; i++) {
+        bool[] memory _isClaimed = new bool[](4);
+        for (uint256 i = 0; i <= 3; i++) {
             _isClaimed[i] = 
                 cycles[counter.current() - i]
                     .genData[generationFeeBalanceId]
                         .isClaimed[generationId][tokenId];
+            if(counter.current() - i == 0) break;
         }
         return _isClaimed;
     }
@@ -241,7 +255,6 @@ contract Royalty is Ownable, ReentrancyGuard {
      * @notice Claim royalty for tokens.
      * @param _generationId Generation id of tokens that will claim royalty.
      * @param _tokenIds Token ids who will claim royalty.
-     * @param _cycleIds Cycle ids to claim royalties from.
      * @param _genIds Ids of generation balances to claim royalties.
      * @dev Tokens must be owned by the caller.
      * @dev When generation tranded on market, fee is transfered to
@@ -253,12 +266,11 @@ contract Royalty is Ownable, ReentrancyGuard {
     function claim(
         uint256 _generationId, 
         uint256[] calldata _tokenIds,
-        uint256[] calldata _cycleIds,
         uint256[] calldata _genIds
     )
         external
     {
-        _claim(_generationId, _tokenIds, 0, false, _cycleIds, _genIds);
+        _claim(_generationId, _tokenIds, 0, false, _genIds);
     }
 
     /**
@@ -268,13 +280,12 @@ contract Royalty is Ownable, ReentrancyGuard {
     function claimWETH(
         uint256 _generationId, 
         uint256[] calldata _tokenIds,
-        uint256[] calldata _cycleIds,
         uint256[] calldata _genIds
     )
         external
     {
         require(address(WETH) != address(0), "Wrong WETH address");
-        _claim(_generationId, _tokenIds, 0, true, _cycleIds, _genIds);
+        _claim(_generationId, _tokenIds, 0, true, _genIds);
     }
 
     /**
@@ -283,7 +294,6 @@ contract Royalty is Ownable, ReentrancyGuard {
      * @param _generationId Generation id to claim royalty and purchase, should be greater than 0.
      * @param _tokenIds Token ids that claim royalty.
      * @param _mintNum Amount to mint.
-     * @param _cycleIds Cycle ids to claim royalties.
      * @param _genIds Ids of generation balances to claim royalties.
      * @dev Tokens must be owned by the caller.
      * @dev `_generationId` should be greater than 0.
@@ -293,7 +303,6 @@ contract Royalty is Ownable, ReentrancyGuard {
         uint256 _generationId,
         uint256[] calldata _tokenIds,
         uint256 _mintNum,
-        uint256[] calldata _cycleIds,
         uint256[] calldata _genIds
     ) 
         external 
@@ -301,7 +310,7 @@ contract Royalty is Ownable, ReentrancyGuard {
     {
         require(_generationId > 0, "Must be not first generation");
         require(_mintNum > 0, "Mint num is 0");
-        _claim(_generationId, _tokenIds, _mintNum, false, _cycleIds, _genIds);
+        _claim(_generationId, _tokenIds, _mintNum, false, _genIds);
     }
 
     function _claim(
@@ -309,10 +318,8 @@ contract Royalty is Ownable, ReentrancyGuard {
         uint256[] calldata tokenIds,
         uint256 _mintNum,
         bool _claimWETH,
-        uint256[] calldata _cycleIds,
         uint256[] calldata _genIds
     ) internal {
-        require(_cycleIds.length > 0, "No cycle ids");
         require(_genIds.length > 0, "No gen ids");
         require(address(this).balance > 0, "No royalty");
         IStackOsNFTBasic stack = 
@@ -337,7 +344,7 @@ contract Royalty is Ownable, ReentrancyGuard {
                 "Not owner"
             );
 
-            reward += calcReward(generationId, tokenIds[i], _cycleIds, _genIds);
+            reward += calcReward(generationId, tokenIds[i], _genIds);
         }
 
         require(reward > 0, "Nothing to claim");
@@ -370,15 +377,13 @@ contract Royalty is Ownable, ReentrancyGuard {
     function calcReward(
         uint256 generationId,
         uint256 tokenId,
-        uint256[] calldata _cycleIds,
         uint256[] calldata _genIds
     )   
         private 
         returns (uint256 reward) 
     {
-        for (uint256 o; o < _cycleIds.length; o++) {
-            uint256 cycleId = _cycleIds[o];
-            require(cycleId < counter.current(), "Bad cycle id");
+        for (uint256 o = 1; o <= 3; o++) {
+            uint256 cycleId = counter.current() - o;
 
             for (uint256 j; j < _genIds.length; j++) {
                 require(_genIds[j] >= generationId, "Bad gen id");
@@ -396,6 +401,8 @@ contract Royalty is Ownable, ReentrancyGuard {
                 }
                 console.log(cycleId, _genIds[j], genData.balance, reward);
             }
+
+            if(cycleId == 0) break;
         }
     }
 
@@ -428,11 +435,12 @@ contract Royalty is Ownable, ReentrancyGuard {
         for (uint256 i; i < tokenIds.length; i++) {
             uint256 tokenId = tokenIds[i];
 
-            for (uint256 o; o < _counterCurrent; o++) {
+            for (uint256 o = 1; o <= 3; o++) {
+                uint256 cycleId = _counterCurrent - i;
                 // j is pool id, should be greater than token generation
                 for (uint256 j = generationId; j < generations.count(); j++) {
 
-                    GenData storage genData = cycles[o].genData[j];
+                    GenData storage genData = cycles[cycleId].genData[j];
                     if (
                         genData.balance > 0 &&
                         // verify reward is unclaimed
@@ -444,9 +452,22 @@ contract Royalty is Ownable, ReentrancyGuard {
                         // reward / 1e18);
                     }
                 }
+
+                if(cycleId == 0) break;
             }
         }
 
         withdrawableRoyalty = reward;
+    }
+
+    function adminWithdraw()
+        external
+        onlyOwner
+    {
+        require(adminWithdrawable > 0, "Nothing to withdraw");
+        (bool success, ) = payable(msg.sender).call{value: adminWithdrawable}(
+            ""
+        );
+        require(success, "Transfer failed");
     }
 }
