@@ -19,7 +19,9 @@ describe("Royalty", function () {
   it("Deploy full SETUP", async function () {
     await setup();
     await setupDeployment();
-    CYCLE_DURATION = Number(await royalty.CYCLE_DURATION());
+    CYCLE_DURATION = Number(await royalty.cycleDuration());
+
+    // console.log(await royalty.cycles(0, 0));
   });
 
   it("Add liquidity ", async function () {

@@ -18,6 +18,7 @@ contract Royalty is Ownable, ReentrancyGuard {
     event SetFeePercent(uint256 _percent);
     event SetMinEthPerCycle(uint256 amount);
     event NewCycle(uint256 newCycleId);
+    event SetCycleDuration(uint256 _seconds);
 
     Counters.Counter public counter; // counting cycles
 
@@ -31,7 +32,7 @@ contract Royalty is Ownable, ReentrancyGuard {
     uint256 private feePercent;
 
     uint256 public minEthPerCycle;
-    uint256 public constant CYCLE_DURATION = 30 days;
+    uint256 public cycleDuration = 30 days;
 
     struct GenData {
         // total received by each generation in cycle
@@ -119,7 +120,7 @@ contract Royalty is Ownable, ReentrancyGuard {
     function updateCycle() private {
         // is current cycle lasts enough?
         if (
-            cycles[counter.current()].startTimestamp + CYCLE_DURATION <
+            cycles[counter.current()].startTimestamp + cycleDuration <
             block.timestamp
         ) {
             // is current cycle got enough ether?
@@ -131,6 +132,32 @@ contract Royalty is Ownable, ReentrancyGuard {
             }
         }
     }
+
+    function viewCyclesGenDataBalance(
+        uint256 generationFeeBalanceId
+    ) 
+        external 
+        returns (uint256[] memory feesBalances) 
+    {
+        uint256[] memory _feeBalances = new uint256[](3);
+        for (uint256 i = 1; i <= 3; i++) {
+            _feeBalances[i] = 
+                cycles[counter.current() - i].genData[generationFeeBalanceId].balance;
+        }
+        return _feeBalances;
+    }
+
+    // function viewCyclesGenDataIsClaimed(
+    //     uint256 cycleId, 
+    //     uint256 generationFeeBalanceId,
+    //     uint256 generationId,
+    //     uint256 tokenId
+    // ) 
+    //     external 
+    //     returns (bool isClaimed) 
+    // {
+    //     return cycles[cycleId].genData[generationFeeBalanceId].balance;
+    // }
 
     /**
      * @dev Save total max supply of all preveious generations + added one. 
@@ -147,6 +174,16 @@ contract Royalty is Ownable, ReentrancyGuard {
                 maxSupplys[generationId - 1] + IStackOsNFT(stack).getMaxSupply();
         }
     }
+
+    /**
+     * @notice Set cycle duration.
+     * @dev Could only be invoked by the contract owner.
+     */
+    function setCycleDuration(uint256 _seconds) external onlyOwner {
+        require(_seconds > 0, "Must be not zero");
+        cycleDuration = _seconds;
+        emit SetCycleDuration(_seconds);
+    }   
 
     /**
      * @notice Set fee address.
@@ -370,7 +407,7 @@ contract Royalty is Ownable, ReentrancyGuard {
 
         uint256 _counterCurrent = counter.current();
         if (
-            cycles[counter.current()].startTimestamp + CYCLE_DURATION <
+            cycles[counter.current()].startTimestamp + cycleDuration <
             block.timestamp
         ) {
             if (cycles[counter.current()].totalBalance >= minEthPerCycle) {
