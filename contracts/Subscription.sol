@@ -22,6 +22,7 @@ contract Subscription is Ownable, ReentrancyGuard {
     event SetBonusPercent(uint256 _percent);
     event SetTaxReductionAmount(uint256 _amount);
     event SetForgivenessPeriod(uint256 _seconds);
+    event NewPeriodStarted(uint256 newPeriodId);
 
     event Subscribe(
         address indexed subscriberWallet,
@@ -377,6 +378,7 @@ contract Subscription is Ownable, ReentrancyGuard {
         if (periods[currentPeriodId].endAt < block.timestamp) {
             currentPeriodId += 1;
             periods[currentPeriodId].endAt = block.timestamp + MONTH;
+            emit NewPeriodStarted(currentPeriodId);
         }
     }
 
