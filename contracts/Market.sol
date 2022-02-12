@@ -203,20 +203,21 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeab
         require(lot.seller != address(0), "Not listed");
         require(lot.price <= msg.value, "Not enough MATIC");
 
-        uint256 daoPart = msg.value * daoFee / HUNDRED_PERCENT;
-        uint256 royaltyPart = msg.value * royaltyFee / HUNDRED_PERCENT;
-        uint256 sellerPart = msg.value - daoPart - royaltyPart;
+        uint256 daoPart = lot.price * daoFee / HUNDRED_PERCENT;
+        uint256 royaltyPart = lot.price * royaltyFee / HUNDRED_PERCENT;
+        uint256 sellerPart = lot.price - daoPart - royaltyPart;
 
         generations.get(generationId).transferFrom(lot.seller, msg.sender, tokenId);
 
         (bool success, ) = daoAddress.call{value: daoPart}("");
         require(success, "Transfer failed");
 
-        // (success, ) = royaltyAddress.call{value: royaltyPart}("");
-        // require(success, "Transfer failed");
         Royalty(payable(royaltyAddress)).onReceive{value: royaltyPart}(generationId);
 
         (success, ) = payable(lot.seller).call{value: sellerPart}("");
+        require(success, "Transfer failed");
+
+        (success, ) = payable(msg.sender).call{value: msg.value - lot.price}("");
         require(success, "Transfer failed");
 
         emit StackSale(lot.seller, msg.sender, generationId, tokenId, sellerPart);
@@ -236,17 +237,22 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeab
         require(lot.seller != address(0), "Not listed");
         require(lot.price <= msg.value, "Not enough MATIC");
 
-        uint256 daoPart = msg.value * daoFee / HUNDRED_PERCENT;
-        uint256 royaltyPart = msg.value * royaltyFee / HUNDRED_PERCENT;
-        uint256 sellerPart = msg.value - daoPart - royaltyPart;
+        uint256 daoPart = lot.price * daoFee / HUNDRED_PERCENT;
+        uint256 royaltyPart = lot.price * royaltyFee / HUNDRED_PERCENT;
+        uint256 sellerPart = lot.price - daoPart - royaltyPart;
 
         darkMatter.transferFrom(lot.seller, msg.sender, tokenId);
 
         (bool success, ) = daoAddress.call{value: daoPart}("");
         require(success, "Transfer failed");
+
         (success, ) = royaltyAddress.call{value: royaltyPart}("");
         require(success, "Transfer failed");
+
         (success, ) = payable(lot.seller).call{value: sellerPart}("");
+        require(success, "Transfer failed");
+
+        (success, ) = payable(msg.sender).call{value: msg.value - lot.price}("");
         require(success, "Transfer failed");
 
         emit DarkMatterSale(lot.seller, msg.sender, tokenId, sellerPart);
