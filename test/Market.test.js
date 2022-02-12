@@ -13,14 +13,13 @@ describe("Market", function () {
     provider = ethers.provider;
     [owner, partner, joe, bank, bob, vera, tax, homer, dao, royaltyDistribution] =
       await hre.ethers.getSigners();
-    MONTH = 60 * 60 * 24 * 30;
-    CYCLE_DURATION = 60 * 60 * 24 * 31;
   });
 
   it("Deploy full SETUP", async function () {
     await setup();
     await setupDeployment();
     await setupLiquidity();
+    CYCLE_DURATION = (await royalty.cycleDuration()).toNumber();
   });
 
   it("Deploy StackOS NFT generation 2", async function () {
@@ -174,18 +173,18 @@ describe("Market", function () {
 
     /*  
         Scenario, 2 generations
-        Trade gen 1, fail to claim royalty by gen 2
-        Trade gen 2, claim royalty by gen 1
+        Trade gen 0, fail to claim royalty by gen 1
+        Trade gen 1, claim royalty by gen 1
     */
 
     // mint
     await stackOsNFT.whitelistPartner(owner.address, 10);
     await usdt.approve(stackOsNFT.address, parseEther("100.0"));
-    await stackOsNFT.partnerMint(5); // start from id 9
+    await stackOsNFT.partnerMint(5); 
 
     await stackToken.approve(stackOsNFTgen2.address, parseEther("1000.0"));
     await provider.send("evm_increaseTime", [60 * 60]); 
-    await stackOsNFTgen2.mint(10); // start from id 2
+    await stackOsNFTgen2.mint(10); 
 
     // sell to send fee
     await stackOsNFT.approve(market.address, 10);
@@ -200,11 +199,12 @@ describe("Market", function () {
     await provider.send("evm_increaseTime", [CYCLE_DURATION]); 
     await provider.send("evm_mine");
 
-    // should fail to claim 
-    await expect(royalty.claim(1, [10], [0], [0])).to.be.revertedWith("Bad gen id");
-    // cycle 3rd start
-    // claim by gen 1 the gen 2 royalties
-    await royalty.claim(0, [10], [0], [0, 1]);
+    // gen 1 should fail to claim gen 0
+    await expect(royalty.claim(1, [10], [0])).to.be.revertedWith("Bad gen id");
+    // gen 1 should claim gen 1
+    await royalty.claim(1, [10], [1]);
+    // gen 0 should claim gen 0 and 1
+    await royalty.claim(0, [10], [0, 1]);
   });
 
   it("Revert EVM state", async function () {
