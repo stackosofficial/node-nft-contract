@@ -305,7 +305,6 @@ describe("Subscription (generations above 1st)", function () {
     print("owner: ", await stackToken.balanceOf(owner.address));
     oldPendingBonus = await subscription.pendingBonus(1, 5);
     print("gen 1 token 5 pending bonus: ", 
-      oldPendingBonus.claimed, 
       oldPendingBonus.unlocked, 
       oldPendingBonus.locked,
       oldPendingBonus.timeLeft,
@@ -316,7 +315,6 @@ describe("Subscription (generations above 1st)", function () {
     print("owner: ", (await stackToken.balanceOf(owner.address)));
     newPendingBonus = await subscription.pendingBonus(1, 5);
     print("gen 1 token 5 pending bonus: ", 
-      newPendingBonus.claimed, 
       newPendingBonus.unlocked, 
       newPendingBonus.locked,
       newPendingBonus.timeLeft,
@@ -356,7 +354,6 @@ describe("Subscription (generations above 1st)", function () {
 
     oldPendingBonus = await subscription.pendingBonus(2, 1);
     print("gen 2 token 1 pending bonus: ", 
-      oldPendingBonus.claimed, 
       oldPendingBonus.unlocked, 
       oldPendingBonus.locked,
       oldPendingBonus.timeLeft,
@@ -366,7 +363,6 @@ describe("Subscription (generations above 1st)", function () {
 
     newPendingBonus = await subscription.pendingBonus(2, 1);
     print("gen 2 token 1 pending bonus: ", 
-      newPendingBonus.claimed, 
       newPendingBonus.unlocked, 
       newPendingBonus.locked,
       newPendingBonus.timeLeft,
@@ -380,7 +376,6 @@ describe("Subscription (generations above 1st)", function () {
 
     newPendingBonus = await subscription.pendingBonus(2, 1);
     print("gen 2 token 1 pending bonus: ", 
-      newPendingBonus.claimed, 
       newPendingBonus.unlocked, 
       newPendingBonus.locked,
       newPendingBonus.timeLeft,

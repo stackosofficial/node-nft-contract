@@ -774,7 +774,7 @@ contract Subscription is Ownable, ReentrancyGuard {
      * @notice Next elements shows claimable amount per next months.
      * @param _generationId StackNFT generation id.
      * @param _tokenId StackNFT token id.
-     * @param months Amount of months to get drip rate for.
+     * @param months Amount of MONTHs to get drip rate for.
      */
     function monthlyDripRateBonus(
         uint256 _generationId, 
@@ -792,13 +792,14 @@ contract Subscription is Ownable, ReentrancyGuard {
         uint256 bonusesLength = deposit.bonuses.length;
         uint256[] memory monthlyDrip = new uint256[](months);
 
-        uint256 month = 28 days;
+        uint256 month = MONTH;
         uint256 blockTimestamp = block.timestamp;
 
-        for (uint256 m; m < months; m++) {
+        // +1 because we want skip first element
+        // as it shows us unlocked amount
+        for (uint256 m; m < months+1; m++) {
 
             uint256 unlocked; 
-            // uint256 lastTxDate = block.timestamp + (m - 1) * month;
 
             for (uint256 i; i < bonusesLength; i++) {
                 Bonus memory bonus = deposit.bonuses[i];
@@ -819,22 +820,13 @@ contract Subscription is Ownable, ReentrancyGuard {
 
                 unlocked += amount;
                 bonus.lockedAmount -= amount;
-                // locked += bonus.lockedAmount;
-
-                // find max timeleft
-                // uint256 _timeLeft = 
-                //     bonus.releasePeriod * bonus.lockedAmount / bonus.total;
-
-                // if(_timeLeft > timeLeft) timeLeft = _timeLeft;
             }
             blockTimestamp += month;
-            if(m == 0)
-                unlocked += bonusDripped[_generationId][_tokenId];
-            monthlyDrip[m] = unlocked;
+            if(m > 0)
+                monthlyDrip[m-1] = unlocked;
             unlocked = 0;
         }
         dripRates = monthlyDrip;
-        // unlocked += bonusDripped[_generationId][_tokenId];
     }
 
     /**
