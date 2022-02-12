@@ -19,6 +19,9 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         address _exchange,
         address _dao
     );
+    event SetupDeploy(
+        Deployment settings
+    );
 
     struct Deployment {
         string name;
@@ -97,6 +100,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
         Deployment calldata settings
     ) public onlyOwner {
         deployment = settings;
+        emit SetupDeploy(settings);
     }
 
     /**
