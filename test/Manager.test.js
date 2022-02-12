@@ -88,7 +88,7 @@ describe("Generation Manager", function () {
       await generationManager.get(oldGenerationsCount)
     );
     
-    expect(await stackAutoDeployed2.name()).to.be.equal("STACK OS NFT 4");
+    expect(await stackAutoDeployed2.name()).to.be.equal("StackOS NFT 3");
     expect(await stackAutoDeployed2.owner()).to.be.equal(owner.address);
     let newMaxSupply = Math.floor(
         (oldMaxSupply) * (10000 + MAX_SUPPLY_GROWTH) / 10000

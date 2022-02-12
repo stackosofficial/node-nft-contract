@@ -25,7 +25,7 @@ async function deployStackOSBasic() {
     "StackOsNFTBasic",
     stackOsNFTBasic
   )
-  console.log("stackOsNFTBasic", stackOsNFTBasic.address);
+  // console.log("stackOsNFTBasic", stackOsNFTBasic.address);
   return stackOsNFTBasic;
 }
 
@@ -62,36 +62,36 @@ async function setup() {
   TestCurrency = await ethers.getContractFactory("TestCurrency");
   stackToken = await TestCurrency.deploy(parseEther("100000000.0"), 18);
   await stackToken.deployed();
-  console.log("stackToken", stackToken.address);
+  // console.log("stackToken", stackToken.address);
 
   usdt = await TestCurrency.deploy(parseEther("100000000.0"), 6);
   await usdt.deployed();
-  console.log("usdt", usdt.address);
+  // console.log("usdt", usdt.address);
 
   usdc = await TestCurrency.deploy(parseEther("100000000.0"), 6);
   await usdc.deployed();
-  console.log("usdc", usdc.address);
+  // console.log("usdc", usdc.address);
 
   dai = await TestCurrency.deploy(parseEther("100000000.0"), 18);
   await dai.deployed();
-  console.log("dai", dai.address);
+  // console.log("dai", dai.address);
 
   const LinkToken = await ethers.getContractFactory("LinkToken");
   link = await LinkToken.deploy();
   await link.deployed();
-  console.log("link", link.address);
+  // console.log("link", link.address);
 
   const Coordinator = await ethers.getContractFactory("VRFCoordinatorMock");
   coordinator = await Coordinator.deploy(link.address);
   await coordinator.deployed();
-  console.log("coordinator", coordinator.address);
+  // console.log("coordinator", coordinator.address);
 
   const GenerationManager = await ethers.getContractFactory(
     "GenerationManager"
   );
   generationManager = await GenerationManager.deploy();
   await generationManager.deployed();
-  console.log("Gen manager", generationManager.address);
+  // console.log("Gen manager", generationManager.address);
 
   GENERATION_MANAGER_ADDRESS = generationManager.address;
   DARK_MATTER_PRICE = 5;
@@ -101,7 +101,7 @@ async function setup() {
     DARK_MATTER_PRICE
   );
   await darkMatter.deployed();
-  console.log(darkMatter.address);
+  // console.log(darkMatter.address);
 
   STABLES = [
     usdt.address,
@@ -113,7 +113,7 @@ async function setup() {
     STABLES
   );
   await stableAcceptor.deployed();
-  console.log(stableAcceptor.address);
+  // console.log(stableAcceptor.address);
 
   router = await ethers.getContractAt(
     "IUniswapV2Router02",
@@ -124,7 +124,7 @@ async function setup() {
     router.address,
   );
   await exchange.deployed();
-  console.log(exchange.address);
+  // console.log(exchange.address);
 
   await generationManager.adjustAddressSettings(
     stableAcceptor.address,
@@ -165,7 +165,7 @@ async function setup() {
   await subscription.setTaxReductionAmount(TAX_REDUCTION_AMOUNT);
   await subscription.setForgivenessPeriod(FORGIVENESS_PERIOD);
   MONTH = (await subscription.MONTH()).toNumber();
-  console.log("MONTH: ", MONTH);
+  // console.log("MONTH: ", MONTH);
 
   const Sub0 = await ethers.getContractFactory("Subscription");
   sub0 = await Sub0.deploy(
@@ -188,11 +188,11 @@ async function setup() {
   await sub0.setTaxReductionAmount(TAX_REDUCTION_AMOUNT);
   await sub0.setForgivenessPeriod(FORGIVENESS_PERIOD);
   await sub0.setOnlyFirstGeneration();
-  console.log("sub0", sub0.address);
+  // console.log("sub0", sub0.address);
 
   weth = await TestCurrency.deploy(parseEther("100000000.0"), 18);
   await weth.deployed();
-  console.log("weth", weth.address);
+  // console.log("weth", weth.address);
 
 
   DEPOSIT_FEE_ADDRESS = bank.address;
@@ -212,7 +212,7 @@ async function setup() {
   ROYALTY_ADDRESS = royalty.address;
   await royalty.setFeePercent(DEPOSIT_FEE_PERCENT);
   await royalty.setWETH(weth.address);
-  console.log("royalty", royalty.address);
+  // console.log("royalty", royalty.address);
 
   DAO_ADDRESS = (await hre.ethers.getSigners())[8].address;
   DAO_FEE = 1000;
@@ -231,7 +231,7 @@ async function setup() {
   );
   await market.deployed();
   
-  NAME = "StackOs NFT";
+  NAME = "StackOS NFT";
   SYMBOL = "SON";
   STACK_TOKEN = stackToken.address;
   DARK_MATTER_ADDRESS = darkMatter.address;
