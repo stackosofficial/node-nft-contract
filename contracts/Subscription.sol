@@ -600,6 +600,8 @@ contract Subscription is Ownable, ReentrancyGuard {
 
         if (allocationStatus == withdrawStatus.purchase) {
 
+            require(deposit.tax == 0, "Can only purchase when 0 tax");
+
             StackOsNFTBasic stack = StackOsNFTBasic(
                 address(generations.get(purchaseGenerationId))
             );
