@@ -12,7 +12,7 @@ async function main() {
 
   // This address will be owner of all contracts plus market proxy owner
   // Leave empty if you want the deployer to be owner, you will be able to transfer ownership later
-  OWNERSHIP = "0xb08Dfb0Ea68B088B4C379F530D136bD55a27C431";
+  OWNERSHIP = "";
 
   // Stablecoins supported by the protocol
   STABLES = [
@@ -41,7 +41,7 @@ async function main() {
   // Subscription bonus drip period in seconds
   DRIP_PERIOD = 3600;
 
-  // Params for subscription contract that is locked to first generation tokens
+  // Params for sub0 contract that is locked to first generation tokens
 
   // Address to receive tax of early withdraw subscription
   TAX_ADDRESS_2 = "0x2966bC0d207A8f1E4Da3c902db044C505e13b41E";
@@ -115,6 +115,7 @@ async function main() {
   // Fee percent to take when royalties received by Royalty contract
   DEPOSIT_FEE_PERCENT = 1000;
   // Set weth address to be able to claim royalty in WETH on matic network.
+  // NOTE: in polygon router WETH variable is actually WMATIC token, don't be confused by variable name!
   WETH_ADDRESS = "0x4c28f48448720e9000907BC2611F73022fdcE1fA";
 
   // Settings for auto deploy StackNFTBasic (generations after first)

@@ -46,7 +46,8 @@ contract Royalty is Ownable, ReentrancyGuard {
     struct Cycle {
         // cycle started timestamp
         uint256 startTimestamp; 
-        // total received in cycle
+        // this is used in admin withdrawable
+        // and for cycle ending condition
         uint256 totalBalance; 
         // per generation balance
         mapping(uint256 => GenData) genData; 
@@ -441,7 +442,7 @@ contract Royalty is Ownable, ReentrancyGuard {
 
             for (uint256 o = 1; o <= 3; o++) {
                 uint256 cycleId = _counterCurrent - i;
-                // j is pool id, should be greater than token generation
+                // j is pool id, should be greater or equal than token generation
                 for (uint256 j = generationId; j < generations.count(); j++) {
 
                     GenData storage genData = cycles[cycleId].genData[j];
