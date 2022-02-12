@@ -128,7 +128,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
             string(abi.encodePacked(
                 deployment.name,
                 " ",
-                uint256(count() + 1).toString()
+                uint256(count()).toString()
             ))
         );
         stack.setSymbol(deployment.symbol);
@@ -204,7 +204,7 @@ contract GenerationManager is Ownable, ReentrancyGuard {
             string(abi.encodePacked(
                 deployment.name,
                 " ",
-                uint256(count() + 1).toString()
+                uint256(count()).toString()
             ))
         );
         stack.setSymbol(deployment.symbol);

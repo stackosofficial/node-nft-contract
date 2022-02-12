@@ -68,7 +68,7 @@ async function main() {
   // StackNFT 1st generation
 
   // Token name
-  NAME = "STACK OS NFT";
+  NAME = "StackOS NFT Genesis";
   // Token symbol
   SYMBOL = "SON";
   // Set uri for newly minted tokens
@@ -121,9 +121,9 @@ async function main() {
   // Settings for auto deploy StackNFTBasic (generations after first)
 
   // Token name, on auto deploy we append " N" to the name, where N is generation number
-  NAME_2 = "STACK OS NFT";
+  NAME_2 = "StackOS NFT";
   // Token symbol
-  SYMBOL_2 = "STACK NFT";
+  SYMBOL_2 = "SON";
   // Mint price in USD
   PRICE_2 = parseEther("2");
   // Mint fee percent for active subs

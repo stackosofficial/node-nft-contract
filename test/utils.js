@@ -231,7 +231,7 @@ async function setup() {
   );
   await market.deployed();
   
-  NAME = "STACK OS NFT";
+  NAME = "StackOs NFT";
   SYMBOL = "SON";
   STACK_TOKEN = stackToken.address;
   DARK_MATTER_ADDRESS = darkMatter.address;
