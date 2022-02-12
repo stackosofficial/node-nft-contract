@@ -385,28 +385,27 @@ contract Royalty is Ownable, ReentrancyGuard {
         for (uint256 o = 1; o <= 3; o++) {
             uint256 cycleId = counter.current() - o;
 
+            uint256 removeFromCycle;
             for (uint256 j; j < _genIds.length; j++) {
                 require(_genIds[j] >= generationId, "Bad gen id");
                 require(_genIds[j] < generations.count(), "genId not exists");
                 GenData storage genData = cycles[cycleId].genData[_genIds[j]];
 
-                uint256 removeFromCycle;
                 if (
                     genData.balance > 0 &&
-                    // verify reward is unclaimed
                     genData.isClaimed[generationId][tokenId] == false
                 ) {
                     uint256 claimAmount = genData.balance / maxSupplys[_genIds[j]];
                     reward += claimAmount;
-                    removeFromCycle -= claimAmount;
+                    removeFromCycle += claimAmount;
 
                     genData.isClaimed[generationId][tokenId] = true;
-                    console.log(address(this).balance);
+                    console.log(address(this).balance, maxSupplys[ _genIds[j]]);
                 }
-                cycles[cycleId].totalBalance -= removeFromCycle;
                 console.log(cycleId, _genIds[j], genData.balance, reward);
             }
 
+            cycles[cycleId].totalBalance -= removeFromCycle;
             if(cycleId == 0) break;
         }
     }
