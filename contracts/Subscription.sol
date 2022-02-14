@@ -26,10 +26,12 @@ contract Subscription is Ownable, ReentrancyGuard {
 
     event Subscribe(
         address indexed subscriberWallet,
-        uint256 blockTimestamp,
+        uint256 nextPayDate,
         uint256 generationId,
         uint256 tokenId,
-        uint256 _price,
+        uint256 stablePayed,
+        uint256 stackReceived,
+        uint256 userBonus,
         IERC20 _stablecoin,
         bool _payWithStack,
         uint256 periodId
@@ -360,10 +362,12 @@ contract Subscription is Ownable, ReentrancyGuard {
         }));
         emit Subscribe(
             msg.sender,
-            block.timestamp,
+            deposit.nextPayDate,
             generationId,
             tokenId,
             _price,
+            amount,
+            bonusAmount,
             _stablecoin,
             _payWithStack,
             currentPeriodId
