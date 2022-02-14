@@ -127,6 +127,7 @@ describe("Subscription (generations above 1st)", function () {
     await provider.send("evm_increaseTime", [MONTH]);
     await subscription.subscribe(1, 1, 0, usdt.address, false);
     await provider.send("evm_increaseTime", [MONTH]);
+    await provider.send("evm_mine");
     await subscription.subscribe(1, 1, 0, usdt.address, false);
   });
   it("Withdraw", async function () {

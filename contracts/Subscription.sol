@@ -303,19 +303,13 @@ contract Subscription is Ownable, ReentrancyGuard {
         Deposit storage deposit = deposits[generationId][tokenId];
         require(deposit.nextPayDate < block.timestamp, "Cant pay in advance");
 
-        if (deposit.nextPayDate == 0) {
-            deposit.nextPayDate = block.timestamp;
-            deposit.tax = HUNDRED_PERCENT;
-        }
-
         // Paid after deadline?
         if (deposit.nextPayDate + forgivenessPeriod < block.timestamp) {
-            deposit.nextPayDate = block.timestamp;
             deposit.tax = HUNDRED_PERCENT;
         }
 
         deposit.tax = subOrZero(deposit.tax, taxReductionAmount);
-        deposit.nextPayDate += MONTH;
+        deposit.nextPayDate = block.timestamp + MONTH;
 
         uint256 amount;
         if(_payWithStack) {
@@ -654,8 +648,7 @@ contract Subscription is Ownable, ReentrancyGuard {
         } else {
 
             // if not subscribed - max taxes
-            if (deposit.nextPayDate < block.timestamp) {
-                deposit.nextPayDate = 0;
+            if (deposit.nextPayDate + forgivenessPeriod < block.timestamp) {
                 deposit.tax = HUNDRED_PERCENT - taxReductionAmount;
             }
 
