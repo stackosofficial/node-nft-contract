@@ -87,10 +87,9 @@ describe("Measure withdraw() and updateBonuses() gas", function () {
   });
 
   it("monthlyDripRateBonus", async function () {
-    let dripRates = await subscription.monthlyDripRateBonus(1, 0, 14);
+    let dripRates = await subscription.monthlyDripRateBonus(1, 0, 3);
     dripRates = dripRates.map(item => Number(formatEther(item)));
-    // print(dripRates);
-    print("monthlyDripRateBonus total amount", dripRates.reduce((acc, item) => acc + item));
+    print("monthlyDripRateBonus", dripRates);
   });
 
   it("Withdraw", async function () {

@@ -19,7 +19,9 @@ describe("Royalty", function () {
   it("Deploy full SETUP", async function () {
     await setup();
     await setupDeployment();
-    CYCLE_DURATION = Number(await royalty.CYCLE_DURATION());
+    CYCLE_DURATION = Number(await royalty.cycleDuration());
+
+    // console.log(await royalty.cycles(0, 0));
   });
 
   it("Add liquidity ", async function () {
@@ -107,7 +109,7 @@ describe("Royalty", function () {
       value: parseEther("2.0"),
     });
     
-    await expect(royalty.claim(0, [0], [0], [0]))
+    await expect(royalty.claim(0, [0], [0]))
       .to.be.revertedWith("Still first cycle");
 
     // 1st cycle have enough royalty, now pass enough time
@@ -116,10 +118,10 @@ describe("Royalty", function () {
 
     // cycle 0 end, cycle 1 starts in next call
     // 3.6 balance / 100 maxSupply = 0.036
-    await expect(() => royalty.claim(0, [0], [0], [0]))
+    await expect(() => royalty.claim(0, [0], [0]))
       .to.changeEtherBalance(owner, parseEther("0.036"));
 
-    await expect(royalty.claim(0, [0], [0], [0]))
+    await expect(royalty.claim(0, [0], [0]))
       .to.be.revertedWith("Nothing to claim");
   });
 
@@ -128,7 +130,7 @@ describe("Royalty", function () {
     // get token ids 1-98
     let tokenIds = [...Array(99).keys()].slice(1);
     // claim for them all
-    await expect(() => royalty.claim(0, tokenIds, [0], [0]))
+    await expect(() => royalty.claim(0, tokenIds, [0]))
       .to.changeEtherBalance(owner, parseEther("0.036").mul(98));
   });
 
@@ -139,11 +141,11 @@ describe("Royalty", function () {
 
   it("Claim last portion from cycle", async function () {
 
-    await expect(() => royalty.claim(0, [99], [0], [0]))
+    await expect(() => royalty.claim(0, [99], [0]))
       .to.changeEtherBalance(owner, parseEther("0.036"));
 
     // now all royalty claimed
-    await expect(royalty.claim(0, [0], [0], [0])).to.be.revertedWith(
+    await expect(royalty.claim(0, [0], [0])).to.be.revertedWith(
       "No royalty"
     );
   });
@@ -180,7 +182,7 @@ describe("Royalty", function () {
 
   it("Unable to claim from pool 0", async function () {
       // fees are sent only to pool 1
-      await expect(royalty.claim(0, [0], [0, 1], [0])).to.be.revertedWith(
+      await expect(royalty.claim(0, [0], [0])).to.be.revertedWith(
         "Nothing to claim"
       );
   });
@@ -197,452 +199,120 @@ describe("Royalty", function () {
 
   it("Generation 1 can't claim pool 0", async function () {
       // cycle 2 should end, but reverted
-      await expect(royalty.claim(1, [0], [2], [0])).to.be.revertedWith(
+      await expect(royalty.claim(1, [0], [0])).to.be.revertedWith(
         "Bad gen id"
       );
   });
 
   it("Generation 0 can claim pool 1", async function () {
-      // cycle 2 only has pool 0 balance
-      await expect(royalty.claim(0, [0], [2], [1])).to.be.revertedWith(
-        "Nothing to claim"
-      );
 
-      // now generation 0 claim pool 0 in cycle 2 
-      // div by 100 because pool 0 only divided by generation 0
-      await expect(() => royalty.claim(0, [0], [2], [0]))
+      // now generation 0 claim pool 0 in cycle 2
+      await expect(() => royalty.claim(0, [0], [0]))
         .to.changeEtherBalance(owner, parseEther("1.8").div(100));
 
-      // now generation 0 claim pool 1 in cycle 1 
-      await expect(() => royalty.claim(0, [0], [1], [1]))
-        .to.changeEtherBalance(owner, parseEther("1.8").div(1100));
+      // cycle's totalBalance should update
+      expect((await royalty.cycles(2)).totalBalance)
+        .to.be.equal(parseEther("1.8").sub(parseEther("1.8").div(100)));
 
       // test pendingRoyalty function
       expect(await royalty.pendingRoyalty(0, [0]))
-        .to.be.equal(parseEther("0"));
+        .to.be.equal(parseEther("1.8").div(1100));
 
       expect(await royalty.pendingRoyalty(1, [0]))
         .to.be.equal(parseEther("1.8").div(1100));
   });
 
-    // print(
-    //   await partner.getBalance(),
-    //   await provider.getBalance(royalty.address)
-    // );
-    // await expect(
-    //   joe.sendTransaction({
-    //     // enough eth for cycle 3 to end
-    //     from: joe.address,
-    //     to: royalty.address,
-    //     value: parseEther("2.0"),
-    //   })
-    // ).to.be.not.reverted;
-    // await provider.send("evm_increaseTime", [CYCLE_DURATION]); // enough time for cycle 3 to end
-    // await provider.send("evm_mine");
-    // await stackOsNFT.connect(partner).delegate(stackOsNFT.address, [1]); // will claim this later, this delegate will be counted from cycle 4
+  it("Go to cycle id 6 so cycles 0,1,2 will be only for admin", async function () {
 
-    // expect(await partner.getBalance()).to.be.lt(parseEther("10006.0"));
-    // await expect(royalty.connect(partner).claim(0, [0], [0, 1, 2], [0])).to.be.not.reverted; // 4 cycle starts here (claim 0.9 eth, 6.3 total)
-    // expect(await partner.getBalance()).to.be.gt(parseEther("10006.0"));
-    // print(
-    //   await partner.getBalance(),
-    //   await provider.getBalance(royalty.address)
-    // );
-  // });
+    // current cycle id become 5, but 6 can start
+    for (let i = 0; i < 7 - Number(await royalty.counter()); i++) {
+      await joe.sendTransaction({
+        from: joe.address,
+        to: royalty.address,
+        value: parseEther("2.0"),
+      });
+  
+      await provider.send("evm_increaseTime", [CYCLE_DURATION]); 
+      await provider.send("evm_mine");
+    }
+  });
 
-  // it("Can't claim claimed", async function () {
-  //   await royalty.connect(partner).claim(0, [0], [0, 1, 2], [0]); // 'empty call', already claimed for 3 cycles, 4 is still growing
-  // });
-  // it("Multiple claimers", async function () {
-  //   await stackOsNFT.whitelistPartner(vera.address, 2);
-  //   await stackOsNFT.whitelistPartner(bob.address, 2);
-  //   await stackOsNFT.whitelistPartner(owner.address, 2);
+  it("Shouldn't claim for cycles that are become admin withdrawable", async function () {
 
-  //   await usdt.transfer(vera.address, parseEther("100.0"));
-  //   await usdt.transfer(bob.address, parseEther("100.0"));
-  //   await dude.sendTransaction({
-  //     // this should be divided by 3 previous delegates
-  //     from: dude.address,
-  //     to: royalty.address,
-  //     value: parseEther("100.0"),
-  //   });
-  //   await usdt.connect(bob).approve(stackOsNFT.address, parseEther("5.0"));
-  //   await stackOsNFT.connect(bob).partnerMint(1);
-  //   await usdt.connect(vera).approve(stackOsNFT.address, parseEther("5.0"));
-  //   await stackOsNFT.connect(vera).partnerMint(1);
-  //   await usdt.approve(stackOsNFT.address, parseEther("5.0"));
-  //   await stackOsNFT.partnerMint(1);
+      // start cycle 6
+      // cycles 6,5,4,3 have 1.8 balance
 
-  //   await expect(royalty.claim(0, [0], [0], [0])).to.be.revertedWith("Not owner");
-  //   await expect(royalty.connect(vera).claim(0, [4], [0], [0])).to.be.revertedWith(
-  //     "NFT should be delegated"
-  //   );
-  //   // +3 delegates for 5 cycle
-  //   await stackOsNFT.connect(bob).delegate(stackOsNFT.address, [3]);
-  //   await stackOsNFT.connect(vera).delegate(stackOsNFT.address, [4]);
-  //   await stackOsNFT.delegate(stackOsNFT.address, [5]);
+      // generation 0 was able to claim pool 1 in cycle 1 
+      // but that cycle now admin withdrawable
+      // and user can only claim 3,4,5
+      await expect(() => royalty.claim(0, [0], [1]))
+        .to.changeEtherBalance(owner, parseEther("1.8").div(1100).mul(3));
 
-  //   await provider.send("evm_increaseTime", [CYCLE_DURATION]); // 4 can end, with 100 eth
-  //   await provider.send("evm_mine");
-  //   await expect(
-  //     dude.sendTransaction({
-  //       // 5 cycle start with 2 eth
-  //       from: dude.address,
-  //       to: royalty.address,
-  //       value: parseEther("2.0"),
-  //     })
-  //   ).to.be.not.reverted;
+      expect(await royalty.isClaimed(1, 1, 0, 0)).to.be.equal(false);
 
-  //   await provider.send("evm_increaseTime", [CYCLE_DURATION]); // 5 can end
-  //   await provider.send("evm_mine");
-  //   print(
-  //     await partner.getBalance(),
-  //     await owner.getBalance(),
-  //     await bob.getBalance(),
-  //     await vera.getBalance()
-  //   );
-  //   await royalty.claim(0, [5], [0, 1, 2, 3, 4], [0]); // 6 cycle start
-  //   await royalty.connect(bob).claim(0, [3], [0, 1, 2, 3, 4], [0]);
-  //   await royalty.connect(vera).claim(0, [4], [0, 1, 2, 3, 4], [0]);
-  //   await royalty.connect(partner).claim(0, [0, 1, 2], [0, 1, 2, 3, 4], [0]);
-  //   print(
-  //     await partner.getBalance(),
-  //     await owner.getBalance(),
-  //     await bob.getBalance(),
-  //     await vera.getBalance()
-  //   );
+      expect((await royalty.cycles(0)).totalBalance).to.be.equal(0);
+      expect((await royalty.cycles(1)).totalBalance).to.be.equal(0);
+      expect((await royalty.cycles(2)).totalBalance).to.be.equal(0);
 
-  //   expect(await bob.getBalance()).to.be.gt(parseEther("10000.28")); // should be ((2 - 10% fee) / 6 tokens) = 0.3, but transfer fees also here...
-  //   expect(await vera.getBalance()).to.be.gt(parseEther("10000.28"));
-  //   expect(await partner.getBalance()).to.be.gt(parseEther("10090.0"));
-  // });
-  // it("StackOS generation 2 with multiple claimers", async function () {
-  //   // generation 2
-  //   // delegates of gen2 will be only counted in future cycles
+      expect((await royalty.cycles(3)).totalBalance).to.be.not.equal(0);
 
-  //   stackOsNFTgen2 = await deployStackOSBasic();
-
-  //   await expect(
-  //     dude.sendTransaction({
-  //       // 6 cycle get 6 eth
-  //       from: dude.address,
-  //       to: royalty.address,
-  //       value: parseEther("6.0"),
-  //     })
-  //   ).to.be.not.reverted;
-
-  //   await provider.send("evm_increaseTime", [CYCLE_DURATION]); // 6 cycle can end
-  //   await provider.send("evm_mine");
-
-  //   await stackOsNFT.connect(bob).partnerMint(1);
-  //   await stackOsNFT.connect(vera).partnerMint(1);
-  //   await stackOsNFT.partnerMint(1);
-
+      expect(await royalty.adminWithdrawable()).to.be.equal(
+        parseEther("1.8").mul(2).sub(parseEther("1.8").div(100))
+      );
     
-  //   // give them some STACK
-  //   await stackToken.transfer(bob.address, parseEther("50.0"));
-  //   await stackToken.transfer(vera.address, parseEther("50.0"));
+  });
+  
+  it("Admin withdraw", async function () {
 
-  //   await stackToken.connect(bob).approve(stackOsNFTgen2.address, parseEther("50.0"));
-  //   await stackOsNFTgen2.connect(bob).mint(1);
-  //   await stackToken.connect(vera).approve(stackOsNFTgen2.address, parseEther("50.0"));
-  //   await stackOsNFTgen2.connect(vera).mint(1);
-  //   await stackToken.approve(stackOsNFTgen2.address, parseEther("50.0"));
-  //   await stackOsNFTgen2.mint(1);
+      // cycle 0 fully claimed
+      // cycle 1 wasn't claimed
+      // cycle 2 claimed once in pool 0 (so -0.018)
+      // total is 3.6 - 0.018
+      await expect(() => royalty.adminWithdraw())
+        .to.changeEtherBalance(
+          owner,
+          parseEther("1.8").mul(2).sub(parseEther("1.8").div(100))
+        );
+  });
 
-  //   //+6 delegates for 7 cycle
-  //   await stackOsNFT.connect(bob).delegate(stackOsNFT.address, [6]);
-  //   await stackOsNFT.connect(vera).delegate(stackOsNFT.address, [7]);
-  //   await stackOsNFT.delegate(stackOsNFT.address, [8]);
+  it("Mint 2nd generation tokens", async function () {
+    await usdt.approve(stackOsNFTgen2.address, parseEther("1000"));
+    await stackOsNFTgen2.mintForUsd(10, usdt.address);
 
-  //   await stackOsNFTgen2.connect(bob).delegate(stackOsNFTgen2.address, [0]);
-  //   await stackOsNFTgen2.connect(vera).delegate(stackOsNFTgen2.address, [1]);
-  //   await stackOsNFTgen2.delegate(stackOsNFTgen2.address, [2]);
+    // wait for mint rate
+    await provider.send("evm_increaseTime", [60*10]); 
+    await provider.send("evm_mine");
+  });
 
-  //   await expect(
-  //     dude.sendTransaction({
-  //       // 7 cycle start
-  //       from: dude.address,
-  //       to: royalty.address,
-  //       value: parseEther("2.0"),
-  //     })
-  //   ).to.be.not.reverted;
+  it("Purchase NFTs from rewards", async function () {
 
-  //   await provider.send("evm_increaseTime", [CYCLE_DURATION]); // 7 cycle can end
-  //   await provider.send("evm_mine");
+    await stackOsNFTgen2.whitelist(owner.address);
+    await stackOsNFTgen2.transferFrom(owner.address, bob.address, 0);
 
-  //   print(
-  //     await owner.getBalance(),
-  //     await bob.getBalance(),
-  //     await vera.getBalance()
-  //   );
-  //   cycleIds = [...Array(7).keys()];
-  //   await royalty.connect(bob).claim(0, [6], cycleIds, [0]); // 8 cycle start
-  //   await royalty.connect(vera).claim(0, [7], cycleIds, [0]);
-  //   await royalty.claim(0, [8], cycleIds, [0]);
-  //   print(
-  //     await owner.getBalance(),
-  //     await bob.getBalance(),
-  //     await vera.getBalance()
-  //   );
+    let oldBalance = await stackToken.balanceOf(bob.address);
+    await expect(() => royalty.connect(bob).purchaseNewNft(1, [0], 5, [1]))
+      .to.changeTokenBalance(stackOsNFTgen2, bob, 5);
+    let newBalance = await stackToken.balanceOf(bob.address);
 
-  //   // print("balance after add generation: ", (await provider.getBalance(royalty.address)));
+    // 4.9 stack received
+    // 0.08 * 5 spend for mint
+    // so user receives ~4.5 stack
+    expect(newBalance.sub(oldBalance)).to.be.closeTo(
+      parseEther("4.5"), parseEther("0.01")
+    )
 
-  //   await royalty.claim(1, [2], cycleIds, [0]);
+  });
 
-  //   // print((await owner.getBalance()), (await bob.getBalance()), (await vera.getBalance()))
-  //   await royalty.claim(0, [5], cycleIds, [0]);
-  //   await royalty.connect(bob).claim(0, [3], cycleIds, [0]);
-  //   await royalty.connect(vera).claim(0, [4], cycleIds, [0]);
-  //   await royalty.connect(partner).claim(0, [0, 1, 2], cycleIds, [0]);
-  //   // print((await owner.getBalance()), (await bob.getBalance()), (await vera.getBalance()));
+  it("Claim in WETH", async function () {
 
-  //   await expect(
-  //     dude.sendTransaction({
-  //       // for 8 cycle
-  //       from: dude.address,
-  //       to: royalty.address,
-  //       value: parseEther("2.0"),
-  //     })
-  //   ).to.be.not.reverted;
+    let oldBalance = await weth.balanceOf(owner.address);
+    await royalty.claimWETH(0, [5], [1]);
+    let newBalance = await weth.balanceOf(owner.address);
 
-  //   await provider.send("evm_increaseTime", [CYCLE_DURATION]); // 8 can end
-  //   await provider.send("evm_mine");
-
-  //   cycleIds = [...Array(8).keys()];
-  //   await royalty.connect(bob).claim(0, [6], cycleIds, [0]); // 9 cycle start, gen2 delegates counted for it, should be 12 total
-  //   await royalty.connect(vera).claim(0, [7], cycleIds, [0]);
-  //   await royalty.claim(0, [8], cycleIds, [0]);
-
-  //   await royalty.claim(1, [2], cycleIds, [0]);
-  //   await royalty.connect(bob).claim(1, [0], cycleIds, [0]);
-  //   await royalty.connect(vera).claim(1, [1], cycleIds, [0]);
-  //   await royalty.claim(1, [2], cycleIds, [0]);
-
-  //   await royalty.claim(0, [5], cycleIds, [0]);
-  //   await royalty.connect(bob).claim(0, [3], cycleIds, [0]);
-  //   await royalty.connect(vera).claim(0, [4], cycleIds, [0]);
-  //   await royalty.connect(partner).claim(0, [0, 1, 2], cycleIds, [0]);
-
-  //   await expect(
-  //     dude.sendTransaction({
-  //       // for cycle 9
-  //       from: dude.address,
-  //       to: royalty.address,
-  //       value: parseEther("1000.0"),
-  //     })
-  //   ).to.be.not.reverted;
-
-  //   await provider.send("evm_increaseTime", [CYCLE_DURATION]); // 9 can end
-  //   await provider.send("evm_mine");
-
-  //   cycleIds = [...Array(9).keys()];
-  //   await royalty.connect(bob).claim(0, [6], cycleIds, [0]); // 10 cycle start, now generation2 tokens can claim for cycle 9
-  //   await royalty.connect(vera).claim(0, [7], cycleIds, [0]);
-  //   await royalty.claim(0, [8], cycleIds, [0]);
-
-  //   await royalty.connect(bob).claim(1, [0], cycleIds, [0]);
-  //   await royalty.connect(vera).claim(1, [1], cycleIds, [0]);
-  //   await royalty.claim(1, [2], cycleIds, [0]);
-
-  //   expect(
-  //     await royalty.pendingRoyalty(0, [0, 1, 2, 3, 4, 5])
-  //   ).to.be.equal(parseEther("450.0"));
-
-  //   await royalty.claim(0, [5], cycleIds, [0]);
-  //   await royalty.connect(bob).claim(0, [3], cycleIds, [0]);
-  //   await royalty.connect(vera).claim(0, [4], cycleIds, [0]);
-  //   await royalty.connect(partner).claim(0, [0, 1, 2], cycleIds, [0]);
-
-  //   // should be zero + last cycle unclaimed
-  //   print(await provider.getBalance(royalty.address));
-  //   expect(await provider.getBalance(royalty.address)).to.be.closeTo(
-  //     BigNumber.from(0), 50
-  //   );
-
-  //   expect(
-  //     await royalty.pendingRoyalty(0, [0, 1, 2, 3, 4, 5])
-  //   ).to.be.equal(parseEther("0.0"));
-
-  //   print(
-  //     await owner.getBalance(),
-  //     await partner.getBalance(),
-  //     await bob.getBalance(),
-  //     await vera.getBalance()
-  //   );
-  // });
-  // it("StackOS generation 3 with multiple claimers", async function () {
-  //   // gen3
-  //   stackOsNFTgen3 = await deployStackOS();
-
-  //   await stackOsNFTgen3.whitelistPartner(vera.address, 1);
-  //   await stackOsNFTgen3.whitelistPartner(bob.address, 1);
-  //   await stackOsNFTgen3.whitelistPartner(owner.address, 1);
-  //   await stackOsNFTgen3.startPartnerSales();
-
-  //   await usdt.connect(bob).approve(stackOsNFTgen3.address, parseEther("5.0"));
-  //   await stackOsNFTgen3.connect(bob).partnerMint(1);
-  //   await usdt.connect(vera).approve(stackOsNFTgen3.address, parseEther("5.0"));
-  //   await stackOsNFTgen3.connect(vera).partnerMint(1);
-  //   await usdt.approve(stackOsNFTgen3.address, parseEther("5.0"));
-  //   await stackOsNFTgen3.partnerMint(1);
-
-  //   // delegates for 11 cycle
-  //   await stackOsNFTgen3.connect(bob).delegate(stackOsNFTgen3.address, [0]);
-  //   await stackOsNFTgen3.connect(vera).delegate(stackOsNFTgen3.address, [1]);
-  //   await stackOsNFTgen3.delegate(stackOsNFTgen3.address, [2]);
-
-  //   await expect(
-  //     dude.sendTransaction({
-  //       // this go in 10 cycle, gen3 can't claim
-  //       from: dude.address,
-  //       to: royalty.address,
-  //       value: parseEther("1000.0"),
-  //     })
-  //   ).to.be.not.reverted;
-
-  //   await provider.send("evm_increaseTime", [CYCLE_DURATION]); // 10 can end
-  //   await provider.send("evm_mine");
-
-  //   cycleIds = [...Array(10).keys()];
-  //   await royalty.claim(2, [2], cycleIds, [0]); // 11 cycle started, though owner didn't get ether
-
-  //   await royalty.connect(bob).claim(0, [6], cycleIds, [0]);
-
-  //   await expect(
-  //     dude.sendTransaction({
-  //       // this go in 11 cycle, gen3 can claim it
-  //       from: dude.address,
-  //       to: royalty.address,
-  //       value: parseEther("1000.0"),
-  //     })
-  //   ).to.be.not.reverted;
-
-  //   await provider.send("evm_increaseTime", [CYCLE_DURATION]); // 11 can end
-  //   await provider.send("evm_mine");
-
-  //   cycleIds = [...Array(11).keys()];
-  //   await royalty.connect(bob).claim(2, [0], cycleIds, [0]); // 12 cycle start (zero-based index 11)
-  //   await royalty.connect(vera).claim(2, [1], cycleIds, [0]);
-  //   await royalty.claim(2, [2], cycleIds, [0]);
-
-  //   await royalty.connect(bob).claim(0, [6], cycleIds, [0]);
-  //   await royalty.connect(vera).claim(0, [7], cycleIds, [0]);
-  //   await royalty.claim(0, [8], cycleIds, [0]);
-
-  //   await royalty.connect(bob).claim(1, [0], cycleIds, [0]);
-  //   await royalty.connect(vera).claim(1, [1], cycleIds, [0]);
-  //   await royalty.claim(1, [2], cycleIds, [0]);
-
-  //   await royalty.claim(0, [5], cycleIds, [0]);
-  //   await royalty.connect(bob).claim(0, [3], cycleIds, [0]);
-  //   await royalty.connect(vera).claim(0, [4], cycleIds, [0]);
-  //   await royalty.connect(partner).claim(0, [0, 1, 2], cycleIds, [0]);
-
-  //   print(await provider.getBalance(royalty.address));
-  //   expect(await provider.getBalance(royalty.address)).to.be.closeTo(
-  //     BigNumber.from(0), 50
-  //   );
-  //   print(
-  //     await owner.getBalance(),
-  //     await partner.getBalance(),
-  //     await bob.getBalance(),
-  //     await vera.getBalance()
-  //   );
-  // });
-
-  // it("Purchase NFTs from rewards", async function () {
-  //   await expect(
-  //     dude.sendTransaction({
-  //       from: dude.address,
-  //       to: royalty.address,
-  //       value: parseEther("10.0"),
-  //     })
-  //   ).to.be.not.reverted;
-
-  //   await provider.send("evm_increaseTime", [CYCLE_DURATION]);
-  //   await provider.send("evm_mine");
-
-  //   LPaddress = await factory.getPair(stackToken.address, WETH);
-  //   print("LPAddress " + LPaddress);
-
-  //   print(
-  //     "before purchaseNewNft",
-  //     await owner.getBalance(),
-  //     await bob.getBalance()
-  //   );
-
-  //   cycleIds = [...Array(12).keys()];
-  //   await expect(() => royalty.purchaseNewNft(1, [2], 5, cycleIds, [0]))
-  //     .to.changeTokenBalance(stackOsNFTgen2, owner, 5);
-
-  //   print(
-  //     "royalty eth balance: " + (await provider.getBalance(royalty.address))
-  //   );
-  //   print(
-  //     "after purchaseNewNft",
-  //     await owner.getBalance(),
-  //     await bob.getBalance(),
-  //     await stackToken.balanceOf(bob.address)
-  //   );
-  // });
-
-  // it("Claim in WETH (for Matic network)", async function () {
-  //   await expect(
-  //     dude.sendTransaction({
-  //       from: dude.address,
-  //       to: royalty.address,
-  //       value: parseEther("1000.0"),
-  //     })
-  //   ).to.be.not.reverted;
-
-  //   await provider.send("evm_increaseTime", [CYCLE_DURATION]);
-  //   await provider.send("evm_mine");
-
-  //   cycleIds = [...Array(13).keys()];
-  //   await royalty.claimWETH(2, [2], cycleIds, [0]);
-
-  //   print("bob weth (before claim): ", await weth.balanceOf(bob.address));
-  //   await royalty.connect(bob).claimWETH(0, [6], cycleIds, [0]);
-
-  //   await expect(
-  //     dude.sendTransaction({
-  //       from: dude.address,
-  //       to: royalty.address,
-  //       value: parseEther("1000.0"),
-  //     })
-  //   ).to.be.not.reverted;
-
-  //   await provider.send("evm_increaseTime", [CYCLE_DURATION]); // 11 can end
-  //   await provider.send("evm_mine");
-
-  //   cycleIds = [...Array(14).keys()];
-  //   await royalty.connect(bob).claimWETH(2, [0], cycleIds, [0]); // 12 cycle start (zero-based index 11)
-  //   await royalty.connect(vera).claimWETH(2, [1], cycleIds, [0]);
-  //   await royalty.claimWETH(2, [2], cycleIds, [0]);
-
-  //   await royalty.connect(bob).claimWETH(0, [6], cycleIds, [0]);
-  //   await royalty.connect(vera).claimWETH(0, [7], cycleIds, [0]);
-  //   await royalty.claimWETH(0, [8], cycleIds, [0]);
-
-  //   await royalty.connect(bob).claimWETH(1, [0], cycleIds, [0]);
-  //   await royalty.connect(vera).claimWETH(1, [1], cycleIds, [0]);
-  //   await royalty.claimWETH(1, [2], cycleIds, [0]);
-
-  //   await royalty.claimWETH(0, [5], cycleIds, [0]);
-  //   await royalty.connect(bob).claimWETH(0, [3], cycleIds, [0]);
-  //   await royalty.connect(vera).claimWETH(0, [4], cycleIds, [0]);
-  //   await royalty.connect(partner).claimWETH(0, [0, 1, 2], cycleIds, [0]);
-
-  //   print(await provider.getBalance(royalty.address));
-  //   expect(await provider.getBalance(royalty.address)).to.be.closeTo(
-  //     BigNumber.from(0), 50
-  //   );
-  //   print("owner weth:", await weth.balanceOf(owner.address));
-  //   print("vera:", await weth.balanceOf(vera.address));
-  //   print("bob:", await weth.balanceOf(bob.address));
-  //   print("partner:", await weth.balanceOf(partner.address));
-  // });
+    expect(newBalance.sub(oldBalance)).to.be.closeTo(
+      parseEther("4.9"), parseEther("0.01")
+    )
+  });
 
   it("Revert EVM state", async function () {
     await ethers.provider.send("evm_revert", [snapshotId]);

@@ -405,6 +405,7 @@ contract StackOsNFTBasic is
             stablecoin,
             stackToken
         );
+        // console.log("mint price discounted * 5", amountUsd, stackAmount);
         
         amountSpend = stackAmount;
         stackToken.transferFrom(msg.sender, address(this), stackAmount);

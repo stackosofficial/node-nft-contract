@@ -212,11 +212,12 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeab
         (bool success, ) = daoAddress.call{value: daoPart}("");
         require(success, "Transfer failed");
 
-        // (success, ) = royaltyAddress.call{value: royaltyPart}("");
-        // require(success, "Transfer failed");
         Royalty(payable(royaltyAddress)).onReceive{value: royaltyPart}(generationId);
 
         (success, ) = payable(lot.seller).call{value: sellerPart}("");
+        require(success, "Transfer failed");
+
+        (success, ) = payable(msg.sender).call{value: msg.value - lot.price}("");
         require(success, "Transfer failed");
 
         emit StackSale(lot.seller, msg.sender, generationId, tokenId, sellerPart);
@@ -244,9 +245,14 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeab
 
         (bool success, ) = daoAddress.call{value: daoPart}("");
         require(success, "Transfer failed");
+
         (success, ) = royaltyAddress.call{value: royaltyPart}("");
         require(success, "Transfer failed");
+
         (success, ) = payable(lot.seller).call{value: sellerPart}("");
+        require(success, "Transfer failed");
+
+        (success, ) = payable(msg.sender).call{value: msg.value - lot.price}("");
         require(success, "Transfer failed");
 
         emit DarkMatterSale(lot.seller, msg.sender, tokenId, sellerPart);

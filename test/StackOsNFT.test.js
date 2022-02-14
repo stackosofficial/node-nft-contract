@@ -47,7 +47,7 @@ describe("StackOS NFT", function () {
   it("Start lottery", async function () {
     await coordinator.callBackWithRandomness(
       requestID,
-      89765,
+      (Date.now()),
       stackOsNFT.address
     );
     var randomNumber = await stackOsNFT.randomNumber();
@@ -83,6 +83,10 @@ describe("StackOS NFT", function () {
     // check that there is no duplicated tickets indexes
     await expect(new Set(winningTickets).size).to.be.equal(
       winningTickets.length
+    );
+    // No duplicates between winning / loser tickets
+    await expect(new Set(winningTickets.concat(notWinning)).size).to.be.equal(
+      winningTickets.length + notWinning.length
     );
     // We get exact winning tickets as we want
     await expect(winningTickets.length).to.be.equal(

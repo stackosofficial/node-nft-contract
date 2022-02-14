@@ -8,7 +8,7 @@ import "./DarkMatter.sol";
 import "./interfaces/IStackOsNFT.sol";
 import "./interfaces/IStackOsNFTBasic.sol";
 import "./Exchange.sol";
-import "hardhat/console.sol";
+// import "hardhat/console.sol";
 
 contract Royalty is Ownable, ReentrancyGuard {
     using Counters for Counters.Counter;
@@ -17,6 +17,8 @@ contract Royalty is Ownable, ReentrancyGuard {
     event SetWETH(IERC20 WETH);
     event SetFeePercent(uint256 _percent);
     event SetMinEthPerCycle(uint256 amount);
+    event NewCycle(uint256 newCycleId);
+    event SetCycleDuration(uint256 _seconds);
 
     Counters.Counter public counter; // counting cycles
 
@@ -30,7 +32,9 @@ contract Royalty is Ownable, ReentrancyGuard {
     uint256 private feePercent;
 
     uint256 public minEthPerCycle;
-    uint256 public constant CYCLE_DURATION = 30 days;
+    uint256 public cycleDuration = 30 days;
+
+    uint256 public adminWithdrawable;
 
     struct GenData {
         // total received by each generation in cycle
@@ -42,7 +46,8 @@ contract Royalty is Ownable, ReentrancyGuard {
     struct Cycle {
         // cycle started timestamp
         uint256 startTimestamp; 
-        // total received in cycle
+        // this is used in admin withdrawable
+        // and for cycle ending condition
         uint256 totalBalance; 
         // per generation balance
         mapping(uint256 => GenData) genData; 
@@ -85,7 +90,8 @@ contract Royalty is Ownable, ReentrancyGuard {
 
         updateCycle();
 
-        // console.log(valuePart, counter.current());
+
+        // console.log("receive", generationId, counter.current(), valuePart);
 
         cycles[counter.current()].totalBalance += valuePart;
         cycles[counter.current()].genData[generationId].balance += valuePart;
@@ -107,7 +113,7 @@ contract Royalty is Ownable, ReentrancyGuard {
 
         updateCycle();
 
-        console.log("onReceive", generationId, counter.current(), valuePart);
+        // console.log("onReceive", generationId, counter.current(), valuePart);
         cycles[counter.current()].totalBalance += valuePart;
         cycles[counter.current()].genData[generationId].balance += valuePart;
 
@@ -118,7 +124,7 @@ contract Royalty is Ownable, ReentrancyGuard {
     function updateCycle() private {
         // is current cycle lasts enough?
         if (
-            cycles[counter.current()].startTimestamp + CYCLE_DURATION <
+            cycles[counter.current()].startTimestamp + cycleDuration <
             block.timestamp
         ) {
             // is current cycle got enough ether?
@@ -126,8 +132,44 @@ contract Royalty is Ownable, ReentrancyGuard {
                 // start new cycle
                 counter.increment();
                 cycles[counter.current()].startTimestamp = block.timestamp;
+
+                if(counter.current() > 3) {
+                    // subtract 4 because need to ignore current cycle + 3 cycles before it
+                    uint256 removeIndex = counter.current() - 4;
+                    adminWithdrawable += cycles[removeIndex].totalBalance;
+                    // console.log("adminWithdrawable: %s, added: %s", adminWithdrawable, cycles[removeIndex].totalBalance);
+                    cycles[removeIndex].totalBalance = 0;
+                }
+
+                emit NewCycle(counter.current());
             }
         }
+    }
+
+    function genDataBalance(
+        uint256 cycleId,
+        uint256 generationFeeBalanceId
+    ) 
+        external 
+        view
+        returns (uint256) 
+    {
+        return cycles[cycleId].genData[generationFeeBalanceId].balance;
+    }
+
+    function isClaimed(
+        uint256 cycleId,
+        uint256 generationFeeBalanceId,
+        uint256 generationId,
+        uint256 tokenId
+    ) 
+        external 
+        view
+        returns (bool) 
+    {
+        return cycles[cycleId]
+                .genData[generationFeeBalanceId]
+                    .isClaimed[generationId][tokenId];
     }
 
     /**
@@ -145,6 +187,16 @@ contract Royalty is Ownable, ReentrancyGuard {
                 maxSupplys[generationId - 1] + IStackOsNFT(stack).getMaxSupply();
         }
     }
+
+    /**
+     * @notice Set cycle duration.
+     * @dev Could only be invoked by the contract owner.
+     */
+    function setCycleDuration(uint256 _seconds) external onlyOwner {
+        require(_seconds > 0, "Must be not zero");
+        cycleDuration = _seconds;
+        emit SetCycleDuration(_seconds);
+    }   
 
     /**
      * @notice Set fee address.
@@ -196,7 +248,6 @@ contract Royalty is Ownable, ReentrancyGuard {
      * @notice Claim royalty for tokens.
      * @param _generationId Generation id of tokens that will claim royalty.
      * @param _tokenIds Token ids who will claim royalty.
-     * @param _cycleIds Cycle ids to claim royalties from.
      * @param _genIds Ids of generation balances to claim royalties.
      * @dev Tokens must be owned by the caller.
      * @dev When generation tranded on market, fee is transfered to
@@ -208,12 +259,11 @@ contract Royalty is Ownable, ReentrancyGuard {
     function claim(
         uint256 _generationId, 
         uint256[] calldata _tokenIds,
-        uint256[] calldata _cycleIds,
         uint256[] calldata _genIds
     )
         external
     {
-        _claim(_generationId, _tokenIds, 0, false, _cycleIds, _genIds);
+        _claim(_generationId, _tokenIds, 0, false, _genIds);
     }
 
     /**
@@ -223,13 +273,12 @@ contract Royalty is Ownable, ReentrancyGuard {
     function claimWETH(
         uint256 _generationId, 
         uint256[] calldata _tokenIds,
-        uint256[] calldata _cycleIds,
         uint256[] calldata _genIds
     )
         external
     {
         require(address(WETH) != address(0), "Wrong WETH address");
-        _claim(_generationId, _tokenIds, 0, true, _cycleIds, _genIds);
+        _claim(_generationId, _tokenIds, 0, true, _genIds);
     }
 
     /**
@@ -238,7 +287,6 @@ contract Royalty is Ownable, ReentrancyGuard {
      * @param _generationId Generation id to claim royalty and purchase, should be greater than 0.
      * @param _tokenIds Token ids that claim royalty.
      * @param _mintNum Amount to mint.
-     * @param _cycleIds Cycle ids to claim royalties.
      * @param _genIds Ids of generation balances to claim royalties.
      * @dev Tokens must be owned by the caller.
      * @dev `_generationId` should be greater than 0.
@@ -248,7 +296,6 @@ contract Royalty is Ownable, ReentrancyGuard {
         uint256 _generationId,
         uint256[] calldata _tokenIds,
         uint256 _mintNum,
-        uint256[] calldata _cycleIds,
         uint256[] calldata _genIds
     ) 
         external 
@@ -256,7 +303,7 @@ contract Royalty is Ownable, ReentrancyGuard {
     {
         require(_generationId > 0, "Must be not first generation");
         require(_mintNum > 0, "Mint num is 0");
-        _claim(_generationId, _tokenIds, _mintNum, false, _cycleIds, _genIds);
+        _claim(_generationId, _tokenIds, _mintNum, false, _genIds);
     }
 
     function _claim(
@@ -264,16 +311,16 @@ contract Royalty is Ownable, ReentrancyGuard {
         uint256[] calldata tokenIds,
         uint256 _mintNum,
         bool _claimWETH,
-        uint256[] calldata _cycleIds,
         uint256[] calldata _genIds
     ) internal {
-        require(_cycleIds.length > 0, "No cycle ids");
         require(_genIds.length > 0, "No gen ids");
         require(address(this).balance > 0, "No royalty");
         IStackOsNFTBasic stack = 
             IStackOsNFTBasic(address(generations.get(generationId)));
 
         updateCycle();
+
+        // console.log("current cycle in _claim", counter.current());
 
         require(counter.current() > 0, "Still first cycle");
 
@@ -292,10 +339,11 @@ contract Royalty is Ownable, ReentrancyGuard {
                 "Not owner"
             );
 
-            reward += calcReward(generationId, tokenIds[i], _cycleIds, _genIds);
+            reward += calcReward(generationId, tokenIds[i], _genIds);
         }
 
         require(reward > 0, "Nothing to claim");
+        // console.log("reward claim:", reward);
 
         if (_mintNum == 0) {
             if(_claimWETH) {
@@ -312,11 +360,12 @@ contract Royalty is Ownable, ReentrancyGuard {
                 exchange.swapExactETHForTokens{value: reward}(stackToken);
             stackToken.approve(address(stack), stackReceived);
 
-            // console.log("MINT:", _mintNum);
+
             uint256 spendAmount = stack.mintFromRoyaltyRewards(
                 _mintNum,
                 msg.sender
             );
+            // console.log("reward claim stack:", stackReceived, stackReceived - spendAmount);
             stackToken.transfer(msg.sender, stackReceived - spendAmount);
         }
 
@@ -325,16 +374,15 @@ contract Royalty is Ownable, ReentrancyGuard {
     function calcReward(
         uint256 generationId,
         uint256 tokenId,
-        uint256[] calldata _cycleIds,
         uint256[] calldata _genIds
     )   
         private 
         returns (uint256 reward) 
     {
-        for (uint256 o; o < _cycleIds.length; o++) {
-            uint256 cycleId = _cycleIds[o];
-            require(cycleId < counter.current(), "Bad cycle id");
+        for (uint256 o = 1; o <= 3; o++) {
+            uint256 cycleId = counter.current() - o;
 
+            uint256 removeFromCycle;
             for (uint256 j; j < _genIds.length; j++) {
                 require(_genIds[j] >= generationId, "Bad gen id");
                 require(_genIds[j] < generations.count(), "genId not exists");
@@ -342,15 +390,20 @@ contract Royalty is Ownable, ReentrancyGuard {
 
                 if (
                     genData.balance > 0 &&
-                    // verify reward is unclaimed
                     genData.isClaimed[generationId][tokenId] == false
                 ) {
-                    reward += genData.balance / maxSupplys[_genIds[j]];
+                    uint256 claimAmount = genData.balance / maxSupplys[_genIds[j]];
+                    reward += claimAmount;
+                    removeFromCycle += claimAmount;
+
                     genData.isClaimed[generationId][tokenId] = true;
-                    console.log(address(this).balance);
+                    // console.log(address(this).balance, maxSupplys[ _genIds[j]]);
                 }
-                console.log(cycleId, _genIds[j], genData.balance, reward);
+                // console.log(cycleId, _genIds[j], genData.balance, reward);
             }
+
+            cycles[cycleId].totalBalance -= removeFromCycle;
+            if(cycleId == 0) break;
         }
     }
 
@@ -368,7 +421,7 @@ contract Royalty is Ownable, ReentrancyGuard {
 
         uint256 _counterCurrent = counter.current();
         if (
-            cycles[counter.current()].startTimestamp + CYCLE_DURATION <
+            cycles[counter.current()].startTimestamp + cycleDuration <
             block.timestamp
         ) {
             if (cycles[counter.current()].totalBalance >= minEthPerCycle) {
@@ -383,25 +436,37 @@ contract Royalty is Ownable, ReentrancyGuard {
         for (uint256 i; i < tokenIds.length; i++) {
             uint256 tokenId = tokenIds[i];
 
-            for (uint256 o; o < _counterCurrent; o++) {
-                // j is pool id, should be greater than token generation
+            for (uint256 o = 1; o <= 3; o++) {
+                uint256 cycleId = _counterCurrent - o;
+                // console.log("pending", cycleId, _counterCurrent);
+                // j is pool id, should be greater or equal than token generation
                 for (uint256 j = generationId; j < generations.count(); j++) {
 
-                    GenData storage genData = cycles[o].genData[j];
+                    GenData storage genData = cycles[cycleId].genData[j];
                     if (
                         genData.balance > 0 &&
                         // verify reward is unclaimed
                         genData.isClaimed[generationId][tokenId] == false
                     ) {
                         reward += genData.balance / maxSupplys[j];
-                        // console.log("pending", 
-                        // o, j,
-                        // reward / 1e18);
                     }
                 }
+
+                if(cycleId == 0) break;
             }
         }
 
         withdrawableRoyalty = reward;
+    }
+
+    function adminWithdraw()
+        external
+        onlyOwner
+    {
+        require(adminWithdrawable > 0, "Nothing to withdraw");
+        (bool success, ) = payable(msg.sender).call{value: adminWithdrawable}(
+            ""
+        );
+        require(success, "Transfer failed");
     }
 }

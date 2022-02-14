@@ -22,13 +22,16 @@ contract Subscription is Ownable, ReentrancyGuard {
     event SetBonusPercent(uint256 _percent);
     event SetTaxReductionAmount(uint256 _amount);
     event SetForgivenessPeriod(uint256 _seconds);
+    event NewPeriodStarted(uint256 newPeriodId);
 
     event Subscribe(
         address indexed subscriberWallet,
-        uint256 blockTimestamp,
+        uint256 nextPayDate,
         uint256 generationId,
         uint256 tokenId,
-        uint256 _price,
+        uint256 stablePayed,
+        uint256 stackReceived,
+        uint256 userBonus,
         IERC20 _stablecoin,
         bool _payWithStack,
         uint256 periodId
@@ -300,19 +303,13 @@ contract Subscription is Ownable, ReentrancyGuard {
         Deposit storage deposit = deposits[generationId][tokenId];
         require(deposit.nextPayDate < block.timestamp, "Cant pay in advance");
 
-        if (deposit.nextPayDate == 0) {
-            deposit.nextPayDate = block.timestamp;
-            deposit.tax = HUNDRED_PERCENT;
-        }
-
         // Paid after deadline?
         if (deposit.nextPayDate + forgivenessPeriod < block.timestamp) {
-            deposit.nextPayDate = block.timestamp;
             deposit.tax = HUNDRED_PERCENT;
         }
 
         deposit.tax = subOrZero(deposit.tax, taxReductionAmount);
-        deposit.nextPayDate += MONTH;
+        deposit.nextPayDate = block.timestamp + MONTH;
 
         uint256 amount;
         if(_payWithStack) {
@@ -359,10 +356,12 @@ contract Subscription is Ownable, ReentrancyGuard {
         }));
         emit Subscribe(
             msg.sender,
-            block.timestamp,
+            deposit.nextPayDate,
             generationId,
             tokenId,
             _price,
+            amount,
+            bonusAmount,
             _stablecoin,
             _payWithStack,
             currentPeriodId
@@ -377,6 +376,7 @@ contract Subscription is Ownable, ReentrancyGuard {
         if (periods[currentPeriodId].endAt < block.timestamp) {
             currentPeriodId += 1;
             periods[currentPeriodId].endAt = block.timestamp + MONTH;
+            emit NewPeriodStarted(currentPeriodId);
         }
     }
 
@@ -598,6 +598,8 @@ contract Subscription is Ownable, ReentrancyGuard {
 
         if (allocationStatus == withdrawStatus.purchase) {
 
+            require(deposit.tax == 0, "Can only purchase when 0 tax");
+
             StackOsNFTBasic stack = StackOsNFTBasic(
                 address(generations.get(purchaseGenerationId))
             );
@@ -646,8 +648,7 @@ contract Subscription is Ownable, ReentrancyGuard {
         } else {
 
             // if not subscribed - max taxes
-            if (deposit.nextPayDate < block.timestamp) {
-                deposit.nextPayDate = 0;
+            if (deposit.nextPayDate + forgivenessPeriod < block.timestamp) {
                 deposit.tax = HUNDRED_PERCENT - taxReductionAmount;
             }
 
@@ -772,7 +773,7 @@ contract Subscription is Ownable, ReentrancyGuard {
      * @notice Next elements shows claimable amount per next months.
      * @param _generationId StackNFT generation id.
      * @param _tokenId StackNFT token id.
-     * @param months Amount of months to get drip rate for.
+     * @param months Amount of MONTHs to get drip rate for.
      */
     function monthlyDripRateBonus(
         uint256 _generationId, 
@@ -790,13 +791,14 @@ contract Subscription is Ownable, ReentrancyGuard {
         uint256 bonusesLength = deposit.bonuses.length;
         uint256[] memory monthlyDrip = new uint256[](months);
 
-        uint256 month = 28 days;
+        uint256 month = MONTH;
         uint256 blockTimestamp = block.timestamp;
 
-        for (uint256 m; m < months; m++) {
+        // +1 because we want skip first element
+        // as it shows us unlocked amount
+        for (uint256 m; m < months+1; m++) {
 
             uint256 unlocked; 
-            // uint256 lastTxDate = block.timestamp + (m - 1) * month;
 
             for (uint256 i; i < bonusesLength; i++) {
                 Bonus memory bonus = deposit.bonuses[i];
@@ -817,22 +819,13 @@ contract Subscription is Ownable, ReentrancyGuard {
 
                 unlocked += amount;
                 bonus.lockedAmount -= amount;
-                // locked += bonus.lockedAmount;
-
-                // find max timeleft
-                // uint256 _timeLeft = 
-                //     bonus.releasePeriod * bonus.lockedAmount / bonus.total;
-
-                // if(_timeLeft > timeLeft) timeLeft = _timeLeft;
             }
             blockTimestamp += month;
-            if(m == 0)
-                unlocked += bonusDripped[_generationId][_tokenId];
-            monthlyDrip[m] = unlocked;
+            if(m > 0)
+                monthlyDrip[m-1] = unlocked;
             unlocked = 0;
         }
         dripRates = monthlyDrip;
-        // unlocked += bonusDripped[_generationId][_tokenId];
     }
 
     /**

@@ -127,6 +127,7 @@ describe("Subscription (generations above 1st)", function () {
     await provider.send("evm_increaseTime", [MONTH]);
     await subscription.subscribe(1, 1, 0, usdt.address, false);
     await provider.send("evm_increaseTime", [MONTH]);
+    await provider.send("evm_mine");
     await subscription.subscribe(1, 1, 0, usdt.address, false);
   });
   it("Withdraw", async function () {
@@ -273,10 +274,18 @@ describe("Subscription (generations above 1st)", function () {
     await subscription.subscribe(2, 4, parseEther("100"), usdt.address, false);
     await provider.send("evm_increaseTime", [MONTH * 3]);
 
-    oldBalance = await stackOsNFTGen2.balanceOf(owner.address);
-    await subscription.purchaseNewNft(2, [4], 2, 5);
-    newBalance = await stackOsNFTGen2.balanceOf(owner.address);
-    expect(newBalance.sub(oldBalance)).to.be.equal(5);
+    await expect(subscription.purchaseNewNft(2, [4], 2, 5)).to.be.revertedWith(
+      "Can only purchase when 0 tax"
+    );
+
+    while((await subscription.deposits(2, 4)).tax.toNumber() > 0) {
+        await subscription.subscribe(2, 4, 0, usdt.address, false);
+        await provider.send("evm_increaseTime", [MONTH]);
+        await provider.send("evm_mine");
+    }
+
+    await expect(() => subscription.purchaseNewNft(2, [4], 2, 5))
+      .to.changeTokenBalance(stackOsNFTGen2, owner, 5);
   });
 
   it("Pay for subscription on NFT owned by other peoples", async function () {
@@ -305,7 +314,6 @@ describe("Subscription (generations above 1st)", function () {
     print("owner: ", await stackToken.balanceOf(owner.address));
     oldPendingBonus = await subscription.pendingBonus(1, 5);
     print("gen 1 token 5 pending bonus: ", 
-      oldPendingBonus.claimed, 
       oldPendingBonus.unlocked, 
       oldPendingBonus.locked,
       oldPendingBonus.timeLeft,
@@ -316,7 +324,6 @@ describe("Subscription (generations above 1st)", function () {
     print("owner: ", (await stackToken.balanceOf(owner.address)));
     newPendingBonus = await subscription.pendingBonus(1, 5);
     print("gen 1 token 5 pending bonus: ", 
-      newPendingBonus.claimed, 
       newPendingBonus.unlocked, 
       newPendingBonus.locked,
       newPendingBonus.timeLeft,
@@ -356,7 +363,6 @@ describe("Subscription (generations above 1st)", function () {
 
     oldPendingBonus = await subscription.pendingBonus(2, 1);
     print("gen 2 token 1 pending bonus: ", 
-      oldPendingBonus.claimed, 
       oldPendingBonus.unlocked, 
       oldPendingBonus.locked,
       oldPendingBonus.timeLeft,
@@ -366,7 +372,6 @@ describe("Subscription (generations above 1st)", function () {
 
     newPendingBonus = await subscription.pendingBonus(2, 1);
     print("gen 2 token 1 pending bonus: ", 
-      newPendingBonus.claimed, 
       newPendingBonus.unlocked, 
       newPendingBonus.locked,
       newPendingBonus.timeLeft,
@@ -380,7 +385,6 @@ describe("Subscription (generations above 1st)", function () {
 
     newPendingBonus = await subscription.pendingBonus(2, 1);
     print("gen 2 token 1 pending bonus: ", 
-      newPendingBonus.claimed, 
       newPendingBonus.unlocked, 
       newPendingBonus.locked,
       newPendingBonus.timeLeft,
@@ -401,7 +405,7 @@ describe("Subscription (generations above 1st)", function () {
     print("owner balance after sub: ", await stackToken.balanceOf(owner.address));
     print("sub balance after sub: ", await stackToken.balanceOf(subscription.address));
     expect(oldBalance.sub(newBalance)).to.be.closeTo(
-      parseEther("427"), parseEther("1")
+      parseEther("404"), parseEther("1")
     )
   });
   it("Withdraw", async function () {
@@ -438,17 +442,17 @@ describe("Subscription (generations above 1st)", function () {
     print("owner balance after sub: ", await usdt.balanceOf(owner.address));
     print("sub balance after sub: ", await stackToken.balanceOf(sub0.address));
     expect(await stackToken.balanceOf(sub0.address)).to.be.closeTo(
-      parseEther("15544"), parseEther("1")
+      parseEther("14814"), parseEther("1")
     )
     expect(await usdt.balanceOf(owner.address)).to.be.closeTo(
-      "99999399999999949462976157", parseUnits("1", 6)
+      "99999399999999949063000000", parseUnits("1", 6)
     )
   });
   it("Withdraw", async function () {
     await stackToken.transfer(sub0.address, await stackToken.balanceOf(owner.address));
     await sub0.withdraw(0, [0]);
     expect(await stackToken.balanceOf(owner.address)).to.be.closeTo(
-      parseEther("3886"), parseEther("1")
+      parseEther("3703"), parseEther("1")
     )
   });
   it("Revert EVM state", async function () {

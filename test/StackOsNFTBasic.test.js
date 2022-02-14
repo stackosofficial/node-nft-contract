@@ -162,7 +162,7 @@ describe("StackOS NFT Basic", function () {
       await generationManager.get(oldGenerationsCount)
     );
     
-    expect(await stackAutoDeployed2.name()).to.be.equal("STACK OS NFT 4");
+    expect(await stackAutoDeployed2.name()).to.be.equal("StackOS NFT 3");
     expect(await stackAutoDeployed2.owner()).to.be.equal(owner.address);
     expect(await stackAutoDeployed2.getMaxSupply()).to.be.equal(
       Math.floor(
