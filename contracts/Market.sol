@@ -41,6 +41,15 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeab
         uint256 price
     );
 
+    event DelistStackNFT(
+        uint256 generationId,
+        uint256 tokenId
+    );
+
+    event DelistDarkMatterNFT(
+        uint256 tokenId
+    );
+
     DarkMatter private darkMatter;
     GenerationManager private generations;
 
@@ -163,10 +172,16 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeab
     function deListDarkMatterNFT(
         uint256 tokenId
     ) public nonReentrant {
-        bool isApproved = darkMatter
-            .isApprovedForAll(darkMatterToLot[tokenId].seller, address(this));
+
+        address seller = darkMatterToLot[tokenId].seller;
+        bool isApproved = darkMatter.isApprovedForAll(seller, address(this));
+        if(isApproved == false) {
+            isApproved = darkMatter.getApproved(tokenId) == address(this);
+        }
+
         require(darkMatterToLot[tokenId].seller == msg.sender || !isApproved, 'Not an owner');
         require(darkMatterToLot[tokenId].seller != address(0), 'Not a listing');
+        emit DelistDarkMatterNFT(tokenId);
         delete darkMatterToLot[tokenId];
     }
 
@@ -179,10 +194,19 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeab
         uint256 generationId,
         uint256 tokenId
     ) public nonReentrant {
-        bool isApproved = generations.get(generationId)
-            .isApprovedForAll(stackToLot[generationId][tokenId].seller, address(this));
+
+        IStackOsNFT stackNft = generations.get(generationId);
+        address seller = stackToLot[generationId][tokenId].seller;
+
+        bool isApproved = stackNft.isApprovedForAll(seller, address(this));
+
+        if(isApproved == false) {
+            isApproved = stackNft.getApproved(tokenId) == address(this);
+        }
+
         require(stackToLot[generationId][tokenId].seller == msg.sender || !isApproved, 'Not an owner');
         require(stackToLot[generationId][tokenId].seller != address(0), 'Not a listing');
+        emit DelistStackNFT(generationId, tokenId);
         delete stackToLot[generationId][tokenId];
     }
 
