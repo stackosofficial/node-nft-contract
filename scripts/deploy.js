@@ -145,6 +145,7 @@ async function main() {
   //^^^^^^^^^^^^^^^^^^ SETTINGS ^^^^^^^^^^^^^^^^^^
 
   //vvvvvvvvvvvvvvvvvvvvv DEPLOYMENT vvvvvvvvvvvvvvvvvvvvv
+
   const StableCoinAcceptor = await ethers.getContractFactory("StableCoinAcceptor");
   let stableAcceptor = await StableCoinAcceptor.deploy(
     STABLES
@@ -236,7 +237,7 @@ async function main() {
   const marketImplementaionAddress = await getImplementationAddress(ethers.provider, marketProxy.address);
   const marketImplementaion = await hre.ethers.getContractAt(
     "Market",
-    marketImplementaionAddress
+    marketImplementaionAddress,
   );
   try {
     // params here doesn't matter, as we only wan't to set the owner
@@ -253,6 +254,7 @@ async function main() {
   console.log("Market Implementation", marketImplementaionAddress);
 
   let StackOS = await ethers.getContractFactory("StackOsNFT");
+  await delay(10000);
   let stackOsNFT = await StackOS.deploy(
     NAME,
     SYMBOL,
@@ -270,7 +272,12 @@ async function main() {
   console.log("StackOsNFT", stackOsNFT.address);
 
   //vvvvvvvvvvvvvvvvvv CONTRACT SETTINGS vvvvvvvvvvvvvvvvvv
+
+  console.log("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+  console.log("  - Setup started...");
   
+  await delay(5000);
+
   await generationManager.adjustAddressSettings(
     stableAcceptor.address,
     exchange.address,
@@ -307,7 +314,7 @@ async function main() {
     
   }
 
-  await delay(2000);
+  await delay(10000);
 
   // Add 1st generation in GenerationManager
   for (let i = 0; i < attemps; i++) {
@@ -343,6 +350,10 @@ async function main() {
   await sub0.setMaxPrice(SUBSCRIPTION_MAX_PRICE_2);
   await sub0.setDripPeriod(DRIP_PERIOD_2);
 
+  // royalty settings
+  await royalty.setFeePercent(DEPOSIT_FEE_PERCENT);
+  await royalty.setWETH(WETH_ADDRESS);
+
   // Whitelist partners to mint if there is any
   await Promise.all(
     WHITELISTED_PARTNERS.map((args) => {
@@ -358,9 +369,6 @@ async function main() {
     await stackOsNFT.activateLottery();
   }
 
-  await royalty.setFeePercent(DEPOSIT_FEE_PERCENT);
-  await royalty.setWETH(WETH_ADDRESS);
-
   // TRANSFER OWNERSHIP
   if(OWNERSHIP) {
     // await stableAcceptor.transferOwnership(OWNERSHIP);
@@ -374,14 +382,18 @@ async function main() {
     await stackOsNFT.transferOwnership(OWNERSHIP);
     await royalty.transferOwnership(OWNERSHIP);
     await exchange.transferOwnership(OWNERSHIP);
+
+    console.log("  - Ownership transfered to: ", OWNERSHIP);
   }
+
+  console.log("  - Setup completed.");
   
   //^^^^^^^^^^^^^^^^^^ CONTRACT SETTINGS ^^^^^^^^^^^^^^^^^^
 
   //^^^^^^^^^^^^^^^^^^^^^ DEPLOYMENT ^^^^^^^^^^^^^^^^^^^^^
 
   // vvvvvvvvvvvvvvvvvvvvvvvvv VERIFICATION vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-  console.log("Verification started, please wait for a minute!");
+  console.log("  - Verification will start in a minute...\n");
   await delay(46000);
 
   let deployedContracts = [
