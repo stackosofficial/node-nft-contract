@@ -239,11 +239,9 @@ contract StackOsNFTBasic is
             .mul(10000 - transferDiscount)
             .div(10000);
 
-
         uint256 ticketAmount = amountUsd.div(mintPriceDiscounted);
 
         ticketAmount = clampToMaxSupply(ticketAmount);
-
 
         uint256 usdToSpend = mintPriceDiscounted.mul(ticketAmount);
         uint256 stackToSpend = exchange.getAmountIn(
@@ -275,6 +273,8 @@ contract StackOsNFTBasic is
      */
 
     function mint(uint256 _nftAmount) external {
+
+        require(tx.origin == msg.sender, "Only EOW");
 
         _nftAmount = clampToMaxSupply(_nftAmount);
 
@@ -311,6 +311,7 @@ contract StackOsNFTBasic is
      */
 
     function mintForUsd(uint256 _nftAmount, IERC20 _stablecoin) external {
+        require(tx.origin == msg.sender, "Only EOW");
         require(stableAcceptor.supportsCoin(_stablecoin));
 
         _nftAmount = clampToMaxSupply(_nftAmount);
