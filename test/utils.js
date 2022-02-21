@@ -77,7 +77,9 @@ async function setup() {
   // console.log("dai", dai.address);
 
   const LinkToken = await ethers.getContractFactory("LinkToken");
+  ethers.utils.Logger.setLogLevel(ethers.utils.Logger.levels.ERROR);
   link = await LinkToken.deploy();
+  ethers.utils.Logger.setLogLevel(ethers.utils.Logger.levels.WARNING);
   await link.deployed();
   // console.log("link", link.address);
 
