@@ -421,11 +421,11 @@ contract Royalty is Ownable, ReentrancyGuard {
 
         uint256 _counterCurrent = counter.current();
         if (
-            cycles[counter.current()].startTimestamp + cycleDuration <
+            cycles[_counterCurrent].startTimestamp + cycleDuration <
             block.timestamp
         ) {
-            if (cycles[counter.current()].totalBalance >= minEthPerCycle) {
-                _counterCurrent += 1;
+            if (cycles[_counterCurrent].totalBalance >= minEthPerCycle) {
+                _counterCurrent ++;
             }
         }
 

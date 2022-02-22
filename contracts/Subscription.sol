@@ -246,16 +246,16 @@ contract Subscription is Ownable, ReentrancyGuard {
     /**
      *  @notice Pay subscription.
      *  @param generationId StackNFT generation id.
-     *  @param tokenId StackNFT token id.
-     *  @param _payAmount Amount to pay, unused if `isOnlyFirstGeneration == false`.
-     *  @param _stablecoin Address of supported stablecoin, unused if `_payWithStack == true`.
+     *  @param tokenIds StackNFT token ids.
+     *  @param _payAmount Amount to pay for one token. Unused if `isOnlyFirstGeneration == false`.
+     *  @param _stablecoin Address of supported stablecoin to pay with. Unused if `_payWithStack == true`.
      *  @param _payWithStack Whether to pay with STACK token.
      *  @dev Caller must approve us to spend `price` amount of `_stablecoin`.
-     *  @dev If paying with stack, caller must approve stack amount that costs `price` usd.
+     *  @dev If paying with stack, caller must approve stack amount worth of `price` in usd.
      */
     function subscribe(
         uint256 generationId,
-        uint256 tokenId,
+        uint256[] calldata tokenIds,
         uint256 _payAmount,
         IERC20 _stablecoin,
         bool _payWithStack
@@ -281,10 +281,16 @@ contract Subscription is Ownable, ReentrancyGuard {
 
         // active sub reward logic
         updatePeriod();
-        periods[currentPeriodId].subsNum += 1;
-        periods[currentPeriodId].tokenData[generationId][tokenId].isSub = true;
 
-        _subscribe(generationId, tokenId, _price, _stablecoin, _payWithStack);
+        for (uint256 i = 0; i < tokenIds.length; i++) {
+            uint256 tokenId = tokenIds[i];
+            if(periods[currentPeriodId].tokenData[generationId][tokenId].isSub == false) {
+                periods[currentPeriodId].subsNum += 1;
+                periods[currentPeriodId].tokenData[generationId][tokenId].isSub = true;
+            }
+
+            _subscribe(generationId, tokenId, _price, _stablecoin, _payWithStack);
+        }
     }
 
     function _subscribe(
