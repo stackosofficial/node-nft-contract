@@ -74,13 +74,15 @@ describe("Measure withdraw() and updateBonuses() gas", function () {
   });
 
   it("Subscribe", async function () {
-    TOKENS_NUM = 1;
+    TOKENS_NUM = 5;
     BONUSES_NUM = 12;
     await usdt.approve(subscription.address, ethers.constants.MaxUint256);
     for (let i = 0; i < BONUSES_NUM; i++) {
-      for (let o = 0; o < TOKENS_NUM; o++) {
-        await subscription.subscribe(1, o, parseEther("0"), usdt.address, false);
-      }
+      // for (let o = 0; o < TOKENS_NUM; o++) {
+      //   await subscription.subscribe(1, [o], parseEther("0"), usdt.address, false);
+      // }
+      await subscription.subscribe(1, [...Array(TOKENS_NUM).keys()], parseEther("0"), usdt.address, false);
+
       await provider.send("evm_increaseTime", [MONTH]);
       await provider.send("evm_mine");
     }
