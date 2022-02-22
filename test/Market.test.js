@@ -169,6 +169,33 @@ describe("Market", function () {
     await market.connect(joe).deListStackNFT(0, 5);
   });
 
+  it("Should be able to delist by anyone if seller not owner", async function () {
+    await stackOsNFT.connect(partner).approve(market.address, 5);
+    await market.connect(partner).listStackNFT(0, 5, parseEther("100.0"));
+
+    await expect(market.connect(joe).deListStackNFT(0, 5)).to.be.reverted;
+
+    // transfer token, now seller not owner
+    await stackOsNFT.whitelist(partner.address);
+    await stackOsNFT.connect(partner).transferFrom(partner.address, owner.address, 5);
+    // anyone can delist
+    await market.connect(joe).deListStackNFT(0, 5);
+
+    // DarkMatter
+
+    await darkMatter.connect(partner).approve(market.address, 0);
+    await market.connect(partner).listDarkMatterNFT(0, parseEther("100.0"));
+
+    await expect(market.connect(joe).deListStackNFT(0)).to.be.reverted;
+
+    // transfer token, now seller not owner
+    await darkMatter.whitelist(partner.address);
+    await darkMatter.connect(partner).transferFrom(partner.address, owner.address, 0);
+    // anyone can delist
+    await market.connect(joe).deListDarkMatterNFT(0);
+
+  });
+
   it("Royalty handle fees correctly", async function () {
 
     /*  

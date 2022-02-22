@@ -177,8 +177,9 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeab
         bool isApproved = 
             darkMatter.isApprovedForAll(seller, address(this)) ||
             darkMatter.getApproved(tokenId) == address(this);
+        bool isSellerOwner = darkMatter.ownerOf(tokenId) == seller;
 
-        require(seller == msg.sender || !isApproved, 'Not an owner');
+        require(seller == msg.sender || !isApproved || !isSellerOwner, 'Not an owner');
         require(seller != address(0), 'Not a listing');
         emit DelistDarkMatterNFT(tokenId);
         delete darkMatterToLot[tokenId];
@@ -200,8 +201,9 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeab
         bool isApproved = 
             stackNft.isApprovedForAll(seller, address(this)) ||
             stackNft.getApproved(tokenId) == address(this);
+        bool isSellerOwner = stackNft.ownerOf(tokenId) == seller;
 
-        require(seller == msg.sender || !isApproved, 'Not an owner');
+        require(seller == msg.sender || !isApproved || !isSellerOwner, 'Not an owner');
         require(seller != address(0), 'Not a listing');
         emit DelistStackNFT(generationId, tokenId);
         delete stackToLot[generationId][tokenId];
