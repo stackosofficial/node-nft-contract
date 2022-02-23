@@ -96,14 +96,14 @@ describe("Active subs reward", function () {
       "Generaion should be 0"
     );
   });
-  it("Unable to withdraw when no subs in period", async function () {
-    await expect(sub0.claimReward(0, [0], [0])).to.be.revertedWith(
-      "No subs in period"
+  it("Withdraw 0 when no subs in period", async function () {
+    await expect(() => sub0.claimReward(0, [0], [0])).to.changeTokenBalance(
+      stackToken, owner, 0
     );
   });
-  it("Unable to withdraw when period not ended", async function () {
-    await expect(sub0.claimReward(0, [0], [1])).to.be.revertedWith(
-      "Period not ended"
+  it("Withdraw 0 when period not ended", async function () {
+    await expect(() => sub0.claimReward(0, [0], [1])).to.changeTokenBalance(
+      stackToken, owner, 0
     );
   });
   it("End period, mint to send fee, and withdraw this fee", async function () {
@@ -139,9 +139,9 @@ describe("Active subs reward", function () {
     print("owner stack:", await stackToken.balanceOf(owner.address));
   });
 
-  it("Unable to withdraw when token not subscribed in target period", async function () {
-    await expect(sub0.claimReward(0, [1], [1])).to.be.revertedWith(
-      "Was not subscribed"
+  it("Withdraw 0 when token not subscribed in target period", async function () {
+    await expect(() => sub0.claimReward(0, [1], [1])).to.changeTokenBalance(
+      stackToken, owner, 0
     );
   });
   it("Subscribe in 2 period for 2 tokens, send one to joe", async function () {

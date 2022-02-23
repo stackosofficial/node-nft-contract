@@ -244,6 +244,17 @@ contract Subscription is Ownable, ReentrancyGuard {
     }
 
     /**
+     * @notice View periods.tokenData struct
+     */
+    function viewPeriodTokenData(
+        uint256 periodId, 
+        uint256 tokenId, 
+        uint256 generationId
+    ) external view returns (PeriodTokenData memory) {
+        return periods[periodId].tokenData[tokenId][generationId];
+    }
+
+    /**
      *  @notice Pay subscription.
      *  @param generationId StackNFT generation id.
      *  @param tokenIds StackNFT token ids.
@@ -441,13 +452,10 @@ contract Subscription is Ownable, ReentrancyGuard {
                 "Not owner"
             );
             for (uint256 o; o < periodIds.length; o++) {
-                require(periodIds[o] < currentPeriodId, "Period not ended");
+                if (periodIds[o] >= currentPeriodId) continue;
                 Period storage period = periods[periodIds[o]];
-                require(period.subsNum > 0, "No subs in period");
-                require(
-                    period.tokenData[generationId][tokenId].isSub, 
-                    "Was not subscribed"
-                );
+                if (period.subsNum == 0) continue;
+                if (!period.tokenData[generationId][tokenId].isSub) continue;
 
                 uint256 share = period.balance / period.subsNum;
                 // this way we ignore periods withdrawn
