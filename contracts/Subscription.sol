@@ -275,6 +275,7 @@ contract Subscription is Ownable, ReentrancyGuard {
         nonReentrant 
         restrictGeneration(generationId)
     {
+        require(tx.origin == msg.sender, "Only EOW");
         require(
             // don't validate stables when paying with stack
             _payWithStack || stableAcceptor.supportsCoin(_stablecoin), 
