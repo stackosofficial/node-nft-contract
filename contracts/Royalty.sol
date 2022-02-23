@@ -1,6 +1,7 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/utils/Counters.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./GenerationManager.sol";
@@ -12,6 +13,7 @@ import "./Exchange.sol";
 
 contract Royalty is Ownable, ReentrancyGuard {
     using Counters for Counters.Counter;
+    using SafeERC20 for IERC20;
 
     event SetFeeAddress(address payable _feeAddress);
     event SetWETH(IERC20 WETH);
@@ -349,7 +351,7 @@ contract Royalty is Ownable, ReentrancyGuard {
         if (_mintNum == 0) {
             if(_claimWETH) {
                 uint256 wethReceived = exchange.swapExactETHForTokens{value: reward}(WETH);
-                require(WETH.transfer(msg.sender, wethReceived), "WETH: transfer failed");
+                WETH.safeTransfer(msg.sender, wethReceived);
             } else {
                 (bool success, ) = payable(msg.sender).call{value: reward}(
                     ""

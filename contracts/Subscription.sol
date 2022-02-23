@@ -7,6 +7,7 @@ import "./StableCoinAcceptor.sol";
 import "./Exchange.sol";
 import "./StackOsNFTBasic.sol";
 import "./interfaces/IDecimals.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -14,6 +15,7 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 // import "hardhat/console.sol";
 
 contract Subscription is Ownable, ReentrancyGuard {
+    using SafeERC20 for IERC20;
 
     event SetOnlyFirstGeneration();
     event SetDripPeriod(uint256 _seconds);
@@ -348,10 +350,7 @@ contract Subscription is Ownable, ReentrancyGuard {
             _price = _price * 
                 10 ** IDecimals(address(_stablecoin)).decimals() /
                 PRICE_PRECISION;
-            require(
-                _stablecoin.transferFrom(msg.sender, address(this), _price),
-                "USD: transfer failed"
-            );
+            _stablecoin.safeTransferFrom(msg.sender, address(this), _price);
             _stablecoin.approve(address(exchange), _price);
             amount = exchange.swapExactTokensForTokens(
                 _price,

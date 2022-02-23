@@ -1,10 +1,12 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 
 contract Exchange is Ownable {
+    using SafeERC20 for IERC20;
 
     event SetRouter(address newRouter);
 
@@ -54,7 +56,7 @@ contract Exchange is Ownable {
         uint256 amount,
         address to
     ) public payable returns (uint256 amountReceived) {
-        token.transferFrom(msg.sender, address(this), amount);
+        token.safeTransferFrom(msg.sender, address(this), amount);
         token.approve(address(router), amount);
         uint256 deadline = block.timestamp + 1200;
         address[] memory path = new address[](2);
@@ -84,7 +86,7 @@ contract Exchange is Ownable {
         IERC20 tokenB
     ) public returns (uint256 amountReceivedTokenB) {
 
-        tokenA.transferFrom(msg.sender, address(this), amountA);
+        tokenA.safeTransferFrom(msg.sender, address(this), amountA);
         tokenA.approve(address(router), amountA);
 
         uint256 deadline = block.timestamp + 1200;
