@@ -301,6 +301,7 @@ contract Royalty is Ownable, ReentrancyGuard {
         external 
         nonReentrant 
     {
+        require(tx.origin == msg.sender, "Only EOW");
         require(_generationId > 0, "Must be not first generation");
         require(_mintNum > 0, "Mint num is 0");
         _claim(_generationId, _tokenIds, _mintNum, false, _genIds);

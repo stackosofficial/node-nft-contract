@@ -331,6 +331,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, Whitelist {
     function transferTicket(uint256[] calldata _ticketIDs, address _address)
         external
     {
+        require(tx.origin == msg.sender, "Only EOW");
         require(generations.isAdded(_address), "Wrong stack contract");
         require(ticketStatusAssigned == true, "Not Assigned Yet!");
         for (uint256 i; i < _ticketIDs.length; i++) {

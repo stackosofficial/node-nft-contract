@@ -575,6 +575,7 @@ contract Subscription is Ownable, ReentrancyGuard {
         nonReentrant
         restrictGeneration(withdrawGenerationId)
     {
+        require(tx.origin == msg.sender, "Only EOW");
         require(purchaseGenerationId > 0, "Cant purchase generation 0");
         updatePeriod();
 
@@ -618,7 +619,7 @@ contract Subscription is Ownable, ReentrancyGuard {
                 address(generations.get(purchaseGenerationId))
             );
 
-            // most of the following should be on stack contract side, but code size limit...
+            // some of the following should be on stack contract side, but code size limit...
             amountToMint = stack.clampToMaxSupply(amountToMint);
 
             // adjust decimals
