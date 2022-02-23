@@ -467,7 +467,9 @@ contract Royalty is Ownable, ReentrancyGuard {
         onlyOwner
     {
         require(adminWithdrawable > 0, "Nothing to withdraw");
-        (bool success, ) = payable(msg.sender).call{value: adminWithdrawable}(
+        uint256 amount = adminWithdrawable;
+        adminWithdrawable = 0;
+        (bool success, ) = payable(msg.sender).call{value: amount}(
             ""
         );
         require(success, "Transfer failed");
