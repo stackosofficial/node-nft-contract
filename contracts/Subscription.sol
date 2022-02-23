@@ -43,8 +43,7 @@ contract Subscription is Ownable, ReentrancyGuard {
         address indexed subscriberWallet,
         uint256 amountWithdrawn,
         uint256 generationId, 
-        uint256[] tokenIds,
-        uint256[] periodIds
+        uint256[] tokenIds
     );
 
     event PurchaseNewNft(
@@ -90,8 +89,8 @@ contract Subscription is Ownable, ReentrancyGuard {
     uint256 public bonusPercent;
     uint256 public taxReductionAmount;
     uint256 public currentPeriodId;
+    uint256 public adminWithdrawable;
     bool public isOnlyFirstGeneration;
-
 
     enum withdrawStatus {
         withdraw,
@@ -100,6 +99,7 @@ contract Subscription is Ownable, ReentrancyGuard {
 
     struct Period {
         uint256 balance; // total fees collected from mint
+        uint256 withdrawn; // total fees withdrawn as rewards
         uint256 subsNum; // total subscribed tokens during this period
         uint256 endAt;   // when period ended, then subs can claim reward
         mapping(uint256 => mapping(uint256 => PeriodTokenData)) tokenData; // tokens related data, see struct 
@@ -293,7 +293,6 @@ contract Subscription is Ownable, ReentrancyGuard {
             );
         }
 
-        // active sub reward logic
         updatePeriod();
 
         for (uint256 i = 0; i < tokenIds.length; i++) {
@@ -393,6 +392,15 @@ contract Subscription is Ownable, ReentrancyGuard {
         if (periods[currentPeriodId].endAt < block.timestamp) {
             currentPeriodId += 1;
             periods[currentPeriodId].endAt = block.timestamp + MONTH;
+            if(currentPeriodId > 3) {
+                // subtract 4 because need to ignore current cycle + 3 cycles before it
+                uint256 removeIndex = currentPeriodId - 4;
+                uint256 leftOver = periods[removeIndex].balance - periods[removeIndex].withdrawn;
+                adminWithdrawable += leftOver;
+                totalRewards -= leftOver;
+                periods[removeIndex].balance = 0;
+                periods[removeIndex].withdrawn = 0;
+            }
             emit NewPeriodStarted(currentPeriodId);
         }
     }
@@ -425,43 +433,46 @@ contract Subscription is Ownable, ReentrancyGuard {
      *  @notice Withdraw active subs reward which comes from minting fees.
      *  @param generationId StackNFT generation id.
      *  @param tokenIds StackNFT token ids.
-     *  @param periodIds Period ids.
      *  @dev Caller must own tokens.
-     *  @dev Periods must be ended and tokens should have subscription during periods.
+     *  @dev Tokens should have subscription during periods.
      */
     function claimReward(
         uint256 generationId, 
-        uint256[] calldata tokenIds,
-        uint256[] calldata periodIds
+        uint256[] calldata tokenIds
     )
         external
         nonReentrant
         restrictGeneration(generationId)
     {
         updatePeriod();
+        require(currentPeriodId > 0, "Still first period");
+
 
         uint256 toWithdraw;
-        for (uint256 i; i < tokenIds.length; i++) {
-            uint256 tokenId = tokenIds[i];
-            require(
-                darkMatter.isOwnStackOrDarkMatter(
-                    msg.sender,
-                    generationId,
-                    tokenId
-                ),
-                "Not owner"
-            );
-            for (uint256 o; o < periodIds.length; o++) {
-                if (periodIds[o] >= currentPeriodId) continue;
-                Period storage period = periods[periodIds[o]];
-                if (period.subsNum == 0) continue;
-                if (!period.tokenData[generationId][tokenId].isSub) continue;
+        uint256 periodId = subOrZero(currentPeriodId, 3);
+        for (; periodId < currentPeriodId; periodId++) {
+            Period storage period = periods[periodId];
+            if (period.subsNum == 0) continue;
+            
+            uint256 share = period.balance / period.subsNum;
 
-                uint256 share = period.balance / period.subsNum;
-                // this way we ignore periods withdrawn
-                toWithdraw += (share - period.tokenData[generationId][tokenId].withdrawn);
+            for (uint256 i; i < tokenIds.length; i++) {
+                uint256 tokenId = tokenIds[i];
+                require(
+                    darkMatter.isOwnStackOrDarkMatter(
+                        msg.sender,
+                        generationId,
+                        tokenId
+                    ),
+                    "Not owner"
+                );
+                if (!period.tokenData[generationId][tokenId].isSub) continue;
+                uint256 amountWithdraw = (share - period.tokenData[generationId][tokenId].withdrawn);
+                toWithdraw += amountWithdraw;
                 period.tokenData[generationId][tokenId].withdrawn = share; 
+                period.withdrawn += amountWithdraw;
             }
+
         }
 
         totalRewards -= toWithdraw;
@@ -471,8 +482,7 @@ contract Subscription is Ownable, ReentrancyGuard {
             msg.sender,
             toWithdraw,
             generationId, 
-            tokenIds,
-            periodIds
+            tokenIds
         );
     }
 
@@ -847,14 +857,11 @@ contract Subscription is Ownable, ReentrancyGuard {
      *  @notice Get active subs pending reward.
      *  @param generationId StackNFT generation id.
      *  @param tokenIds StackNFT token id.
-     *  @param periodIds Period ids.
      *  @dev Unsubscribed tokens in period are ignored.
-     *  @dev Period ids that are bigger than `currentPeriodId` are ignored.
      */
     function pendingReward(
         uint256 generationId, 
-        uint256[] calldata tokenIds,
-        uint256[] calldata periodIds
+        uint256[] calldata tokenIds
     )
         external
         view
@@ -864,14 +871,15 @@ contract Subscription is Ownable, ReentrancyGuard {
         if (periods[_currentPeriodId].endAt < block.timestamp) {
             _currentPeriodId += 1;
         }
+        require(_currentPeriodId > 0, "Still first period");
 
         uint256 toWithdraw;
         for (uint256 i; i < tokenIds.length; i++) {
             uint256 tokenId = tokenIds[i];
 
-            for (uint256 o; o < periodIds.length; o++) {
-                if(periodIds[o] >= currentPeriodId) continue;
-                Period storage period = periods[periodIds[o]];
+            uint256 periodId = subOrZero(_currentPeriodId, 3);
+            for (; periodId < _currentPeriodId; periodId++) {
+                Period storage period = periods[periodId];
                 if(period.subsNum == 0) continue;
                 if(!period.tokenData[generationId][tokenId].isSub) continue;
                         
@@ -880,6 +888,15 @@ contract Subscription is Ownable, ReentrancyGuard {
             }
         }
         return toWithdraw;
+    }
+
+    function adminWithdraw()
+        external
+        onlyOwner
+    {
+        require(adminWithdrawable > 0, "Nothing to withdraw");
+        stackToken.transfer(msg.sender, adminWithdrawable);
+        adminWithdrawable = 0;
     }
 
     /**

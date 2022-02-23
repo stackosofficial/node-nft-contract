@@ -92,17 +92,17 @@ describe("Active subs reward", function () {
     await expect(sub0.subscribe(1, [0], parseEther("100"), usdt.address, false)).to.be.revertedWith(
       "Generaion should be 0"
     );
-    await expect(sub0.claimReward(1, [0], [0])).to.be.revertedWith(
+    await expect(sub0.claimReward(1, [0])).to.be.revertedWith(
       "Generaion should be 0"
     );
   });
   it("Withdraw 0 when no subs in period", async function () {
-    await expect(() => sub0.claimReward(0, [0], [0])).to.changeTokenBalance(
+    await expect(() => sub0.claimReward(0, [0])).to.changeTokenBalance(
       stackToken, owner, 0
     );
   });
   it("Withdraw 0 when period not ended", async function () {
-    await expect(() => sub0.claimReward(0, [0], [1])).to.changeTokenBalance(
+    await expect(() => sub0.claimReward(0, [0])).to.changeTokenBalance(
       stackToken, owner, 0
     );
   });
@@ -113,7 +113,7 @@ describe("Active subs reward", function () {
     print("owner stack:", await stackToken.balanceOf(owner.address));
 
     oldBalance = await stackToken.balanceOf(owner.address);
-    await sub0.claimReward(0, [0], [1]); // 1 claimer receives all
+    await sub0.claimReward(0, [0]); // 1 claimer receives all
     newBalance = await stackToken.balanceOf(owner.address);
 
     expect(newBalance.sub(oldBalance)).to.be.closeTo(
@@ -124,7 +124,7 @@ describe("Active subs reward", function () {
     await stackOsNFTBasic.mint(1);
 
     oldBalance = await stackToken.balanceOf(owner.address);
-    await sub0.claimReward(0, [0], [1]);
+    await sub0.claimReward(0, [0]);
     newBalance = await stackToken.balanceOf(owner.address);
     expect(newBalance.sub(oldBalance)).to.be.closeTo(
       parseEther("0.03"), 
@@ -132,7 +132,7 @@ describe("Active subs reward", function () {
     );
 
     oldBalance = await stackToken.balanceOf(owner.address);
-    await sub0.claimReward(0, [0], [1]); // claim 0 as no fees
+    await sub0.claimReward(0, [0]); // claim 0 as no fees
     newBalance = await stackToken.balanceOf(owner.address);
     expect(newBalance.sub(oldBalance)).to.be.eq(0);
 
@@ -140,7 +140,7 @@ describe("Active subs reward", function () {
   });
 
   it("Withdraw 0 when token not subscribed in target period", async function () {
-    await expect(() => sub0.claimReward(0, [1], [1])).to.changeTokenBalance(
+    await expect(() => sub0.claimReward(0, [1])).to.changeTokenBalance(
       stackToken, owner, 0
     );
   });
@@ -157,7 +157,7 @@ describe("Active subs reward", function () {
     await stackOsNFTBasic.mint(1);
 
     oldBalance = await stackToken.balanceOf(owner.address);
-    await sub0.claimReward(0, [0], [2]); 
+    await sub0.claimReward(0, [0]); 
     newBalance = await stackToken.balanceOf(owner.address);
 
     expect(newBalance.sub(oldBalance)).to.be.closeTo(
@@ -166,13 +166,13 @@ describe("Active subs reward", function () {
     );
 
     await provider.send("evm_increaseTime", [MONTH]); // enter 4 period, should be able to withdraw for 2
-    expect(await sub0.pendingReward(0, [1], [2])).to.be.closeTo(
+    expect(await sub0.pendingReward(0, [1])).to.be.closeTo(
       parseEther("0.014"),
       parseEther("0.001")
     );
 
     oldBalance = await stackToken.balanceOf(joe.address);
-    await sub0.connect(joe).claimReward(0, [1], [2]); 
+    await sub0.connect(joe).claimReward(0, [1]); 
     newBalance = await stackToken.balanceOf(joe.address);
 
     expect(newBalance.sub(oldBalance)).to.be.closeTo(
@@ -181,10 +181,55 @@ describe("Active subs reward", function () {
     );
   });
   it("Unable to withdraw foreign reward", async function () {
-    await expect(sub0.claimReward(0, [1], [2])).to.be.revertedWith(
+    await expect(sub0.claimReward(0, [1])).to.be.revertedWith(
       "Not owner"
     );
   });
+
+  it("Old periods should be admin withdrawable", async function () {
+    
+    // console.log(await sub0.currentPeriodId());
+
+    for (let i = 0; i < 6; i++) {
+      await provider.send("evm_increaseTime", [MONTH]);
+      await provider.send("evm_mine");
+      await usdt.approve(sub0.address, parseEther("100.0"));
+      // console.log("SUB");
+      await sub0.subscribe(0, [1], parseEther("100"), usdt.address, false);
+      // console.log("MINT");
+      await stackOsNFTBasic.mint(1);
+    }
+
+    // for (let i = 0; i <= Number(await sub0.currentPeriodId()); i++) {
+    //   console.log((await sub0.periods(i)).balance);
+    //   console.log((await sub0.periods(i)).withdrawn);
+    //   console.log('^^^^^^ %s ^^^^^^^^', i);
+    // }
+
+    expect(await sub0.pendingReward(0, [1])).to.be.closeTo(
+      parseEther("0.081"),
+      parseEther("0.001")
+    );
+
+    oldBalance = await stackToken.balanceOf(joe.address);
+    await sub0.connect(joe).claimReward(0, [1]); 
+    newBalance = await stackToken.balanceOf(joe.address);
+
+    expect(newBalance.sub(oldBalance)).to.be.closeTo(
+      parseEther("0.081"),
+      parseEther("0.001")
+    );
+
+    // console.log(await sub0.currentPeriodId());
+    // console.log(await sub0.adminWithdrawable());
+    // 2 periods supposed to be admin withdrawable, which is approx 277*2 = 560
+    expect(await sub0.adminWithdrawable()).to.be.closeTo(
+      parseEther("0.0559"),
+      parseEther("0.0001")
+    );
+
+  });
+
   it("Revert EVM state", async function () {
     await ethers.provider.send("evm_revert", [snapshotId]);
   });
