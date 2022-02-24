@@ -90,7 +90,7 @@ describe("Market", function () {
       .buyDarkMatter(0, { value: parseEther("100.0") }))
       .to.changeEtherBalances(
         [owner, dao, royalty], 
-        [parseEther("80"), parseEther("10"), parseEther("9")] // royalty also take fee, that's why 9
+        [parseEther("90"), parseEther("10"), parseEther("0")]
       );
 
     expect(await darkMatter.balanceOf(market.address)).to.be.equal(0);
