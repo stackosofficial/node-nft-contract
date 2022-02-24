@@ -261,15 +261,11 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeab
         require(lot.price <= msg.value, "Not enough MATIC");
 
         uint256 daoPart = lot.price * daoFee / HUNDRED_PERCENT;
-        uint256 royaltyPart = lot.price * royaltyFee / HUNDRED_PERCENT;
-        uint256 sellerPart = lot.price - daoPart - royaltyPart;
+        uint256 sellerPart = lot.price - daoPart;
 
         darkMatter.transferFrom(lot.seller, msg.sender, tokenId);
 
         (bool success, ) = daoAddress.call{value: daoPart}("");
-        require(success, "Transfer failed");
-
-        (success, ) = royaltyAddress.call{value: royaltyPart}("");
         require(success, "Transfer failed");
 
         (success, ) = payable(lot.seller).call{value: sellerPart}("");
