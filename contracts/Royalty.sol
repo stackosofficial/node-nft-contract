@@ -264,6 +264,7 @@ contract Royalty is Ownable, ReentrancyGuard {
         uint256[] calldata _genIds
     )
         external
+        nonReentrant
     {
         _claim(_generationId, _tokenIds, 0, false, _genIds);
     }
@@ -278,6 +279,7 @@ contract Royalty is Ownable, ReentrancyGuard {
         uint256[] calldata _genIds
     )
         external
+        nonReentrant
     {
         require(address(WETH) != address(0), "Wrong WETH address");
         _claim(_generationId, _tokenIds, 0, true, _genIds);
