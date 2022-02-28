@@ -380,7 +380,7 @@ contract Royalty is Ownable, ReentrancyGuard {
         uint256 generationId,
         uint256 tokenId,
         uint256[] calldata _genIds
-    )   
+    )
         private 
         returns (uint256 reward) 
     {

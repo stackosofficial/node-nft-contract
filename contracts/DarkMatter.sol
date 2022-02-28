@@ -12,6 +12,7 @@ import "./Whitelist.sol";
 contract DarkMatter is Whitelist, ERC721, ReentrancyGuard {
     using Counters for Counters.Counter;
 
+    event Activate();
     event Deposit(
         address indexed _wallet, 
         uint256 generationId,
@@ -54,6 +55,7 @@ contract DarkMatter is Whitelist, ERC721, ReentrancyGuard {
 
     function activate() external onlyOwner {
         isActive = true;
+        emit Activate();
     }
 
     /**
