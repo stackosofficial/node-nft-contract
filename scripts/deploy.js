@@ -345,7 +345,7 @@ async function main() {
   await stackOsNFT.whitelist(marketProxy.address);
 
   await subscription.setDripPeriod(DRIP_PERIOD);
-  // One of subs contracts is only for 1st generaion
+  // One of subs contracts is only for 1st Generation
   await sub0.setOnlyFirstGeneration();
   await sub0.setMaxPrice(SUBSCRIPTION_MAX_PRICE_2);
   await sub0.setDripPeriod(DRIP_PERIOD_2);
@@ -383,7 +383,7 @@ async function main() {
     await royalty.transferOwnership(OWNERSHIP);
     await exchange.transferOwnership(OWNERSHIP);
 
-    console.log("  - Ownership transfered to: ", OWNERSHIP);
+    console.log("  - Ownership transferred to: ", OWNERSHIP);
   }
 
   console.log("  - Setup completed.");

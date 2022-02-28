@@ -12,7 +12,6 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-// import "hardhat/console.sol";
 
 contract Subscription is Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
@@ -168,7 +167,7 @@ contract Subscription is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @notice Set bonus drip perdiod.
+     * @notice Set bonus drip period.
      * @param _seconds Amount of seconds required to fully release bonus.
      * @dev Could only be invoked by the contract owner.
      */
@@ -240,9 +239,9 @@ contract Subscription is Ownable, ReentrancyGuard {
      */
     function requireCorrectGeneration(uint256 generationId) internal view {
         if(isOnlyFirstGeneration)
-            require(generationId == 0, "Generaion should be 0");
+            require(generationId == 0, "Generation should be 0");
         else
-            require(generationId > 0, "Generaion shouldn't be 0");
+            require(generationId > 0, "Generation shouldn't be 0");
     }
 
     /**
@@ -408,14 +407,14 @@ contract Subscription is Ownable, ReentrancyGuard {
     /**
      *  @notice Handle fee sent from minting.
      *  @param _amount Amount of stack trying to receive.
-     *  @return _isTransfered Whether fee received or not.
+     *  @return _isTransferred Whether fee received or not.
      *  @dev Called automatically from stack NFT contract, but can be called manually.
      *  @dev Will receive tokens if previous period has active subs.
      */
     function onReceiveStack(uint256 _amount) 
         external 
         returns 
-        (bool _isTransfered) 
+        (bool _isTransferred) 
     {
         updatePeriod();
 

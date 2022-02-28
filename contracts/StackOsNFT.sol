@@ -44,7 +44,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, Whitelist {
         address indexed participant, 
         uint256[] ticketIDs, 
         address nextGenerationAddress, 
-        uint256 stackTransfered
+        uint256 stackTransferred
     );
     event WhitelistPartner(
         address indexed partner, 

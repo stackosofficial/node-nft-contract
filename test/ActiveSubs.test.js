@@ -90,10 +90,10 @@ describe("Active subs reward", function () {
 
   it("Unable to use contract from generation >1", async function () {
     await expect(sub0.subscribe(1, [0], parseEther("100"), usdt.address, false)).to.be.revertedWith(
-      "Generaion should be 0"
+      "Generation should be 0"
     );
     await expect(sub0.claimReward(1, [0])).to.be.revertedWith(
-      "Generaion should be 0"
+      "Generation should be 0"
     );
   });
   it("Withdraw 0 when no subs in period", async function () {

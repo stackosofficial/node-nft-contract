@@ -407,7 +407,7 @@ describe("Test transferTickets and transferFromLastGen", function () {
       parseEther("1.68"), parseEther("0.01")
     );
 
-    print("Tickets transfered!");
+    print("Tickets transferred!");
     print(
       "gen1 balance: " +
         (await stackToken.balanceOf(stackOsNFT.address))
