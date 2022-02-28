@@ -145,7 +145,7 @@ async function setup() {
   SUBSCRIPTION_PRICE_MAX = parseEther("5000.0");
   BONUS_PECENT = 8000;
   TAX_REDUCTION_AMOUNT = 2500; // 25% means: 1month withdraw 75% tax, 2 month 50%, 3 month 25%, 4 month 0%
-  FORGIVENESS_PERIOD = 604800; // 1 week
+  FORGIVENESS_PERIOD = 432000; // 5 days
 
   const Subscription = await ethers.getContractFactory("Subscription");
   subscription = await Subscription.deploy(
