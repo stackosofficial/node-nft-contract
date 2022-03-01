@@ -1,7 +1,7 @@
 const { ethers } = require("hardhat");
 const { use, expect } = require("chai");
 const { parseEther, parseUnits } = require("@ethersproject/units");
-const { deployStackOS, setup, print, setupLiquidity } = require("./utils");
+const { deployStackOS, setup, print, setupLiquidity, walletOfOwner, walletOfDarkMatterOwner } = require("./utils");
 
 describe("DarkMatter", function () {
   it("Snapshot EVM", async function () {
@@ -106,6 +106,40 @@ describe("DarkMatter", function () {
   it("Whitelist address and transfer from it", async function () {
     await darkMatter.whitelist(owner.address);
     await darkMatter.transferFrom(owner.address, joe.address, 0);
+  });
+
+  it("Test enumeration and off-chain walletOfOwner", async function () {
+    let tokenIds = await walletOfOwner(darkMatter, owner.address);
+    for (let i = 0; i < tokenIds.length; i++) {
+      expect(await darkMatter.ownerOf(tokenIds[i])).to.be.equal(owner.address);
+    }
+    expect(tokenIds.length).to.be.equal(1);
+
+    tokenIds = await walletOfOwner(darkMatter, joe.address);
+    for (let i = 0; i < tokenIds.length; i++) {
+      expect(await darkMatter.ownerOf(tokenIds[i])).to.be.equal(joe.address);
+    }
+    expect(tokenIds.length).to.be.equal(1);
+  });
+
+  it("Test off-chain walletOfDarkMatterOwner", async function () {
+    tokenIds = await walletOfDarkMatterOwner(darkMatter, owner.address, 0);
+    for (let i = 0; i < tokenIds.length; i++) {
+      expect(await darkMatter.ownerOfStack(0, tokenIds[i])).to.be.equal(owner.address);
+    }
+    expect(tokenIds.length).to.be.equal(3);
+
+    tokenIds = await walletOfDarkMatterOwner(darkMatter, owner.address, 1);
+    for (let i = 0; i < tokenIds.length; i++) {
+      expect(await darkMatter.ownerOfStack(1, tokenIds[i])).to.be.equal(owner.address);
+    }
+    expect(tokenIds.length).to.be.equal(2);
+
+    tokenIds = await walletOfDarkMatterOwner(darkMatter, joe.address, 0);
+    for (let i = 0; i < tokenIds.length; i++) {
+      expect(await darkMatter.ownerOfStack(0, tokenIds[i])).to.be.equal(joe.address);
+    }
+    expect(tokenIds.length).to.be.equal(5);
   });
 
   it("Revert EVM state", async function () {

@@ -1,7 +1,7 @@
 const { ethers } = require("hardhat");
 const { expect } = require("chai");
 const { parseEther, formatEther, parseUnits } = require("@ethersproject/units");
-const { deployStackOS, setup, deployStackOSBasic, print, setupDeployment } = require("./utils");
+const { deployStackOS, setup, deployStackOSBasic, print, setupDeployment, walletOfOwner } = require("./utils");
 
 describe("StackOS NFT Basic", function () {
   it("Snapshot EVM", async function () {
@@ -231,6 +231,14 @@ describe("StackOS NFT Basic", function () {
       baseURI + "4/2"
     );
     await expect(stackOsNFTBasicgen3.tokenURI(1337)).to.be.reverted;
+  });
+
+  it("Test enumeration and off-chain walletOfOwner", async function () {
+    let tokenIds = await walletOfOwner(stackOsNFTBasic, owner.address);
+    expect(tokenIds.length).to.be.equal(99);
+    for (let i = 0; i < tokenIds.length; i++) {
+      expect(await stackOsNFTBasic.ownerOf(tokenIds[i])).to.be.equal(owner.address);
+    }
   });
 
   it("Revert EVM state", async function () {

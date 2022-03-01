@@ -4,7 +4,29 @@ const { solidity } = require("ethereum-waffle");
 const { BigNumber } = require("@ethersproject/bignumber");
 const { parseEther, formatEther, parseUnits } = require("@ethersproject/units");
 
-module.exports = { setup, setupLiquidity, deployStackOS, deployStackOSBasic, setupDeployment, print };
+module.exports = { setup, setupLiquidity, deployStackOS, deployStackOSBasic, 
+                  setupDeployment, print, walletOfOwner, walletOfDarkMatterOwner };
+
+async function walletOfOwner(nftContract, accountAddress) {
+  let ownerTokenCount = await nftContract.balanceOf(accountAddress);
+  let tokenIds = [];
+  for (let i = 0; i < ownerTokenCount; i++) {
+    let tokenId = await nftContract.tokenOfOwnerByIndex(accountAddress, i);
+    tokenIds.push(tokenId);
+  }
+  return tokenIds;
+}
+
+async function walletOfDarkMatterOwner(darkMatterContract, accountAddress, generationId) {
+  let ownerTokenCount = await darkMatterContract.balanceOf(accountAddress);
+  let tokenIds = [];
+  for (let i = 0; i < ownerTokenCount; i++) {
+    let tokenId = await darkMatterContract.tokenOfOwnerByIndex(accountAddress, i);
+    let stackIDs = await darkMatterContract.ID(tokenId);
+    tokenIds = tokenIds.concat(stackIDs[generationId]);
+  }
+  return tokenIds;
+}
 
 async function deployStackOSBasic() {
 
