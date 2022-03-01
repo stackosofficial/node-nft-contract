@@ -174,13 +174,13 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeab
     ) public nonReentrant {
 
         address seller = darkMatterToLot[tokenId].seller;
-        bool isApproved = darkMatter.isApprovedForAll(seller, address(this));
-        if(isApproved == false) {
-            isApproved = darkMatter.getApproved(tokenId) == address(this);
-        }
+        bool isApproved = 
+            darkMatter.isApprovedForAll(seller, address(this)) ||
+            darkMatter.getApproved(tokenId) == address(this);
+        bool isSellerOwner = darkMatter.ownerOf(tokenId) == seller;
 
-        require(darkMatterToLot[tokenId].seller == msg.sender || !isApproved, 'Not an owner');
-        require(darkMatterToLot[tokenId].seller != address(0), 'Not a listing');
+        require(seller == msg.sender || !isApproved || !isSellerOwner, 'Not an owner');
+        require(seller != address(0), 'Not a listing');
         emit DelistDarkMatterNFT(tokenId);
         delete darkMatterToLot[tokenId];
     }
@@ -198,14 +198,13 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeab
         IStackOsNFT stackNft = generations.get(generationId);
         address seller = stackToLot[generationId][tokenId].seller;
 
-        bool isApproved = stackNft.isApprovedForAll(seller, address(this));
+        bool isApproved = 
+            stackNft.isApprovedForAll(seller, address(this)) ||
+            stackNft.getApproved(tokenId) == address(this);
+        bool isSellerOwner = stackNft.ownerOf(tokenId) == seller;
 
-        if(isApproved == false) {
-            isApproved = stackNft.getApproved(tokenId) == address(this);
-        }
-
-        require(stackToLot[generationId][tokenId].seller == msg.sender || !isApproved, 'Not an owner');
-        require(stackToLot[generationId][tokenId].seller != address(0), 'Not a listing');
+        require(seller == msg.sender || !isApproved || !isSellerOwner, 'Not an owner');
+        require(seller != address(0), 'Not a listing');
         emit DelistStackNFT(generationId, tokenId);
         delete stackToLot[generationId][tokenId];
     }
@@ -262,15 +261,11 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeab
         require(lot.price <= msg.value, "Not enough MATIC");
 
         uint256 daoPart = lot.price * daoFee / HUNDRED_PERCENT;
-        uint256 royaltyPart = lot.price * royaltyFee / HUNDRED_PERCENT;
-        uint256 sellerPart = lot.price - daoPart - royaltyPart;
+        uint256 sellerPart = lot.price - daoPart;
 
         darkMatter.transferFrom(lot.seller, msg.sender, tokenId);
 
         (bool success, ) = daoAddress.call{value: daoPart}("");
-        require(success, "Transfer failed");
-
-        (success, ) = royaltyAddress.call{value: royaltyPart}("");
         require(success, "Transfer failed");
 
         (success, ) = payable(lot.seller).call{value: sellerPart}("");

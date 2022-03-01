@@ -7,13 +7,14 @@ import "./StableCoinAcceptor.sol";
 import "./Exchange.sol";
 import "./StackOsNFTBasic.sol";
 import "./interfaces/IDecimals.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-// import "hardhat/console.sol";
 
 contract Subscription is Ownable, ReentrancyGuard {
+    using SafeERC20 for IERC20;
 
     event SetOnlyFirstGeneration();
     event SetDripPeriod(uint256 _seconds);
@@ -41,8 +42,7 @@ contract Subscription is Ownable, ReentrancyGuard {
         address indexed subscriberWallet,
         uint256 amountWithdrawn,
         uint256 generationId, 
-        uint256[] tokenIds,
-        uint256[] periodIds
+        uint256[] tokenIds
     );
 
     event PurchaseNewNft(
@@ -88,8 +88,8 @@ contract Subscription is Ownable, ReentrancyGuard {
     uint256 public bonusPercent;
     uint256 public taxReductionAmount;
     uint256 public currentPeriodId;
+    uint256 public adminWithdrawable;
     bool public isOnlyFirstGeneration;
-
 
     enum withdrawStatus {
         withdraw,
@@ -98,6 +98,7 @@ contract Subscription is Ownable, ReentrancyGuard {
 
     struct Period {
         uint256 balance; // total fees collected from mint
+        uint256 withdrawn; // total fees withdrawn as rewards
         uint256 subsNum; // total subscribed tokens during this period
         uint256 endAt;   // when period ended, then subs can claim reward
         mapping(uint256 => mapping(uint256 => PeriodTokenData)) tokenData; // tokens related data, see struct 
@@ -166,7 +167,7 @@ contract Subscription is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @notice Set bonus drip perdiod.
+     * @notice Set bonus drip period.
      * @param _seconds Amount of seconds required to fully release bonus.
      * @dev Could only be invoked by the contract owner.
      */
@@ -238,9 +239,20 @@ contract Subscription is Ownable, ReentrancyGuard {
      */
     function requireCorrectGeneration(uint256 generationId) internal view {
         if(isOnlyFirstGeneration)
-            require(generationId == 0, "Generaion should be 0");
+            require(generationId == 0, "Generation should be 0");
         else
-            require(generationId > 0, "Generaion shouldn't be 0");
+            require(generationId > 0, "Generation shouldn't be 0");
+    }
+
+    /**
+     * @notice View periods.tokenData struct
+     */
+    function viewPeriodTokenData(
+        uint256 periodId, 
+        uint256 tokenId, 
+        uint256 generationId
+    ) external view returns (PeriodTokenData memory) {
+        return periods[periodId].tokenData[tokenId][generationId];
     }
 
     /**
@@ -264,6 +276,7 @@ contract Subscription is Ownable, ReentrancyGuard {
         nonReentrant 
         restrictGeneration(generationId)
     {
+        require(tx.origin == msg.sender, "Only EOW");
         require(
             // don't validate stables when paying with stack
             _payWithStack || stableAcceptor.supportsCoin(_stablecoin), 
@@ -279,7 +292,6 @@ contract Subscription is Ownable, ReentrancyGuard {
             );
         }
 
-        // active sub reward logic
         updatePeriod();
 
         for (uint256 i = 0; i < tokenIds.length; i++) {
@@ -336,10 +348,7 @@ contract Subscription is Ownable, ReentrancyGuard {
             _price = _price * 
                 10 ** IDecimals(address(_stablecoin)).decimals() /
                 PRICE_PRECISION;
-            require(
-                _stablecoin.transferFrom(msg.sender, address(this), _price),
-                "USD: transfer failed"
-            );
+            _stablecoin.safeTransferFrom(msg.sender, address(this), _price);
             _stablecoin.approve(address(exchange), _price);
             amount = exchange.swapExactTokensForTokens(
                 _price,
@@ -382,6 +391,15 @@ contract Subscription is Ownable, ReentrancyGuard {
         if (periods[currentPeriodId].endAt < block.timestamp) {
             currentPeriodId += 1;
             periods[currentPeriodId].endAt = block.timestamp + MONTH;
+            if(currentPeriodId > 3) {
+                // subtract 4 because need to ignore current cycle + 3 cycles before it
+                uint256 removeIndex = currentPeriodId - 4;
+                uint256 leftOver = periods[removeIndex].balance - periods[removeIndex].withdrawn;
+                adminWithdrawable += leftOver;
+                totalRewards -= leftOver;
+                periods[removeIndex].balance = 0;
+                periods[removeIndex].withdrawn = 0;
+            }
             emit NewPeriodStarted(currentPeriodId);
         }
     }
@@ -389,14 +407,14 @@ contract Subscription is Ownable, ReentrancyGuard {
     /**
      *  @notice Handle fee sent from minting.
      *  @param _amount Amount of stack trying to receive.
-     *  @return _isTransfered Whether fee received or not.
+     *  @return _isTransferred Whether fee received or not.
      *  @dev Called automatically from stack NFT contract, but can be called manually.
      *  @dev Will receive tokens if previous period has active subs.
      */
     function onReceiveStack(uint256 _amount) 
         external 
         returns 
-        (bool _isTransfered) 
+        (bool _isTransferred) 
     {
         updatePeriod();
 
@@ -414,46 +432,46 @@ contract Subscription is Ownable, ReentrancyGuard {
      *  @notice Withdraw active subs reward which comes from minting fees.
      *  @param generationId StackNFT generation id.
      *  @param tokenIds StackNFT token ids.
-     *  @param periodIds Period ids.
      *  @dev Caller must own tokens.
-     *  @dev Periods must be ended and tokens should have subscription during periods.
+     *  @dev Tokens should have subscription during periods.
      */
     function claimReward(
         uint256 generationId, 
-        uint256[] calldata tokenIds,
-        uint256[] calldata periodIds
+        uint256[] calldata tokenIds
     )
         external
         nonReentrant
         restrictGeneration(generationId)
     {
         updatePeriod();
+        require(currentPeriodId > 0, "Still first period");
+
 
         uint256 toWithdraw;
-        for (uint256 i; i < tokenIds.length; i++) {
-            uint256 tokenId = tokenIds[i];
-            require(
-                darkMatter.isOwnStackOrDarkMatter(
-                    msg.sender,
-                    generationId,
-                    tokenId
-                ),
-                "Not owner"
-            );
-            for (uint256 o; o < periodIds.length; o++) {
-                require(periodIds[o] < currentPeriodId, "Period not ended");
-                Period storage period = periods[periodIds[o]];
-                require(period.subsNum > 0, "No subs in period");
-                require(
-                    period.tokenData[generationId][tokenId].isSub, 
-                    "Was not subscribed"
-                );
+        uint256 periodId = subOrZero(currentPeriodId, 3);
+        for (; periodId < currentPeriodId; periodId++) {
+            Period storage period = periods[periodId];
+            if (period.subsNum == 0) continue;
+            
+            uint256 share = period.balance / period.subsNum;
 
-                uint256 share = period.balance / period.subsNum;
-                // this way we ignore periods withdrawn
-                toWithdraw += (share - period.tokenData[generationId][tokenId].withdrawn);
+            for (uint256 i; i < tokenIds.length; i++) {
+                uint256 tokenId = tokenIds[i];
+                require(
+                    darkMatter.isOwnStackOrDarkMatter(
+                        msg.sender,
+                        generationId,
+                        tokenId
+                    ),
+                    "Not owner"
+                );
+                if (!period.tokenData[generationId][tokenId].isSub) continue;
+                uint256 amountWithdraw = (share - period.tokenData[generationId][tokenId].withdrawn);
+                toWithdraw += amountWithdraw;
                 period.tokenData[generationId][tokenId].withdrawn = share; 
+                period.withdrawn += amountWithdraw;
             }
+
         }
 
         totalRewards -= toWithdraw;
@@ -463,8 +481,7 @@ contract Subscription is Ownable, ReentrancyGuard {
             msg.sender,
             toWithdraw,
             generationId, 
-            tokenIds,
-            periodIds
+            tokenIds
         );
     }
 
@@ -567,6 +584,7 @@ contract Subscription is Ownable, ReentrancyGuard {
         nonReentrant
         restrictGeneration(withdrawGenerationId)
     {
+        require(tx.origin == msg.sender, "Only EOW");
         require(purchaseGenerationId > 0, "Cant purchase generation 0");
         updatePeriod();
 
@@ -610,7 +628,7 @@ contract Subscription is Ownable, ReentrancyGuard {
                 address(generations.get(purchaseGenerationId))
             );
 
-            // most of the following should be on stack contract side, but code size limit...
+            // some of the following should be on stack contract side, but code size limit...
             amountToMint = stack.clampToMaxSupply(amountToMint);
 
             // adjust decimals
@@ -838,14 +856,11 @@ contract Subscription is Ownable, ReentrancyGuard {
      *  @notice Get active subs pending reward.
      *  @param generationId StackNFT generation id.
      *  @param tokenIds StackNFT token id.
-     *  @param periodIds Period ids.
      *  @dev Unsubscribed tokens in period are ignored.
-     *  @dev Period ids that are bigger than `currentPeriodId` are ignored.
      */
     function pendingReward(
         uint256 generationId, 
-        uint256[] calldata tokenIds,
-        uint256[] calldata periodIds
+        uint256[] calldata tokenIds
     )
         external
         view
@@ -855,14 +870,15 @@ contract Subscription is Ownable, ReentrancyGuard {
         if (periods[_currentPeriodId].endAt < block.timestamp) {
             _currentPeriodId += 1;
         }
+        require(_currentPeriodId > 0, "Still first period");
 
         uint256 toWithdraw;
         for (uint256 i; i < tokenIds.length; i++) {
             uint256 tokenId = tokenIds[i];
 
-            for (uint256 o; o < periodIds.length; o++) {
-                if(periodIds[o] >= currentPeriodId) continue;
-                Period storage period = periods[periodIds[o]];
+            uint256 periodId = subOrZero(_currentPeriodId, 3);
+            for (; periodId < _currentPeriodId; periodId++) {
+                Period storage period = periods[periodId];
                 if(period.subsNum == 0) continue;
                 if(!period.tokenData[generationId][tokenId].isSub) continue;
                         
@@ -871,6 +887,15 @@ contract Subscription is Ownable, ReentrancyGuard {
             }
         }
         return toWithdraw;
+    }
+
+    function adminWithdraw()
+        external
+        onlyOwner
+    {
+        require(adminWithdrawable > 0, "Nothing to withdraw");
+        stackToken.transfer(msg.sender, adminWithdrawable);
+        adminWithdrawable = 0;
     }
 
     /**

@@ -9,9 +9,10 @@ import "./interfaces/IStackOsNFT.sol";
 import "./GenerationManager.sol";
 import "./Whitelist.sol";
 
-contract DarkMatter is Whitelist, ERC721, ReentrancyGuard {
+contract DarkMatter is Whitelist, ERC721Enumerable, ReentrancyGuard {
     using Counters for Counters.Counter;
 
+    event Activate();
     event Deposit(
         address indexed _wallet, 
         uint256 generationId,
@@ -54,6 +55,7 @@ contract DarkMatter is Whitelist, ERC721, ReentrancyGuard {
 
     function activate() external onlyOwner {
         isActive = true;
+        emit Activate();
     }
 
     /**
@@ -88,7 +90,7 @@ contract DarkMatter is Whitelist, ERC721, ReentrancyGuard {
         if (
             stackToDarkMatter[generationId][tokenId].written &&
             _exists(stackToDarkMatter[generationId][tokenId].id) &&
-            ownerOf(generationId, tokenId) == _wallet
+            ownerOfStack(generationId, tokenId) == _wallet
         ) {
             return true;
         }
@@ -111,7 +113,7 @@ contract DarkMatter is Whitelist, ERC721, ReentrancyGuard {
             stackToDarkMatter[generationId][tokenId].written &&
             _exists(stackToDarkMatter[generationId][tokenId].id)
         ) {
-            return ownerOf(generationId, tokenId);
+            return ownerOfStack(generationId, tokenId);
         }
         return _stackOsNFT.ownerOf(tokenId);
     }
@@ -122,7 +124,7 @@ contract DarkMatter is Whitelist, ERC721, ReentrancyGuard {
      * @param tokenId StackNFT token id.
      * @return Owner of the DarkMatterNFT that owns StackNFT.
      */
-    function ownerOf(uint256 generationId, uint256 tokenId)
+    function ownerOfStack(uint256 generationId, uint256 tokenId)
         public
         view
         returns (address)

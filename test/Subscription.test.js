@@ -85,10 +85,10 @@ describe("Subscription (generations above 1st)", function () {
   });
   it("Unable to use contract from generation 1", async function () {
     await expect(subscription.subscribe(0, [0], parseEther("100"), usdt.address, false)).to.be.revertedWith(
-      "Generaion shouldn't be 0"
+      "Generation shouldn't be 0"
     );
-    await expect(subscription.claimReward(0, [0], [0])).to.be.revertedWith(
-      "Generaion shouldn't be 0"
+    await expect(subscription.claimReward(0, [0])).to.be.revertedWith(
+      "Generation shouldn't be 0"
     );
   });
   it("Subscribe with usdt token", async function () {

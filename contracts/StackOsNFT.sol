@@ -12,7 +12,7 @@ import "./StableCoinAcceptor.sol";
 import "./Exchange.sol";
 
 
-contract StackOsNFT is VRFConsumerBase, ERC721, Whitelist {
+contract StackOsNFT is VRFConsumerBase, ERC721Enumerable, Whitelist {
     using Counters for Counters.Counter;
     using SafeMath for uint256;
     using Strings for uint256;
@@ -44,7 +44,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, Whitelist {
         address indexed participant, 
         uint256[] ticketIDs, 
         address nextGenerationAddress, 
-        uint256 stackTransfered
+        uint256 stackTransferred
     );
     event WhitelistPartner(
         address indexed partner, 
@@ -80,7 +80,6 @@ contract StackOsNFT is VRFConsumerBase, ERC721, Whitelist {
     uint256 public immutable auctionedNFTs;
     uint256 public adminWithdrawableAmount;
     uint256 private immutable maxSupply;
-    uint256 public totalSupply;
     uint256 private immutable participationFee;
     uint256 public participationTickets;
     uint256 private immutable prizes;
@@ -331,6 +330,7 @@ contract StackOsNFT is VRFConsumerBase, ERC721, Whitelist {
     function transferTicket(uint256[] calldata _ticketIDs, address _address)
         external
     {
+        require(tx.origin == msg.sender, "Only EOW");
         require(generations.isAdded(_address), "Wrong stack contract");
         require(ticketStatusAssigned == true, "Not Assigned Yet!");
         for (uint256 i; i < _ticketIDs.length; i++) {
@@ -450,13 +450,12 @@ contract StackOsNFT is VRFConsumerBase, ERC721, Whitelist {
     }
 
     function mint(address _address) internal {
-        require(totalSupply < maxSupply, "Max supply reached");
+        require(totalSupply() < maxSupply, "Max supply reached");
         uint256 _current = _tokenIdCounter.current();
         _tokenIdCounter.increment();
-        totalSupply += 1;
         _safeMint(_address, _current);
         if(
-            totalSupply == maxSupply &&
+            totalSupply() == maxSupply &&
             generations.getIDByAddress(address(this)) == generations.count()-1
         ) {
             generations.autoDeployNextGeneration();

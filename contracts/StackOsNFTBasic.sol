@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
@@ -16,7 +17,7 @@ import "./Royalty.sol";
 
 contract StackOsNFTBasic is
     Whitelist,
-    ERC721
+    ERC721Enumerable
 {
     using Counters for Counters.Counter;
     using SafeMath for uint256;
@@ -51,7 +52,6 @@ contract StackOsNFTBasic is
 
     uint256 public rewardDiscount;
     uint256 private maxSupply;
-    uint256 public totalSupply;
     uint256 public mintPrice;
     uint256 public transferDiscount;
     uint256 private subsFee;
@@ -448,7 +448,7 @@ contract StackOsNFTBasic is
     }
 
     function _mint(address _address) internal {
-        require(totalSupply < maxSupply);
+        require(totalSupply() < maxSupply);
 
         uint256 timeSinceLastMint = block.timestamp - lastMintAt[_address];
         uint256 unlocked = timeSinceLastMint / 1 minutes;
@@ -467,11 +467,10 @@ contract StackOsNFTBasic is
 
         uint256 _current = _tokenIdCounter.current();
         _tokenIdCounter.increment();
-        totalSupply += 1;
         _safeMint(_address, _current);
 
         if(
-            totalSupply == maxSupply && 
+            totalSupply() == maxSupply && 
             generations.getIDByAddress(address(this)) == generations.count() - 1
         ) {
             generations.autoDeployNextGeneration();
@@ -485,8 +484,8 @@ contract StackOsNFTBasic is
         returns (uint256 clamped)
     {
         // frontrun protection
-        if (value > maxSupply - totalSupply)
-            value = maxSupply - totalSupply;
+        if (value > maxSupply - totalSupply())
+            value = maxSupply - totalSupply();
         return value;
     }
 
@@ -532,7 +531,8 @@ contract StackOsNFTBasic is
         override(ERC721)
         returns (string memory) 
     {
-        require(_exists(tokenId), "URI query for nonexistent token");
+        // URI query for nonexistent token
+        require(_exists(tokenId));
 
         string memory baseURI_ = _baseURI();
         string memory generationId = 

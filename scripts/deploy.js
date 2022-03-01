@@ -37,7 +37,7 @@ async function main() {
   // 25% means: 1 month withdraw 75% tax, 2 month 50%, 3 month 25%, 4 month 0%
   TAX_REDUCTION_AMOUNT = 2500;
   // Subscription forgiveness period in seconds
-  FORGIVENESS_PERIOD = 500;
+  FORGIVENESS_PERIOD = 432000;
   // Subscription bonus drip period in seconds
   DRIP_PERIOD = 3600;
 
@@ -54,7 +54,7 @@ async function main() {
   // Subscription tax reduction
   TAX_REDUCTION_AMOUNT_2 = 2500;
   // Subscription forgiveness period in seconds
-  FORGIVENESS_PERIOD_2 = 500;
+  FORGIVENESS_PERIOD_2 = 432000;
   // Subscription bonus drip period in seconds
   DRIP_PERIOD_2 = 3600;
   
@@ -345,7 +345,7 @@ async function main() {
   await stackOsNFT.whitelist(marketProxy.address);
 
   await subscription.setDripPeriod(DRIP_PERIOD);
-  // One of subs contracts is only for 1st generaion
+  // One of subs contracts is only for 1st Generation
   await sub0.setOnlyFirstGeneration();
   await sub0.setMaxPrice(SUBSCRIPTION_MAX_PRICE_2);
   await sub0.setDripPeriod(DRIP_PERIOD_2);
@@ -383,7 +383,7 @@ async function main() {
     await royalty.transferOwnership(OWNERSHIP);
     await exchange.transferOwnership(OWNERSHIP);
 
-    console.log("  - Ownership transfered to: ", OWNERSHIP);
+    console.log("  - Ownership transferred to: ", OWNERSHIP);
   }
 
   console.log("  - Setup completed.");

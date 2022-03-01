@@ -1,6 +1,7 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/utils/Counters.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./GenerationManager.sol";
@@ -8,10 +9,10 @@ import "./DarkMatter.sol";
 import "./interfaces/IStackOsNFT.sol";
 import "./interfaces/IStackOsNFTBasic.sol";
 import "./Exchange.sol";
-// import "hardhat/console.sol";
 
 contract Royalty is Ownable, ReentrancyGuard {
     using Counters for Counters.Counter;
+    using SafeERC20 for IERC20;
 
     event SetFeeAddress(address payable _feeAddress);
     event SetWETH(IERC20 WETH);
@@ -90,9 +91,6 @@ contract Royalty is Ownable, ReentrancyGuard {
 
         updateCycle();
 
-
-        // console.log("receive", generationId, counter.current(), valuePart);
-
         cycles[counter.current()].totalBalance += valuePart;
         cycles[counter.current()].genData[generationId].balance += valuePart;
 
@@ -113,7 +111,6 @@ contract Royalty is Ownable, ReentrancyGuard {
 
         updateCycle();
 
-        // console.log("onReceive", generationId, counter.current(), valuePart);
         cycles[counter.current()].totalBalance += valuePart;
         cycles[counter.current()].genData[generationId].balance += valuePart;
 
@@ -137,7 +134,6 @@ contract Royalty is Ownable, ReentrancyGuard {
                     // subtract 4 because need to ignore current cycle + 3 cycles before it
                     uint256 removeIndex = counter.current() - 4;
                     adminWithdrawable += cycles[removeIndex].totalBalance;
-                    // console.log("adminWithdrawable: %s, added: %s", adminWithdrawable, cycles[removeIndex].totalBalance);
                     cycles[removeIndex].totalBalance = 0;
                 }
 
@@ -200,7 +196,7 @@ contract Royalty is Ownable, ReentrancyGuard {
 
     /**
      * @notice Set fee address.
-     * @notice Fee transfered when contract receives new royalties.
+     * @notice Fee transferred when contract receives new royalties.
      * @param _feeAddress Fee address.
      * @dev Could only be invoked by the contract owner.
      */
@@ -250,7 +246,7 @@ contract Royalty is Ownable, ReentrancyGuard {
      * @param _tokenIds Token ids who will claim royalty.
      * @param _genIds Ids of generation balances to claim royalties.
      * @dev Tokens must be owned by the caller.
-     * @dev When generation tranded on market, fee is transfered to
+     * @dev When generation tranded on market, fee is transferred to
      *      dedicated balance of this generation in royalty contract (_genIds).
      *      Then tokens that have lower generation id can claim part of this.
      *      So token of generation 1 can claim from genId 1,2,3.
@@ -262,6 +258,7 @@ contract Royalty is Ownable, ReentrancyGuard {
         uint256[] calldata _genIds
     )
         external
+        nonReentrant
     {
         _claim(_generationId, _tokenIds, 0, false, _genIds);
     }
@@ -276,6 +273,7 @@ contract Royalty is Ownable, ReentrancyGuard {
         uint256[] calldata _genIds
     )
         external
+        nonReentrant
     {
         require(address(WETH) != address(0), "Wrong WETH address");
         _claim(_generationId, _tokenIds, 0, true, _genIds);
@@ -301,6 +299,7 @@ contract Royalty is Ownable, ReentrancyGuard {
         external 
         nonReentrant 
     {
+        require(tx.origin == msg.sender, "Only EOW");
         require(_generationId > 0, "Must be not first generation");
         require(_mintNum > 0, "Mint num is 0");
         _claim(_generationId, _tokenIds, _mintNum, false, _genIds);
@@ -320,7 +319,6 @@ contract Royalty is Ownable, ReentrancyGuard {
 
         updateCycle();
 
-        // console.log("current cycle in _claim", counter.current());
 
         require(counter.current() > 0, "Still first cycle");
 
@@ -329,7 +327,6 @@ contract Royalty is Ownable, ReentrancyGuard {
         // iterate over tokens from args
         for (uint256 i; i < tokenIds.length; i++) {
             
-            // console.log("tokenId claim ", tokenIds[i]);
             require(
                 darkMatter.isOwnStackOrDarkMatter(
                     msg.sender,
@@ -343,12 +340,11 @@ contract Royalty is Ownable, ReentrancyGuard {
         }
 
         require(reward > 0, "Nothing to claim");
-        // console.log("reward claim:", reward);
 
         if (_mintNum == 0) {
             if(_claimWETH) {
                 uint256 wethReceived = exchange.swapExactETHForTokens{value: reward}(WETH);
-                require(WETH.transfer(msg.sender, wethReceived), "WETH: transfer failed");
+                WETH.safeTransfer(msg.sender, wethReceived);
             } else {
                 (bool success, ) = payable(msg.sender).call{value: reward}(
                     ""
@@ -365,7 +361,6 @@ contract Royalty is Ownable, ReentrancyGuard {
                 _mintNum,
                 msg.sender
             );
-            // console.log("reward claim stack:", stackReceived, stackReceived - spendAmount);
             stackToken.transfer(msg.sender, stackReceived - spendAmount);
         }
 
@@ -375,7 +370,7 @@ contract Royalty is Ownable, ReentrancyGuard {
         uint256 generationId,
         uint256 tokenId,
         uint256[] calldata _genIds
-    )   
+    )
         private 
         returns (uint256 reward) 
     {
@@ -397,9 +392,7 @@ contract Royalty is Ownable, ReentrancyGuard {
                     removeFromCycle += claimAmount;
 
                     genData.isClaimed[generationId][tokenId] = true;
-                    // console.log(address(this).balance, maxSupplys[ _genIds[j]]);
                 }
-                // console.log(cycleId, _genIds[j], genData.balance, reward);
             }
 
             cycles[cycleId].totalBalance -= removeFromCycle;
@@ -438,7 +431,6 @@ contract Royalty is Ownable, ReentrancyGuard {
 
             for (uint256 o = 1; o <= 3; o++) {
                 uint256 cycleId = _counterCurrent - o;
-                // console.log("pending", cycleId, _counterCurrent);
                 // j is pool id, should be greater or equal than token generation
                 for (uint256 j = generationId; j < generations.count(); j++) {
 
@@ -464,7 +456,9 @@ contract Royalty is Ownable, ReentrancyGuard {
         onlyOwner
     {
         require(adminWithdrawable > 0, "Nothing to withdraw");
-        (bool success, ) = payable(msg.sender).call{value: adminWithdrawable}(
+        uint256 amount = adminWithdrawable;
+        adminWithdrawable = 0;
+        (bool success, ) = payable(msg.sender).call{value: amount}(
             ""
         );
         require(success, "Transfer failed");

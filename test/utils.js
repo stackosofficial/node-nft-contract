@@ -4,7 +4,29 @@ const { solidity } = require("ethereum-waffle");
 const { BigNumber } = require("@ethersproject/bignumber");
 const { parseEther, formatEther, parseUnits } = require("@ethersproject/units");
 
-module.exports = { setup, setupLiquidity, deployStackOS, deployStackOSBasic, setupDeployment, print };
+module.exports = { setup, setupLiquidity, deployStackOS, deployStackOSBasic, 
+                  setupDeployment, print, walletOfOwner, walletOfDarkMatterOwner };
+
+async function walletOfOwner(nftContract, accountAddress) {
+  let ownerTokenCount = await nftContract.balanceOf(accountAddress);
+  let tokenIds = [];
+  for (let i = 0; i < ownerTokenCount; i++) {
+    let tokenId = await nftContract.tokenOfOwnerByIndex(accountAddress, i);
+    tokenIds.push(tokenId);
+  }
+  return tokenIds;
+}
+
+async function walletOfDarkMatterOwner(darkMatterContract, accountAddress, generationId) {
+  let ownerTokenCount = await darkMatterContract.balanceOf(accountAddress);
+  let tokenIds = [];
+  for (let i = 0; i < ownerTokenCount; i++) {
+    let tokenId = await darkMatterContract.tokenOfOwnerByIndex(accountAddress, i);
+    let stackIDs = await darkMatterContract.ID(tokenId);
+    tokenIds = tokenIds.concat(stackIDs[generationId]);
+  }
+  return tokenIds;
+}
 
 async function deployStackOSBasic() {
 
@@ -145,7 +167,7 @@ async function setup() {
   SUBSCRIPTION_PRICE_MAX = parseEther("5000.0");
   BONUS_PECENT = 8000;
   TAX_REDUCTION_AMOUNT = 2500; // 25% means: 1month withdraw 75% tax, 2 month 50%, 3 month 25%, 4 month 0%
-  FORGIVENESS_PERIOD = 604800; // 1 week
+  FORGIVENESS_PERIOD = 432000; // 5 days
 
   const Subscription = await ethers.getContractFactory("Subscription");
   subscription = await Subscription.deploy(
