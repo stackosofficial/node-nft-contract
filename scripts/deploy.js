@@ -137,8 +137,6 @@ async function main() {
   MAX_SUPPLY_GROWTH = 2000;
   // Transfer discount to mint NFTs (when transfer unwon tickets)
   TRANSFER_DISCOUNT_2 = 2000;
-  // Timelock period for admin withdraw
-  TIMELOCK_2 = 180;
   // Royalty & subscription rewards discount to mint NFTs
   REWARD_DISCOUNT = 2000;
 
@@ -301,11 +299,11 @@ async function main() {
         maxSupplyGrowthPercent: MAX_SUPPLY_GROWTH,
         transferDiscount: TRANSFER_DISCOUNT_2,
         rewardDiscount: REWARD_DISCOUNT,
-        timeLock: TIMELOCK_2,
         royaltyAddress: royalty.address,
         market: marketProxy.address,
         baseURI: baseURI_2
       }, { gasLimit: 1e6 });
+
       // console.log(`setupDeploy successfully called`);
       break;
     } catch (error) {
