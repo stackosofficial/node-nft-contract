@@ -116,7 +116,7 @@ async function main() {
   DEPOSIT_FEE_PERCENT = 1000;
   // Set weth address to be able to claim royalty in WETH on matic network.
   // NOTE: in polygon router WETH variable is actually WMATIC token, don't be confused by variable name!
-  WETH_ADDRESS = "0x4c28f48448720e9000907BC2611F73022fdcE1fA";
+  WETH_ADDRESS = "0x7ceb23fd6bc0add59e62ac25578270cff1b9f619";
 
   // Settings for auto deploy StackNFTBasic (generations after first)
 
