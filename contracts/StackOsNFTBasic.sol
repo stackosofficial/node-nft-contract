@@ -56,8 +56,10 @@ contract StackOsNFTBasic is
     uint256 public transferDiscount;
     uint256 private subsFee;
     uint256 private daoFee;
-    // this is max amount to drip, dripping is 1 per minute
-    uint256 public constant maxMintRate = 10;
+    // this is max amount of mints to unlock
+    uint256 public constant maxMintRate = 50;
+    // time required to unlock 1 mint
+    uint256 public constant mintUnlockTime = 12 seconds;
 
     mapping(address => uint256) private totalMinted;
     mapping(address => uint256) private lastMintAt;
@@ -460,7 +462,7 @@ contract StackOsNFTBasic is
         require(totalSupply() < maxSupply);
 
         uint256 timeSinceLastMint = block.timestamp - lastMintAt[_address];
-        uint256 unlocked = timeSinceLastMint / 1 minutes;
+        uint256 unlocked = timeSinceLastMint / mintUnlockTime;
         if (unlocked > totalMinted[_address])
             unlocked = totalMinted[_address];
 

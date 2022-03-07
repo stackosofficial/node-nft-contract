@@ -28,7 +28,7 @@ module.exports = {
       timeout: 600000,
     },
     hardhat: {
-      allowUnlimitedContractSize: true,
+      // allowUnlimitedContractSize: true,
       forking: {
         url: process.env.MATIC_URL,
         blockNumber: 23715560, // remove this if your provider's node is not archival

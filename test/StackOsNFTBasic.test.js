@@ -71,30 +71,6 @@ describe("StackOS NFT Basic", function () {
     await stackOsNFTBasic.mint(1);
   });
 
-  it("Setup auto deploy", async function () {
-    // ROYALTY = royalty.address;
-    // await generationManager.setupDeploy(
-    //   NAME,
-    //   SYMBOL,
-    //   STACK_TOKEN,
-    //   DARK_MATTER_ADDRESS,
-    //   SUBSCRIPTION,
-    //   sub0.address,
-    //   PRICE,
-    //   SUBS_FEE,
-    //   MAX_SUPPLY_GROWTH,
-    //   TRANSFER_DISCOUNT,
-    //   TIMELOCK,
-    //   ROYALTY
-    // );
-    // await generationManager.setupDeploy2(
-    //   owner.address, // fake market address
-    //   DAO_FEE,
-    //   baseURI,
-    //   REWARD_DISCOUNT
-    // )
-  });
-
   it("Trigger auto deploy of the next generation", async function () {
     await stackToken.approve(stackOsNFTBasic.address, parseEther("100.0"));
     let oldGenerationsCount = (await generationManager.count()).toNumber();
@@ -185,18 +161,26 @@ describe("StackOS NFT Basic", function () {
   });
 
   it("Dripping tokens", async function () {
-    await stackToken.approve(stackOsNFTBasicgen3.address, parseEther("100.0"));
 
-    await expect(stackOsNFTBasicgen3.mint(11)).to.be.reverted;
-    await stackOsNFTBasicgen3.mint(10);
+    await stackToken.approve(stackOsNFTBasicgen3.address, parseEther("1000.0"));
+
+    await expect(stackOsNFTBasicgen3.mint(51)).to.be.reverted;
+    await stackOsNFTBasicgen3.mint(50);
     await provider.send("evm_increaseTime", [60 * 1]); 
-    await expect(stackOsNFTBasicgen3.mint(2)).to.be.reverted;
-    await stackOsNFTBasicgen3.mint(1);
+
+    snapshotId = await ethers.provider.send("evm_snapshot");
+
+    await expect(stackOsNFTBasicgen3.mint(6)).to.be.reverted;
+    await stackOsNFTBasicgen3.mint(5);
     await expect(stackOsNFTBasicgen3.mint(9)).to.be.reverted;
     await provider.send("evm_increaseTime", [60 * 9]); 
-    await stackOsNFTBasicgen3.mint(8);
-  });
+    await stackOsNFTBasicgen3.mint(45);
+    await provider.send("evm_increaseTime", [60 * 10]); 
 
+    await ethers.provider.send("evm_revert", [snapshotId]);
+    snapshotId = await ethers.provider.send("evm_snapshot");
+  });
+  
   it("Mint for USD", async function () {
     await usdc.approve(stackOsNFTBasicgen3.address, parseEther("1"));
     let oldOwnerBalance = await stackToken.balanceOf(owner.address);
@@ -227,6 +211,7 @@ describe("StackOS NFT Basic", function () {
     expect(await stackAutoDeployed.tokenURI(1)).to.be.equal(
       baseURI + "2/1"
     );
+
     expect(await stackOsNFTBasicgen3.tokenURI(2)).to.be.equal(
       baseURI + "4/2"
     );
