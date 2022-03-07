@@ -76,7 +76,7 @@ contract Subscription is Ownable, ReentrancyGuard {
 
     uint256 internal constant HUNDRED_PERCENT = 10000;
     uint256 public constant PRICE_PRECISION = 1e18; // how much decimals `price` has
-    uint256 public constant MONTH = 28 days;
+    uint256 public constant MONTH = 30 days;
 
     uint256 public totalDeposited;
     uint256 public totalRewards;

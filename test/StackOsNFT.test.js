@@ -404,7 +404,7 @@ describe("Test transferTickets and transferFromLastGen", function () {
     );
     expect(await stackToken.balanceOf(stackOsNFTBasic.address)).to.be.equal(0);
     expect(newOwnerBalance.sub(oldOwnerBalance)).to.be.closeTo(
-      parseEther("1.68"), parseEther("0.01")
+      parseEther("1.69"), parseEther("0.01")
     );
 
     print("Tickets transferred!");

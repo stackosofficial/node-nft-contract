@@ -106,7 +106,8 @@ contract Exchange is Ownable {
     }
 
     /**
-     *  @notice Get amount of tokenIn needed to buy amountOut of tokenOut 
+     *  @notice Given an output amount of an asset, 
+     *          returns a required input amount of the other asset,
      *          using path tokenIn > WETH > tokenOut.
      *  @param amountOut Amount wish to receive.
      *  @param tokenOut Token wish to receive.
@@ -124,5 +125,27 @@ contract Exchange is Ownable {
         path[2] = address(tokenOut);
         uint256[] memory amountsIn = router.getAmountsIn(amountOut, path);
         return amountsIn[0];
+    }
+
+    /**
+     *  @notice Given an input amount of an asset, 
+     *          returns the maximum output amount of the other asset,
+     *          using path tokenIn > WETH > tokenOut.
+     *  @param amountIn Amount wish to spend.
+     *  @param tokenIn Token wish to spend.
+     *  @param tokenOut Token wish to receive.
+     *  @return amountOut Amount of tokenIn.
+     */
+    function getAmountOut(
+        uint256 amountIn, 
+        IERC20 tokenIn, 
+        IERC20 tokenOut
+    ) public view returns (uint256 amountOut) {
+        address[] memory path = new address[](3);
+        path[0] = address(tokenIn);
+        path[1] = address(router.WETH());
+        path[2] = address(tokenOut);
+        uint256[] memory amountsIn = router.getAmountsOut(amountIn, path);
+        return amountsIn[2];
     }
 }
