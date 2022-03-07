@@ -61,9 +61,9 @@ async function main() {
   // Market and minting dao fee address
   DAO_ADDRESS = "0x2966bC0d207A8f1E4Da3c902db044C505e13b41E";
   // Market dao fee percent
-  DAO_FEE = 1000;
+  DAO_FEE = 400;
   // Market royalty distribution fee percent
-  ROYALTY_FEE = 1000;
+  ROYALTY_FEE = 1600;
 
   // StackNFT 1st generation
 
@@ -113,7 +113,7 @@ async function main() {
   // Amount of eth required to allow new cycle start (Royalty)
   MIN_ETH_PER_CYCLE = parseEther("0.1");
   // Fee percent to take when royalties received by Royalty contract
-  DEPOSIT_FEE_PERCENT = 1000;
+  DEPOSIT_FEE_PERCENT = 3750;
   // Set weth address to be able to claim royalty in WETH on matic network.
   // NOTE: in polygon router WETH variable is actually WMATIC token, don't be confused by variable name!
   WETH_ADDRESS = "0x7ceb23fd6bc0add59e62ac25578270cff1b9f619";
