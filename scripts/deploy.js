@@ -72,7 +72,7 @@ async function main() {
   // Token symbol
   SYMBOL = "SON";
   // Set uri for newly minted tokens
-  baseURI = "https://stackos.com/";
+  baseURI = "https://nft.stackos.io/";
   // Ticket price in STACK
   PRICE = parseEther("0.1");
   // Max amount of NFT in 1st generation
@@ -131,7 +131,7 @@ async function main() {
   // Mint fee percent for DAO
   DAO_FEE_2 = 500;
   // Base uri
-  baseURI_2 = "https://stackos.com/";
+  baseURI_2 = "https://nft.stackos.io/";
   // How much to grow max supply in percents.
   // For example value of 25% will increase max supply from 100 to 125.
   MAX_SUPPLY_GROWTH = 2000;
