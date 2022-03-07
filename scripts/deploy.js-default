@@ -16,53 +16,50 @@ async function main() {
 
   // Stablecoins supported by the protocol
   STABLES = [
-    "0xc2132d05d31c914a87c6611c10748aeb04b58e8f",
-    "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174",
-    "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063",
-    "0x692597b009d13C4049a947CAB2239b7d6517875F"
+    "0xc2132d05d31c914a87c6611c10748aeb04b58e8f"
   ]
 
   // Stack token address
   STACK_TOKEN = "0x980111ae1b84e50222c8843e3a7a038f36fecd2b";
 
   // Required deposit amount of StackNFTs to be able to mint DarkMatter
-  DARK_MATTER_PRICE = 50;
+  DARK_MATTER_PRICE = 5;
 
   // IUniswapV2Router02 compatible router
   ROUTER_ADDRESS = "0xA102072A4C07F06EC3B4900FDC4C7B80b6c57429";
   // Address to receive tax of early withdraw subscription
-  TAX_ADDRESS = "0x66f35514AA3A3f4831DA373318D8ADc6ED36B7cB";
+  TAX_ADDRESS = "0x2966bC0d207A8f1E4Da3c902db044C505e13b41E";
   // Subscription price in USD, should be 18 decimals!
-  SUBSCRIPTION_PRICE = parseEther("100.0");
+  SUBSCRIPTION_PRICE = parseEther("1.0");
   // Subscription bonus percent
   BONUS_PECENT = 8000;
   // Subscription tax reduction amount each month
   // 25% means: 1 month withdraw 75% tax, 2 month 50%, 3 month 25%, 4 month 0%
   TAX_REDUCTION_AMOUNT = 2500;
-  // Subscription forgiveness period in seconds ( 5 days )
+  // Subscription forgiveness period in seconds
   FORGIVENESS_PERIOD = 432000;
-  // Subscription bonus drip period in seconds ( 1 year)
-  DRIP_PERIOD = 31536000;
+  // Subscription bonus drip period in seconds
+  DRIP_PERIOD = 3600;
 
   // Params for sub0 contract that is locked to first generation tokens
 
   // Address to receive tax of early withdraw subscription
-  TAX_ADDRESS_2 = "0x66f35514AA3A3f4831DA373318D8ADc6ED36B7cB";
+  TAX_ADDRESS_2 = "0x2966bC0d207A8f1E4Da3c902db044C505e13b41E";
   // Subscription min price in USD, should be 18 decimals!
-  SUBSCRIPTION_PRICE_2 = parseEther("100.0");
+  SUBSCRIPTION_PRICE_2 = parseEther("1.0");
   // Subscription max price in USD, should be 18 decimals!
-  SUBSCRIPTION_MAX_PRICE_2 = parseEther("5000.0");
+  SUBSCRIPTION_MAX_PRICE_2 = parseEther("5.0");
   // Subscription bonus percent
   BONUS_PECENT_2 = 8000;
   // Subscription tax reduction
   TAX_REDUCTION_AMOUNT_2 = 2500;
-  // Subscription forgiveness period in seconds ( 5 days )
+  // Subscription forgiveness period in seconds
   FORGIVENESS_PERIOD_2 = 432000;
   // Subscription bonus drip period in seconds
-  DRIP_PERIOD_2 = 31536000;
+  DRIP_PERIOD_2 = 3600;
   
   // Market and minting dao fee address
-  DAO_ADDRESS = "0x333669c2ef75f4638BCE5f553f56b92415C2D4eF";
+  DAO_ADDRESS = "0x2966bC0d207A8f1E4Da3c902db044C505e13b41E";
   // Market dao fee percent
   DAO_FEE = 400;
   // Market royalty distribution fee percent
@@ -73,21 +70,20 @@ async function main() {
   // Token name
   NAME = "StackOS NFT Genesis";
   // Token symbol
-  SYMBOL = "NodeNFT";
+  SYMBOL = "SON";
   // Set uri for newly minted tokens
   baseURI = "https://nft.stackos.io/";
   // Ticket price in STACK
-  PRICE = parseEther("35000");
-  // Max amount of NFT in 1st generation ( genesis )
-  MAX_SUPPLY = 100;
+  PRICE = parseEther("0.1");
+  // Max amount of NFT in 1st generation
+  MAX_SUPPLY = 10;
   // Lottery prizes amount
-  PRIZES = 60;
+  PRIZES = 6;
   // Auctioned NFTs amount
-  AUCTIONED_NFTS = 20;
+  AUCTIONED_NFTS = 2;
   // Timelock period for admin withdraw
   // If you set this to 60, then admin can withdraw after 60 seconds after deployment
-  // admin can withdraw lottery and bid amounts after TIMELOCK has passed ( 30 days )
-  TIMELOCK = 2592000;
+  TIMELOCK = 180;
   // For chainlink VRF.
   KEY_HASH =
     "0xf86195cf7690c55907b2b611ebb7343a6f649bff128701cc542f0569e2c549da";
@@ -113,9 +109,9 @@ async function main() {
   ];
   
   // Address to send fees when royalties received by Royalty contract
-  DEPOSIT_FEE_ADDRESS = "0x73791883ae2336AE6F5a7C5D6766d24E9456D52D";
-  // Amount of eth (WETH) required to allow new cycle start (Royalty)
-  MIN_ETH_PER_CYCLE = parseEther("0.01");
+  DEPOSIT_FEE_ADDRESS = "0x2966bC0d207A8f1E4Da3c902db044C505e13b41E";
+  // Amount of eth required to allow new cycle start (Royalty)
+  MIN_ETH_PER_CYCLE = parseEther("0.1");
   // Fee percent to take when royalties received by Royalty contract
   DEPOSIT_FEE_PERCENT = 3750;
   // Set weth address to be able to claim royalty in WETH on matic network.
@@ -127,9 +123,9 @@ async function main() {
   // Token name, on auto deploy we append " N" to the name, where N is generation number
   NAME_2 = "StackOS NFT";
   // Token symbol
-  SYMBOL_2 = "NodeNFT";
+  SYMBOL_2 = "SON";
   // Mint price in USD
-  PRICE_2 = parseEther("200");
+  PRICE_2 = parseEther("2");
   // Mint fee percent for active subs
   SUBS_FEE_2 = 2000;
   // Mint fee percent for DAO
@@ -141,8 +137,6 @@ async function main() {
   MAX_SUPPLY_GROWTH = 2000;
   // Transfer discount to mint NFTs (when transfer unwon tickets)
   TRANSFER_DISCOUNT_2 = 2000;
-  // Timelock period for admin withdraw
-  // TIMELOCK_2 = 180;
   // Royalty & subscription rewards discount to mint NFTs
   REWARD_DISCOUNT = 2000;
 
@@ -309,6 +303,7 @@ async function main() {
         market: marketProxy.address,
         baseURI: baseURI_2
       }, { gasLimit: 1e6 });
+
       // console.log(`setupDeploy successfully called`);
       break;
     } catch (error) {
