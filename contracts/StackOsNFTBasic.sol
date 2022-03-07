@@ -225,37 +225,47 @@ contract StackOsNFTBasic is
         stackToken.transferFrom(msg.sender, address(this), _amount);
 
         IERC20 stablecoin = stableAcceptor.stablecoins(0);
-        uint256 amountUsd = exchange.getAmountIn(
+        // how much usd we can receive for _amount of stack tokens
+        uint256 amountUsd = exchange.getAmountOut(
             _amount,
             stackToken,
             stablecoin
         );
+
+        // we need to use usd decimal places instead of uniform
         uint256 price = adjustDecimals(
             mintPrice, 
             stablecoin
         );
-
+        // apply discount to the price
         uint256 mintPriceDiscounted = price
             .mul(10000 - transferDiscount)
             .div(10000);
 
+        // get total amount of tickets we can mint for discounted price 
         uint256 ticketAmount = amountUsd.div(mintPriceDiscounted);
 
+        // limit amount of tickets to mint rate
+        ticketAmount = ticketAmount > maxMintRate ? maxMintRate : ticketAmount;
+        // limit amount of tickets to max supply
         ticketAmount = clampToMaxSupply(ticketAmount);
 
+        // get amount of usd we will spend for minting
         uint256 usdToSpend = mintPriceDiscounted.mul(ticketAmount);
-        uint256 stackToSpend = exchange.getAmountIn(
+        // convert usdToSpend to amount of stack tokens
+        uint256 stackToSpend = exchange.getAmountOut(
             usdToSpend,
             stablecoin,
             stackToken
         );
 
-        // transfer left over amount to user
+        // transfer left over amount to user (total amount minus amount to spend for minting)
         stackToken.transfer(
             _ticketOwner,
             _amount - stackToSpend 
         );
 
+        // send fees, not guaranteed that fees will take 100% of stackToSpend
         stackToSpend = sendFees(stackToSpend);
 
         // admin gets the payment after fees
@@ -406,7 +416,6 @@ contract StackOsNFTBasic is
             stablecoin,
             stackToken
         );
-        // console.log("mint price discounted * 5", amountUsd, stackAmount);
         
         amountSpend = stackAmount;
         stackToken.transferFrom(msg.sender, address(this), stackAmount);
