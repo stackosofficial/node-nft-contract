@@ -298,7 +298,7 @@ contract StackOsNFTBasic is
         amountOut = amountOut.mul(_nftAmount);
 
         uint256 stackAmount = exchange.getAmountIn(
-            amountOut, 
+            amountOut,
             stablecoin,
             stackToken
         );

@@ -1,0 +1,16 @@
+swapExactETHForTokens
+   matic -> WETH
+   matic -> stackToken
+
+swapExactTokensForETH
+   unused
+
+swapExactTokensForTokens
+   any stablecoin -> stackToken
+
+getAmountIn
+   stablecoins(0) -> stackToken
+
+getAmountOut
+   stackToken -> stablecoins(0)
+   stablecoins(0) -> stackToken
