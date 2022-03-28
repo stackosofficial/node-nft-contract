@@ -61,7 +61,7 @@ async function main() {
 
   // vvvvvvvvvvvvvvvvvvvvvvvvv VERIFICATION vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
   console.log("  - Verification will start in a minute...\n");
-  // await delay(46000);
+  await delay(46000);
 
   let deployedContracts = [
     fakeRouter
