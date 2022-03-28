@@ -1,7 +1,6 @@
-Description of possible ways a function could be called and if we change path for this function in FakeRouter.
+All the ways that functions are called and whether we change swap path for it in FakeRouter.
 
 stablecoins(0) is equal to USDT on current deployed contracts.
-
 
 swapExactETHForTokens: Path untouched
    matic -> WETH
