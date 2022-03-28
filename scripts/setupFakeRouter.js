@@ -45,7 +45,7 @@ async function main() {
   WETH = "0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619"; // ETH
   WMATIC = "0x4c28f48448720e9000907bc2611f73022fdce1fa"; // dfyn's WETH()
 
-  // set 'note' file to understand what paths we need to define
+  // see 'note' file to understand what paths we need to define
   await fakeRouter.setPath(USDT, STACK, [USDT, USDC, STACK]);
   await fakeRouter.setPath(STACK, USDT, [STACK, USDC, USDT]);
 
@@ -55,7 +55,6 @@ async function main() {
   await fakeRouter.setPath(UST, STACK, [UST, USDT, USDC, STACK]);
 
   // paths for getAmounts to work in SwapETH.. functions to work
-  // PATH FOR THESE MUST BE = 2 LENGTH
   await fakeRouter.setPath(WMATIC, WETH, [WMATIC, WETH]);
   await fakeRouter.setPath(WMATIC, STACK, [WMATIC, STACK]);
 
