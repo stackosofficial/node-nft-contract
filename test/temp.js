@@ -60,8 +60,9 @@ describe("StackOS NFT Basic", function () {
 
     exchange = await ethers.getContractAt("Exchange", "0x9027CbbfaEe5DA5c2E948E617f8AE38b9b6a5AD0");
     // quickswap router
-    router = await ethers.getContractAt("IUniswapV2Router02", "0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff");
-
+    router = await ethers.getContractAt("IUniswapV2Router02", "0xA102072A4C07F06EC3B4900FDC4C7B80b6c57429");
+    // dfyn 0xA102072A4C07F06EC3B4900FDC4C7B80b6c57429
+    // quickswap 0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff
     // quickswap = await ethers.getContractAt("IUniswapV2Router02", "0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff");
 
     factory = await ethers.getContractAt("IUniswapV2Factory", await router.factory());
@@ -80,41 +81,67 @@ describe("StackOS NFT Basic", function () {
     )
   });
 
-  it("change router in exchange contract", async function () {
-    await exchange.connect(exchangeOwner).setRouter(router.address);
+  it("change router in exchange contract to FakeRouter", async function () {
+    const FakeRouter = await ethers.getContractFactory("FakeRouter");
+    fakeRouter = await FakeRouter.deploy(
+      router.address,
+    );
+    await fakeRouter.deployed();
+
+    await exchange.connect(exchangeOwner).setRouter(fakeRouter.address);
     console.log("router", await exchange.router());
+  });
+
+  it("Setup paths in FakeRouter", async function () {
+
+    USDT = "0xc2132D05D31c914a87C6611C10748AEb04B58e8F";
+    USDC = "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174";
+    DAI = "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063";
+    UST = "0x692597b009d13C4049a947CAB2239b7d6517875F";
+    STACK = "0x980111ae1b84e50222c8843e3a7a038f36fecd2b";
+    WETH = "0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619"; // ETH
+    WMATIC = "0x4c28f48448720e9000907bc2611f73022fdce1fa"; // dfyn's WETH()
+
+    await fakeRouter.setPath(USDT, STACK, [USDT, USDC, STACK]);
+    await fakeRouter.setPath(STACK, USDT, [STACK, USDC, USDT]);
+    
+    // other stables used in mintForUsd and subsription
+    await fakeRouter.setPath(USDC, STACK, [USDC, STACK]);
+    await fakeRouter.setPath(DAI, STACK, [DAI, USDT, USDC, STACK]);
+    await fakeRouter.setPath(UST, STACK, [UST, USDT, USDC, STACK]);
+
   });
 
   it("Add liquidity", async function () {
 
-    await network.provider.send("hardhat_setBalance", [
-      owner.address.toString(),
-      "0x21e19e0c9bab240000000000",
-    ]);
+    // await network.provider.send("hardhat_setBalance", [
+    //   owner.address.toString(),
+    //   "0x21e19e0c9bab240000000000",
+    // ]);
 
-    console.log(await provider.getBalance(owner.address));
-    await stackToken.approve(router.address, parseEther("100000000.0"));
-    var deadline = Math.floor(Date.now() / 1000) + 1200;
+    // console.log(await provider.getBalance(owner.address));
+    // await stackToken.approve(router.address, parseEther("100000000.0"));
+    // var deadline = Math.floor(Date.now() / 1000) + 1200;
 
-    await router.addLiquidityETH(
-      stackToken.address,
-      parseEther("17.0"),
-      parseEther("0.0"),
-      parseEther("1.0"),
-      joe.address,
-      deadline,
-      { value: parseEther("1.0") }
-    );
+    // await router.addLiquidityETH(
+    //   stackToken.address,
+    //   parseEther("17.0"),
+    //   parseEther("0.0"),
+    //   parseEther("1.0"),
+    //   joe.address,
+    //   deadline,
+    //   { value: parseEther("1.0") }
+    // );
 
-    await router.addLiquidityETH(
-      stackToken.address,
-      parseEther("880561.0"),
-      parseEther("0.0"),
-      parseEther("49704.0"),
-      joe.address,
-      deadline,
-      { value: parseEther("49704.0") }
-    );
+    // await router.addLiquidityETH(
+    //   stackToken.address,
+    //   parseEther("880561.0"),
+    //   parseEther("0.0"),
+    //   parseEther("49704.0"),
+    //   joe.address,
+    //   deadline,
+    //   { value: parseEther("49704.0") }
+    // );
 
     
     let pairAddr = await factory.getPair(stackToken.address,     await router.WETH());

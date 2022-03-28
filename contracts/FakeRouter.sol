@@ -15,11 +15,14 @@ contract FakeRouter is Ownable {
 
     IUniswapV2Router02 public router;
 
+    address public WETH;
+
     // from -> to -> path
     mapping(address => mapping(address => address[])) public paths;
 
     constructor(address _router) {
         router = IUniswapV2Router02(_router);
+        WETH = router.WETH();
     }
 
     function setPath(
@@ -109,7 +112,7 @@ contract FakeRouter is Ownable {
         address tokenFrom = path[0];
         address tokenTo = path[2];
         address[] memory newPath = paths[tokenFrom][tokenTo];
-        require(newPath.length > 2, "Swap path not found");
+        require(newPath.length > 1, "Swap path not found");
 
         amounts = router.swapExactTokensForTokens(
             amountIn,
@@ -129,7 +132,7 @@ contract FakeRouter is Ownable {
         address tokenIn = path[0];
         address tokenOut = path[2];
         address[] memory newPath = paths[tokenIn][tokenOut];
-        require(newPath.length > 2, "Swap path not found");
+        require(newPath.length > 1, "Swap path not found");
 
         uint256[] memory amountsIn = router.getAmountsIn(amountOut, newPath);
         return amountsIn;
@@ -143,9 +146,9 @@ contract FakeRouter is Ownable {
         address tokenIn = path[0];
         address tokenOut = path[2];
         address[] memory newPath = paths[tokenIn][tokenOut];
-        require(newPath.length > 2, "Swap path not found");
+        require(newPath.length > 1, "Swap path not found");
 
-        uint256[] memory amountsOut = router.getAmountsOut(amountIn, path);
+        uint256[] memory amountsOut = router.getAmountsOut(amountIn, newPath);
         return amountsOut;
     }
 }
