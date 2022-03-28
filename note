@@ -1,20 +1,17 @@
-All the ways that functions are called and whether we change swap path for it in FakeRouter.
 
-stablecoins(0) is equal to USDT on current deployed contracts.
+* stablecoins(0) is equal to USDT on current deployed contracts.
 
-Exchange contract uses hardcoded indexes to access elements in returned arrays from the router contract, thus our FakeRouter should return arrays that has the same length as initial 'path' passed by Exchange contract to our FakeRouter. Also getAmountIn in Exchange gets element at 0 index instead of last element like getAmountOut.  
+* Exchange contract uses hardcoded indexes to access elements in returned arrays from the router contract, thus our FakeRouter should return arrays that has the same length as initial 'path' passed by Exchange contract to our FakeRouter. Also getAmountIn in Exchange gets element at 0 index instead of last element like getAmountOut.  
 
-swapExactETHForTokens: Path untouched
+* All the ways that functions are called:
+
+swapExactETHForTokens: Path changed
    matic -> WETH
    matic -> stackToken
    DEPENDS ON getAmountsOut which changes path
 
-swapExactTokensForETH: Path untouched
+swapExactTokensForETH: Path changed
    unused
-
-
-   ---------- FUNCTIONS THAT CHANGE PATH ----------
-
 
 swapExactTokensForTokens: Path changed
    any stablecoin -> stackToken

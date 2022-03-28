@@ -34,7 +34,7 @@ describe("StackOS NFT Basic", function () {
     );
 
 
-
+    
     stackToken = "0x980111ae1b84e50222c8843e3a7a038f36fecd2b";
     stackToken = await ethers.getContractAt("@openzeppelin/contracts/token/ERC20/ERC20.sol:ERC20", stackToken);
 
@@ -59,7 +59,6 @@ describe("StackOS NFT Basic", function () {
     exchangeOwner = await ethers.getSigner("0xa08554ada77d70d3d4a4e3d3aec7fb0d33409ad8");
 
     exchange = await ethers.getContractAt("Exchange", "0x9027CbbfaEe5DA5c2E948E617f8AE38b9b6a5AD0");
-    // quickswap router
     router = await ethers.getContractAt("IUniswapV2Router02", "0xA102072A4C07F06EC3B4900FDC4C7B80b6c57429");
     // dfyn 0xA102072A4C07F06EC3B4900FDC4C7B80b6c57429
     // quickswap 0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff
