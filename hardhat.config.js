@@ -31,7 +31,7 @@ module.exports = {
       // allowUnlimitedContractSize: true,
       forking: {
         url: process.env.MATIC_URL,
-        blockNumber: 26438534, // remove this if your provider's node is not archival
+        blockNumber: 26462173, // remove this if your provider's node is not archival
         enabled: true
       },
     },

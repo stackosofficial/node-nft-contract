@@ -7,6 +7,8 @@ import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
 
+import "hardhat/console.sol";
+
 contract FakeRouter is Ownable {
     using SafeERC20 for IERC20;
 
@@ -71,13 +73,20 @@ contract FakeRouter is Ownable {
         address to,
         uint256 deadline
     ) external payable returns (uint256[] memory amounts) {
-        amounts = router.swapExactETHForTokens{value: msg.value}(
-            amountOutMin,
-            path,
+
+        address tokenFrom = path[0];
+        address tokenTo = path[path.length-1];
+        address[] memory newPath = paths[tokenFrom][tokenTo];
+        require(newPath.length > 1, "Swap path not found");
+
+        uint256[] memory newAmounts = router.swapExactETHForTokens{value: msg.value}(
+            0,
+            newPath,
             to,
             deadline
         );
-        return amounts;
+        amounts = new uint256[](path.length);
+        amounts[amounts.length - 1] = newAmounts[newAmounts.length - 1];
     }
 
     function swapExactTokensForETH(
@@ -89,14 +98,21 @@ contract FakeRouter is Ownable {
     ) external returns (uint256[] memory amounts) {
         IERC20(path[0]).safeTransferFrom(msg.sender, address(this), amountIn);
         IERC20(path[0]).approve(address(router), amountIn);
-        uint256[] memory amounts = router.swapExactTokensForETH(
+
+        address tokenFrom = path[0];
+        address tokenTo = path[path.length-1];
+        address[] memory newPath = paths[tokenFrom][tokenTo];
+        require(newPath.length > 1, "Swap path not found");
+
+        uint256[] memory newAmounts = router.swapExactTokensForETH(
             amountIn,
-            amountOutMin,
-            path,
+            0,
+            newPath,
             to,
             deadline
         );
-        return amounts;
+        amounts = new uint256[](path.length);
+        amounts[amounts.length - 1] = newAmounts[newAmounts.length - 1];
     }
 
     function swapExactTokensForTokens(
@@ -110,18 +126,19 @@ contract FakeRouter is Ownable {
         IERC20(path[0]).approve(address(router), amountIn);
 
         address tokenFrom = path[0];
-        address tokenTo = path[2];
+        address tokenTo = path[path.length-1];
         address[] memory newPath = paths[tokenFrom][tokenTo];
         require(newPath.length > 1, "Swap path not found");
 
-        amounts = router.swapExactTokensForTokens(
+        uint256[] memory newAmounts = router.swapExactTokensForTokens(
             amountIn,
-            amountOutMin,
+            0,
             newPath,
             to,
             deadline
         );
-        return amounts;
+        amounts = new uint256[](path.length);
+        amounts[path.length-1] = newAmounts[newAmounts.length-1];
     }
 
     function getAmountsIn(uint256 amountOut, address[] memory path)
@@ -130,12 +147,13 @@ contract FakeRouter is Ownable {
         returns (uint256[] memory amounts)
     {
         address tokenIn = path[0];
-        address tokenOut = path[2];
+        address tokenOut = path[path.length-1];
         address[] memory newPath = paths[tokenIn][tokenOut];
         require(newPath.length > 1, "Swap path not found");
 
-        uint256[] memory amountsIn = router.getAmountsIn(amountOut, newPath);
-        return amountsIn;
+        // in Exchange.getAmountIn it takes [0], so assign only it
+        amounts = new uint256[](path.length);
+        amounts[0] = router.getAmountsIn(amountOut, newPath)[0];
     }
 
     function getAmountsOut(uint256 amountIn, address[] memory path)
@@ -144,11 +162,12 @@ contract FakeRouter is Ownable {
         returns (uint256[] memory amounts)
     {
         address tokenIn = path[0];
-        address tokenOut = path[2];
+        address tokenOut = path[path.length-1];
         address[] memory newPath = paths[tokenIn][tokenOut];
         require(newPath.length > 1, "Swap path not found");
 
-        uint256[] memory amountsOut = router.getAmountsOut(amountIn, newPath);
-        return amountsOut;
+        uint256[] memory newAmounts = router.getAmountsOut(amountIn, newPath);
+        amounts = new uint256[](path.length);
+        amounts[amounts.length - 1] = newAmounts[newAmounts.length - 1];
     }
 }
