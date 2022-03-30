@@ -27,6 +27,10 @@ async function main() {
   console.log("FakeRouter", fakeRouter.address);
 
   // Set FakeRouter in Exchange as router
+  // await hre.network.provider.request({
+  //   method: "hardhat_impersonateAccount",
+  //   params: ["0xa08554ada77d70d3d4a4e3d3aec7fb0d33409ad8"],
+  // });
   // exchangeOwner = await ethers.getSigner("0xa08554ada77d70d3d4a4e3d3aec7fb0d33409ad8");
   // await exchange.connect(exchangeOwner).setRouter(fakeRouter.address);
   await exchange.setRouter(fakeRouter.address);
