@@ -7,7 +7,7 @@ import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
 
-import "hardhat/console.sol";
+// import "hardhat/console.sol";
 
 contract FakeRouter is Ownable {
     using SafeERC20 for IERC20;
@@ -64,6 +64,7 @@ contract FakeRouter is Ownable {
     function setRouter(address _router) external onlyOwner {
         require(_router != address(0));
         router = IUniswapV2Router02(_router);
+        WETH = router.WETH();
         emit SetRouter(_router);
     }
 
@@ -74,10 +75,7 @@ contract FakeRouter is Ownable {
         uint256 deadline
     ) external payable returns (uint256[] memory amounts) {
 
-        address tokenFrom = path[0];
-        address tokenTo = path[path.length-1];
-        address[] memory newPath = paths[tokenFrom][tokenTo];
-        require(newPath.length > 1, "Swap path not found");
+        address[] memory newPath = getPath(path);
 
         uint256[] memory newAmounts = router.swapExactETHForTokens{value: msg.value}(
             0,
@@ -99,10 +97,7 @@ contract FakeRouter is Ownable {
         IERC20(path[0]).safeTransferFrom(msg.sender, address(this), amountIn);
         IERC20(path[0]).approve(address(router), amountIn);
 
-        address tokenFrom = path[0];
-        address tokenTo = path[path.length-1];
-        address[] memory newPath = paths[tokenFrom][tokenTo];
-        require(newPath.length > 1, "Swap path not found");
+        address[] memory newPath = getPath(path);
 
         uint256[] memory newAmounts = router.swapExactTokensForETH(
             amountIn,
@@ -125,10 +120,7 @@ contract FakeRouter is Ownable {
         IERC20(path[0]).safeTransferFrom(msg.sender, address(this), amountIn);
         IERC20(path[0]).approve(address(router), amountIn);
 
-        address tokenFrom = path[0];
-        address tokenTo = path[path.length-1];
-        address[] memory newPath = paths[tokenFrom][tokenTo];
-        require(newPath.length > 1, "Swap path not found");
+        address[] memory newPath = getPath(path);
 
         uint256[] memory newAmounts = router.swapExactTokensForTokens(
             amountIn,
@@ -146,10 +138,7 @@ contract FakeRouter is Ownable {
         view
         returns (uint256[] memory amounts)
     {
-        address tokenIn = path[0];
-        address tokenOut = path[path.length-1];
-        address[] memory newPath = paths[tokenIn][tokenOut];
-        require(newPath.length > 1, "Swap path not found");
+        address[] memory newPath = getPath(path);
 
         // in Exchange.getAmountIn it takes [0], so assign only it
         amounts = new uint256[](path.length);
@@ -161,13 +150,21 @@ contract FakeRouter is Ownable {
         view
         returns (uint256[] memory amounts)
     {
-        address tokenIn = path[0];
-        address tokenOut = path[path.length-1];
-        address[] memory newPath = paths[tokenIn][tokenOut];
-        require(newPath.length > 1, "Swap path not found");
+        address[] memory newPath = getPath(path);
 
         uint256[] memory newAmounts = router.getAmountsOut(amountIn, newPath);
         amounts = new uint256[](path.length);
         amounts[amounts.length - 1] = newAmounts[newAmounts.length - 1];
+    }
+
+    function getPath(address[] memory path)
+        public
+        view
+        returns (address[] memory newPath)
+    {
+        address tokenIn = path[0];
+        address tokenOut = path[path.length-1];
+        newPath = paths[tokenIn][tokenOut];
+        require(newPath.length > 1, "Swap path not found");
     }
 }

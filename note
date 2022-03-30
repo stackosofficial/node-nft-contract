@@ -3,23 +3,24 @@
 
 * Exchange contract uses hardcoded indexes to access elements in returned arrays from the router contract, thus our FakeRouter should return arrays that has the same length as initial 'path' passed by Exchange contract to our FakeRouter. Also getAmountIn in Exchange gets element at 0 index instead of last element like getAmountOut.  
 
-* All the ways that functions are called:
+List of swaps that Exchange contract should do (the information gathered by just looking in every place where Exchange contract is used by the protocol):
 
-swapExactETHForTokens: Path changed
+swapExactETHForTokens: Path should be changed in FakeRouter 
    matic -> WETH
    matic -> stackToken
-   DEPENDS ON getAmountsOut which changes path
+   IT CALLS getAmountsOut !
 
-swapExactTokensForETH: Path changed
+swapExactTokensForETH: Path changed anyway, even though function unused
    unused
 
-swapExactTokensForTokens: Path changed
+swapExactTokensForTokens: Path should be changed in FakeRouter 
    any stablecoin -> stackToken
-   DEPENDS ON getAmountsOut which changes path
+   IT CALLS getAmountsOut !
 
-getAmountIn: Path changed
+getAmountIn: Path should be changed in FakeRouter 
    stablecoins(0) -> stackToken
 
-getAmountOut: Path changed
+getAmountOut: Path should be changed in FakeRouter
    stackToken -> stablecoins(0)
    stablecoins(0) -> stackToken
+   also called by swap functions
