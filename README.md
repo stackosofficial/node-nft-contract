@@ -34,3 +34,27 @@ Matic:
 ```shell
 npx hardhat run --network matic scripts/deploy.js
 ```
+
+## DEPLOYMENT AND VERIFICATION of FAKE ROUTER
+
+Mainnet:
+
+### run the following script from the owner of the Exchange contract
+
+### To setup FakeRouter run the following script from the owner of the Exchange contract to test it locally:
+
+```shell
+npx hardhat run scripts/setupFakeRouter.js
+```
+
+### And run this to setup on polygon:
+
+```shell
+npx hardhat run scripts/setupFakeRouter.js --network matic
+```
+
+### this script is here to revert change and set default dfyn router in case of problems:
+
+```shell
+npx hardhat run scripts/setupDefaultRouter.js --network matic
+```
