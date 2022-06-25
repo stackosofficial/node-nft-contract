@@ -1,26 +1,25 @@
 
-* stablecoins(0) is equal to USDT on current deployed contracts.
+There is sub0, sub1, and gen0, gen1
 
-* Exchange contract uses hardcoded indexes to access elements in returned arrays from the router contract, thus our FakeRouter should return arrays that has the same length as initial 'path' passed by Exchange contract to our FakeRouter. Also getAmountIn in Exchange gets element at 0 index instead of last element like getAmountOut.  
-
-List of swaps that Exchange contract should do (the information gathered by just looking in every place where Exchange contract is used by the protocol):
-
-swapExactETHForTokens: Path should be changed in FakeRouter 
-   matic -> WETH
-   matic -> stackToken
-   IT CALLS getAmountsOut !
-
-swapExactTokensForETH: Path changed anyway, even though function unused
-   unused
-
-swapExactTokensForTokens: Path should be changed in FakeRouter 
-   any stablecoin -> stackToken
-   IT CALLS getAmountsOut !
-
-getAmountIn: Path should be changed in FakeRouter 
-   stablecoins(0) -> stackToken
-
-getAmountOut: Path should be changed in FakeRouter
-   stackToken -> stablecoins(0)
-   stablecoins(0) -> stackToken
-   also called by swap functions
+1. Whitelist vault to transfer gen0, gen1 and so on
+2. deposit function:
+         require(generationId < generations.count(), "Generation doesn't exist");
+         require(
+            darkMatter.isOwnStackOrDarkMatter(
+               msg.sender,
+               generationId,
+               tokenId
+            ),
+            "Not owner"
+         );
+         StackOsNFTBasic stack = StackOsNFTBasic(
+            address(generations.get(generationId))
+         );
+         stack.transferFrom(msg.sender, address(this), tokenId);
+         //  save owner of token so he can withdraw NFT later
+         // should note how much subs-fee withdraw, so should save amount received or amount noted in deposits.balance (their could differ due to TAX)? 
+         withdraw  // notice: will revert when there is 0 balance on NFT, maybe should use try/catch and then just note 0 has been withdrawn, or check deposits struct
+         // send to vault owner whatever withdrawn
+         claimBonus  // reverts if there is no bonus money on Subscription contract
+         // note down withdraw fees and bonuses and tax and date
+         
