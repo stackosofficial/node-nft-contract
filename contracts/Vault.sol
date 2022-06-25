@@ -10,6 +10,8 @@ import "./Subscription.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract Vault is Ownable {
+
+    // this data is stored when NFT is deposited in vault
     struct ClaimInfo {
         address depositor; // who deposited NFT and received withdrawn fee and bonus
         uint256 totalFee; // total subscription fee withdrawn
@@ -90,6 +92,7 @@ contract Vault is Ownable {
             address(generations.get(generationId))
         );
         delete owners[generationId][tokenId];
+        delete unlockDates[generationId][tokenId];
 
         Subscription _subscription = getSubscriptionContract(generationId);
         // withdraw subscription fee
