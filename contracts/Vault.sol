@@ -20,11 +20,9 @@ contract Vault is Ownable {
 
     IERC20 internal immutable stackToken;
     GenerationManager internal immutable generations;
-    DarkMatter internal immutable darkMatter;
     Subscription internal immutable sub0;
     Subscription internal immutable subscription;
 
-    uint256 internal constant HUNDRED_PERCENT = 10000;
     uint256 public constant LOCK_DURATION = 30 days * 18; // 18 months
 
     mapping(uint256 => mapping(uint256 => address)) public owners;
@@ -35,13 +33,11 @@ contract Vault is Ownable {
     constructor(
         IERC20 _stackToken,
         GenerationManager _generations,
-        DarkMatter _darkMatter,
         Subscription _sub0,
         Subscription _subscription
     ) {
         stackToken = _stackToken;
         generations = _generations;
-        darkMatter = _darkMatter;
         sub0 = _sub0;
         subscription = _subscription;
     }

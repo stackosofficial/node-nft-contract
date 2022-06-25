@@ -9,6 +9,7 @@ require('hardhat-contract-sizer');
 
 extendEnvironment((hre) => {
   // save deployment args in runtime, to simplify verification in deploy.js
+  // for some reason this snippet breaks gas-reporter, so need to find a better way to do it
   let oldDeploy = hre.ethers.ContractFactory.prototype.deploy;
   hre.ethers.ContractFactory.prototype.deploy = async function (...args) {
     let contract = await oldDeploy.call(this, ...args);
@@ -27,28 +28,24 @@ module.exports = {
       timeout: 600000,
     },
     hardhat: {
+      // allowUnlimitedContractSize: true,
       forking: {
         url: process.env.MATIC_URL,
-        blockNumber: 23715560, // remove this if provider's node is not archival
+        blockNumber: 23715560, // remove this if your provider's node is not archival
         enabled: true
       },
     },
     rinkeby: {
       url: process.env.RINKEBY_URL || "",
-      accounts:
-        process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+      accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
     matic: {
       url: process.env.MATIC_URL || "",
-      accounts:
-        process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
-      gasPrice: 80e9,
-      gas: 8000000
+      accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
     mumbai: {
       url: process.env.MUMBAI_URL || "",
-      accounts:
-        process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+      accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
       // gasPrice: 3e9,
       // gas: 2100000
     },
@@ -60,7 +57,7 @@ module.exports = {
     enabled: process.env.REPORT_GAS !== undefined,
   },
   etherscan: {
-    apiKey: process.env.POLYGONSCAN_API_KEY,
+    apiKey: process.env.ETHERSCAN_API_KEY,
 
   },
   solidity: {
