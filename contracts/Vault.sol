@@ -95,21 +95,15 @@ contract Vault is Ownable {
         delete unlockDates[generationId][tokenId];
 
         Subscription _subscription = getSubscriptionContract(generationId);
-        // withdraw subscription fee
-        (uint256 balance, , ) = _subscription.deposits(generationId, tokenId);
         uint256[] memory tokenIds = new uint256[](1);
         tokenIds[0] = tokenId;
-        if (balance != 0) {
-            _subscription.withdraw(generationId, tokenIds);
-        }
-
         // claim bonus to this contract
         _subscription.claimBonus(generationId, tokenIds);
         uint256 stackTokensBalance = stackToken.balanceOf(address(this));
 
-        // transfer withdraw fee and bonus to user
+        // transfer withdraw fee and bonus to owner
         if (stackTokensBalance > 0)
-            stackToken.transfer(msg.sender, stackTokensBalance);
+            stackToken.transfer(owner(), stackTokensBalance);
         stackNft.transferFrom(address(this), msg.sender, tokenId);
     }
 
