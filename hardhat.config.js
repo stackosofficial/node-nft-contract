@@ -29,7 +29,7 @@ module.exports = {
     hardhat: {
       forking: {
         url: process.env.MATIC_URL,
-        blockNumber: 23715560, // remove this if provider's node is not archival
+        blockNumber: 26462173, // remove this if provider's node is not archival
         enabled: true
       },
     },

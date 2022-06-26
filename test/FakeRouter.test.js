@@ -28,6 +28,10 @@ describe("StackOS NFT Basic", function () {
       params: [usdtHolder],
     });
     usdtHolder = await ethers.getSigner(usdtHolder);
+    await network.provider.send("hardhat_setBalance", [
+      usdtHolder.address.toString(),
+      "0xffffffffffffffffffffffffffffffffffffffffff",
+    ]);
     await usdt.connect(usdtHolder).transfer(
       owner.address,
       parseusdt("5000000")
@@ -44,6 +48,10 @@ describe("StackOS NFT Basic", function () {
       params: [stackTokenHolder],
     });
     stackTokenHolder = await ethers.getSigner(stackTokenHolder);
+    await network.provider.send("hardhat_setBalance", [
+      stackTokenHolder.address.toString(),
+      "0xffffffffffffffffffffffffffffffffffffffffff",
+    ]);
 
     console.log(await stackToken.balanceOf(stackTokenHolder.address));
     await stackToken.connect(stackTokenHolder).transfer(
