@@ -8,11 +8,11 @@ import "./Exchange.sol";
 import "./StackOsNFTBasic.sol";
 import "./Subscription.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+// import "hardhat/console.sol";
 
 contract Vault is Ownable {
-
     // this data is stored when NFT is deposited in vault
-    struct ClaimInfo {
+    struct ClaimHistoryEntry {
         address depositor; // who deposited NFT and received withdrawn fee and bonus
         uint256 totalFee; // total subscription fee withdrawn
         uint256 totalBonus; // total subscription bonus withdrawn
@@ -29,7 +29,7 @@ contract Vault is Ownable {
 
     mapping(uint256 => mapping(uint256 => address)) public owners;
     mapping(uint256 => mapping(uint256 => uint256)) public unlockDates;
-    mapping(uint256 => mapping(uint256 => ClaimInfo[]))
+    mapping(uint256 => mapping(uint256 => ClaimHistoryEntry[]))
         public depositClaimHistory;
 
     constructor(
@@ -44,10 +44,18 @@ contract Vault is Ownable {
         subscription = _subscription;
     }
 
+    function depositClaimHistoryLength(uint256 generationId, uint256 tokenId)
+        public
+        view
+        returns (uint256)
+    {
+        return depositClaimHistory[generationId][tokenId].length;
+    }
+
     function deposit(uint256 generationId, uint256 tokenId) public {
         require(generationId < generations.count(), "Generation doesn't exist");
 
-        ClaimInfo memory claimInfo;
+        ClaimHistoryEntry memory claimInfo;
         claimInfo.date = block.timestamp;
         claimInfo.depositor = msg.sender;
 
@@ -98,7 +106,7 @@ contract Vault is Ownable {
         uint256[] memory tokenIds = new uint256[](1);
         tokenIds[0] = tokenId;
         // claim bonus to this contract
-        _subscription.claimBonus(generationId, tokenIds);
+        try _subscription.claimBonus(generationId, tokenIds) {} catch {}
         uint256 stackTokensBalance = stackToken.balanceOf(address(this));
 
         // transfer withdraw fee and bonus to owner
