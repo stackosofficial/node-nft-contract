@@ -9,21 +9,36 @@ import "./StackOsNFTBasic.sol";
 import "./Subscription.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-import "hardhat/console.sol";
+// import "hardhat/console.sol";
 
 contract GetTokensOwnedBy {
-    GenerationManager internal immutable generations;
 
-    constructor(GenerationManager _generations) {
-        generations = _generations;
+    /**
+     * @dev Returns an array of ERC721Enumerable token IDs owned by `owner` in all generations.
+     * @return tokenIds is two-dimensional array where first dimension is generation id,
+     * and second dimension is token IDs of owner in that generation.
+     */
+    function getTokensOfOwnerInAllGenerations(address owner, GenerationManager generations)
+        public
+        view
+        returns (uint256[][] memory tokenIds)
+    {
+        uint256 generationsCount = generations.count();
+        tokenIds = new uint256[][](generationsCount);
+        for (uint256 i = 0; i < generationsCount; i++) {
+            IERC721Enumerable enumerable = IERC721Enumerable(address(generations.get(i)));
+            uint256 balance = enumerable.balanceOf(owner);
+            tokenIds[i] = new uint256[](balance);
+            for (uint256 o = 0; o < balance; o++) {
+                tokenIds[i][o] = enumerable.tokenOfOwnerByIndex(owner, o);
+            }
+                
+        }
     }
 
     /**
      * @dev Returns an array of ERC721Enumerable token IDs owned by `owner`.
-     *
-     * This function is O(ownerBalance) in complexity.
-     * Order of token IDs is undefined.
-     * It is meant to be called off-chain.
+     * @return tokenIds array of token IDs.
      */
     function getTokensOfOwner(address owner, IERC721Enumerable enumerable)
         public
@@ -45,8 +60,9 @@ contract GetTokensOwnedBy {
      * grows too big for a single call of {getTokensOfOwner}.
      *
      * Requirements:
-     *
      * - `start <= tokenId < stop`
+     *
+     * @return tokenIds array of token IDs.
      */
     function getTokensOfOwnerIn(
         address owner,
@@ -55,28 +71,22 @@ contract GetTokensOwnedBy {
         uint256 stop
     ) public view returns (uint256[] memory tokenIds) {
         require(start < stop, "InvalidQueryRange");
-        uint256 stopLimit = enumerable.totalSupply();
-        // Set `stop = min(stop, stopLimit)`.
-        if (stop > stopLimit) {
-            // At this point `start` could be greater than `stop`.
-            stop = stopLimit;
+        uint256 userBalance = enumerable.balanceOf(owner);
+        if (stop > userBalance) {
+            stop = userBalance;
         }
-        uint256 tokenIdsMaxLength = enumerable.balanceOf(owner);
-        // Set `tokenIdsMaxLength = min(balanceOf(owner), stop - start)`,
-        // to cater for cases where `balanceOf(owner)` is too big.
         if (start < stop) {
             uint256 rangeLength = stop - start;
-            if (rangeLength < tokenIdsMaxLength) {
-                tokenIdsMaxLength = rangeLength;
+            if (rangeLength < userBalance) {
+                userBalance = rangeLength;
             }
-        } else {
-            return tokenIds; // empty
-        }
+        } else userBalance = 0;
 
-        tokenIds = new uint256[](tokenIdsMaxLength);
-        for (uint256 i = start; i != stop && i <= tokenIdsMaxLength; i++) {
-        console.log(i, start, stop);
-            tokenIds[i] = enumerable.tokenOfOwnerByIndex(owner, i);
+        tokenIds = new uint256[](userBalance);
+        if(userBalance == 0) return tokenIds; // empty
+
+        for (uint256 i = 0; i < userBalance && start <= stop; ) {
+            tokenIds[i++] = enumerable.tokenOfOwnerByIndex(owner, start++);
         }
 
         return tokenIds;

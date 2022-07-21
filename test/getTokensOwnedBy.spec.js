@@ -86,11 +86,9 @@ describe("test GetTokensOwnedBy contract", function () {
     await darkMatter.deposit(0, [6,7,8,9,10,11,12,13,14,15]);
     await darkMatter.mint();
 
-    //deploy Vault 
+    //deploy  GetTokensOwnedBy
     const GetTokensOwnedBy = await ethers.getContractFactory("GetTokensOwnedBy");
-    getter = await GetTokensOwnedBy.deploy(
-      generationManager.address,
-    );
+    getter = await GetTokensOwnedBy.deploy();
     await getter.deployed();
   });
 
@@ -125,6 +123,7 @@ describe("test GetTokensOwnedBy contract", function () {
     });
   });
 
+  
   describe("getTokensOfOwnerIn", async function () {
     it("should return empty when user have 0 tokens", async function () {
       let tokensGen1 = await getter.getTokensOfOwnerIn(bob.address, stackOsNFT.address, 0, 1);
@@ -134,13 +133,32 @@ describe("test GetTokensOwnedBy contract", function () {
       expect(tokensGen2.toString()).to.be.eq("");
       expect(tokensDM.toString()).to.be.eq("");
     });
-    it("should return tokens of owner in any ERC721Enumerable contract in any range", async function () {
+    it("should return tokens of owner in any ERC721Enumerable contract", async function () {
       let tokensGen1 = await getter.getTokensOfOwnerIn(owner.address, stackOsNFT.address, 1, 3);
       let tokensGen2 = await getter.getTokensOfOwnerIn(owner.address, stackOsNFTgen2.address, 0, 4);
       let tokensDM = await getter.getTokensOfOwnerIn(owner.address, darkMatter.address, 1, 2);
-      expect(tokensGen1.toString()).to.be.eq("1,2,3");
+      expect(tokensGen1.toString()).to.be.eq("1,2");
       expect(tokensGen2.toString()).to.be.eq("0,1");
-      expect(tokensDM.toString()).to.be.eq("1");
+      expect(tokensDM.toString()).to.be.eq("0"); // order is [1,0] for this, so range 1,2 is second element which is 0
+    });
+    
+    it("should return tokens of owner in any range", async function () {
+      let tokensGen1 = await getter.getTokensOfOwnerIn(owner.address, stackOsNFT.address, 0, 2);
+      expect(tokensGen1.toString()).to.be.eq("0,1");
+
+      tokensGen1 = await getter.getTokensOfOwnerIn(owner.address, stackOsNFT.address, 1, 3);
+      expect(tokensGen1.toString()).to.be.eq("1,2");
+
+      tokensGen1 = await getter.getTokensOfOwnerIn(owner.address, stackOsNFT.address, 2, 6);
+      expect(tokensGen1.toString()).to.be.eq("2,3,4");
+    });
+  });
+  
+  describe("getTokensOfOwnerInAllGenerations", async function () {
+    it("should return tokens of owner in all generations", async function () {
+      let tokensGen1 = await getter.getTokensOfOwnerInAllGenerations(owner.address, generationManager.address);
+      expect(tokensGen1[0].toString()).to.be.eq("0,1,2,3,4");
+      expect(tokensGen1[1].toString()).to.be.eq("0,1");
     });
   });
 
