@@ -69,7 +69,7 @@ contract FakeRouter is Ownable {
     }
 
     function swapExactETHForTokens(
-        uint256 amountOutMin,
+        uint256 ,
         address[] calldata path,
         address to,
         uint256 deadline
@@ -89,7 +89,7 @@ contract FakeRouter is Ownable {
 
     function swapExactTokensForETH(
         uint256 amountIn,
-        uint256 amountOutMin,
+        uint256 ,
         address[] calldata path,
         address to,
         uint256 deadline
@@ -112,7 +112,7 @@ contract FakeRouter is Ownable {
 
     function swapExactTokensForTokens(
         uint256 amountIn,
-        uint256 amountOutMin,
+        uint256,
         address[] calldata path,
         address to,
         uint256 deadline
