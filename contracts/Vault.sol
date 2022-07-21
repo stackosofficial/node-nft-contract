@@ -11,6 +11,9 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 // import "hardhat/console.sol";
 
 contract Vault is Ownable {
+    event Deposit(address indexed depositor);
+    event Withdraw(address indexed depositor);
+
     // this data is stored when NFT is deposited in vault
     struct ClaimHistoryEntry {
         address depositor; // who deposited NFT and received withdrawn fee and bonus
@@ -89,6 +92,8 @@ contract Vault is Ownable {
 
         // save claim info
         depositClaimHistory[generationId][tokenId].push(claimInfo);
+
+        emit Deposit(msg.sender);
     }
 
     function withdraw(uint256 generationId, uint256 tokenId) public {
@@ -113,6 +118,7 @@ contract Vault is Ownable {
         if (stackTokensBalance > 0)
             stackToken.transfer(owner(), stackTokensBalance);
         stackNft.transferFrom(address(this), msg.sender, tokenId);
+        emit Withdraw(msg.sender);
     }
 
     function ownerClaim(uint256 generationId, uint256 tokenId)
