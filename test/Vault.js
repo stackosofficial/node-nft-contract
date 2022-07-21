@@ -380,6 +380,42 @@ describe("Vault", function () {
     });
   });
 
+  describe("getUserDepositedTokens function", async function () {
+    it("should return correct tokenIds, totalFee, totalBonus", async function () {
+      let generationId = 1;
+      let tokenId = 1;
+      await subscription.subscribe(generationId, [tokenId], parseEther("100"), usdt.address, false);
+      await stackOsNFTgen2.approve(vault.address, tokenId);
+      await vault.deposit(generationId, tokenId);
+
+      generationId = 0;
+      tokenId = 1;
+      await sub0.subscribe(generationId, [tokenId], parseEther("100"), usdt.address, false);
+      await stackOsNFT.approve(vault.address, tokenId);
+      await vault.deposit(generationId, tokenId);
+
+      await provider.send("evm_increaseTime", [LOCK_DURATION + 1]); 
+      let depositedTokens = await vault.getUserDepositedTokens(owner.address);
+      
+      console.log(depositedTokens);
+
+      expect(depositedTokens.tokenIds[0].toString()).to.be.eq("1");
+      expect(depositedTokens.tokenIds[1].toString()).to.be.eq("1");
+
+      let historyEntry0 = await vault.depositClaimHistory(0, 1, 0);
+      let historyEntry1 = await vault.depositClaimHistory(1, 1, 0);
+      expect(depositedTokens.totalFee).to.be.eq(historyEntry0.totalFee.add(historyEntry1.totalFee));
+
+      historyEntry0 = await vault.depositClaimHistory(0, 1, 0);
+      historyEntry1 = await vault.depositClaimHistory(1, 1, 0);
+      expect(depositedTokens.totalBonus).to.be.eq(historyEntry0.totalBonus.add(historyEntry1.totalBonus));
+
+      // let tokenOwner = await stackOsNFTgen2.ownerOf(tokenId);
+      // expect(tokenOwner).to.be.eq(owner.address);
+    });
+
+  });
+
   async function simulateSubscriptionWithdraw(generationId, tokenId, caller) {
     let _snapshot = await ethers.provider.send("evm_snapshot");
 

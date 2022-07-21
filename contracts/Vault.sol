@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: Unlicense
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.15;
 
 import "./DarkMatter.sol";
 import "./GenerationManager.sol";
@@ -8,9 +8,13 @@ import "./Exchange.sol";
 import "./StackOsNFTBasic.sol";
 import "./Subscription.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-// import "hardhat/console.sol";
+import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+
+import "hardhat/console.sol";
 
 contract Vault is Ownable {
+    using EnumerableSet for EnumerableSet.UintSet;
+
     event Deposit(address indexed depositor);
     event Withdraw(address indexed depositor);
 
@@ -30,7 +34,9 @@ contract Vault is Ownable {
 
     uint256 public constant LOCK_DURATION = 30 days * 18; // 18 months
 
+    mapping(address => mapping(uint256 => EnumerableSet.UintSet)) private depositRecord;
     mapping(uint256 => mapping(uint256 => address)) public owners;
+    mapping(uint256 => mapping(uint256 => uint256)) public balanceCounters;
     mapping(uint256 => mapping(uint256 => uint256)) public unlockDates;
     mapping(uint256 => mapping(uint256 => ClaimHistoryEntry[]))
         public depositClaimHistory;
@@ -53,6 +59,36 @@ contract Vault is Ownable {
         returns (uint256)
     {
         return depositClaimHistory[generationId][tokenId].length;
+    }
+
+    function getDepositRecordArray(address owner, uint256 generationId)
+        public
+        view
+        returns (uint256[] memory)
+    {
+        return depositRecord[owner][generationId].values();
+    }
+
+    function getUserDepositedTokens(address depositor)
+        public
+        view
+        returns (uint256[][] memory tokenIds, uint256 totalBonus, uint256 totalFee)
+    {
+        uint256 generationsCount = generations.count();
+        tokenIds = new uint256[][](generationsCount);
+        for (uint256 generationId = 0; generationId < generationsCount; generationId++) {
+            uint256 depositRecordLength = depositRecord[depositor][generationId].length();
+            tokenIds[generationId] = new uint256[](depositRecordLength);
+            for (uint256 o = 0; o < depositRecordLength; o++) {
+                uint256 tokenId = depositRecord[depositor][generationId].at(o);
+                uint256 _depositClaimHistoryLength = depositClaimHistory[generationId][tokenId].length;
+                tokenIds[generationId] = depositRecord[depositor][generationId].values();
+                // length -1 is safe here because depositRecordLength non zero here, and thus _depositClaimHistoryLength too
+                totalFee += depositClaimHistory[generationId][tokenId][_depositClaimHistoryLength-1].totalFee;
+                totalBonus += depositClaimHistory[generationId][tokenId][_depositClaimHistoryLength-1].totalBonus;
+            }
+        }
+        return (tokenIds, totalBonus, totalFee);
     }
 
     function deposit(uint256 generationId, uint256 tokenId) public {
@@ -92,6 +128,7 @@ contract Vault is Ownable {
 
         // save claim info
         depositClaimHistory[generationId][tokenId].push(claimInfo);
+        depositRecord[msg.sender][generationId].add(tokenId);
 
         emit Deposit(msg.sender);
     }
@@ -106,6 +143,7 @@ contract Vault is Ownable {
         );
         delete owners[generationId][tokenId];
         delete unlockDates[generationId][tokenId];
+        depositRecord[msg.sender][generationId].remove(tokenId);
 
         Subscription _subscription = getSubscriptionContract(generationId);
         uint256[] memory tokenIds = new uint256[](1);
