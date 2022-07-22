@@ -85,7 +85,7 @@ describe("Vault", function () {
       generationManager.address,
       sub0.address,
       subscription.address,
-      60*60*24*30 * 18 // = 30 days * 18
+      60 * 60 * 24 * 30 * 18 // = 30 days * 18
     );
     LOCK_DURATION = (await vault.LOCK_DURATION()).toNumber();
     await vault.deployed();
@@ -110,7 +110,7 @@ describe("Vault", function () {
       should transfer NFT to vault (if approved)
       should only be for active subscribers
       should claimed bonus and withdrawn fees be transferred to contract owner
-      should ClaimHistoryEntry be stored with correct values
+      should DepositInfo be stored with correct values
       should work correctly with both sub0 and subscription
     ownerClaim:
       should only be callable by contract owner
@@ -140,6 +140,22 @@ describe("Vault", function () {
       await expect(vault.deposit(generationId, tokenId)).to.be.revertedWith("Deposits are closed now");
     });
 
+    it("should revert if redepositing the same token", async function () {
+      let generationId = 0;
+      let tokenId = 1;
+
+      await sub0.subscribe(generationId, [tokenId], parseEther("100"), usdt.address, false);
+      await stackOsNFT.approve(vault.address, tokenId);
+      await vault.deposit(generationId, tokenId);
+      await provider.send("evm_increaseTime", [LOCK_DURATION + 1]);
+      await vault.withdraw(generationId, tokenId);
+
+      await sub0.subscribe(generationId, [tokenId], parseEther("100"), usdt.address, false);
+      await stackOsNFT.approve(vault.address, tokenId);
+
+      await expect(vault.deposit(generationId, tokenId)).to.be.revertedWith("Cannot redeposit same token");
+    });
+
     it("should transfer NFT to vault (if approved)", async function () {
       let generationId = 0;
       let tokenId = 1;
@@ -160,8 +176,8 @@ describe("Vault", function () {
       await stackOsNFT.approve(vault.address, tokenId);
       await vault.deposit(generationId, tokenId);
       // resub needed, otherwise cant ownerClaim
-      await provider.send("evm_increaseTime", [MONTH]); 
-      await provider.send("evm_mine"); 
+      await provider.send("evm_increaseTime", [MONTH]);
+      await provider.send("evm_mine");
       await sub0.subscribe(generationId, [tokenId], parseEther("100"), usdt.address, false);
 
       let simulatedFeeAmount = await simulateSubscriptionWithdraw(generationId, tokenId);
@@ -176,7 +192,7 @@ describe("Vault", function () {
       expect(balanceDelta).to.be.equal(simulatedTotalAmount);
     });
 
-    it("should ClaimHistoryEntry be stored with correct values", async function () {
+    it("should DepositInfo be stored with correct values", async function () {
       let generationId = 0;
       let tokenId = 1;
 
@@ -187,9 +203,9 @@ describe("Vault", function () {
       // bonus claim simulation should be done right before deposit tx!
       let simulatedBonusAmount = await simulateSubscriptionClaimBonus(generationId, tokenId, owner);
       let depositTx = await vault.deposit(generationId, tokenId);
-      let depositTimestamp = (await provider.getBlock(depositTx.blockNumber)).timestamp; 
+      let depositTimestamp = (await provider.getBlock(depositTx.blockNumber)).timestamp;
 
-      let claimInfo = await vault.depositClaimHistory(generationId, tokenId, 0);
+      let claimInfo = await vault.depositInfo(generationId, tokenId);
       expect(claimInfo.depositor).to.be.eq(owner.address);
       expect(claimInfo.totalFee).to.be.eq(simulatedFeeAmount);
       expect(claimInfo.totalBonus).to.be.eq(simulatedBonusAmount);
@@ -197,7 +213,7 @@ describe("Vault", function () {
       expect(claimInfo.date).to.be.eq(depositTimestamp);
     });
 
-    it("should work correctly with both sub0 and subscription", async function() {
+    it("should work correctly with both sub0 and subscription", async function () {
       let generationId = 1;
       let tokenId = 1;
 
@@ -208,10 +224,10 @@ describe("Vault", function () {
       // bonus claim simulation should be done right before deposit tx!
       let simulatedBonusAmount = await simulateSubscriptionClaimBonus(generationId, tokenId, owner);
       let depositTx = await vault.deposit(generationId, tokenId);
-      let depositTimestamp = (await provider.getBlock(depositTx.blockNumber)).timestamp; 
+      let depositTimestamp = (await provider.getBlock(depositTx.blockNumber)).timestamp;
 
 
-      let claimInfo = await vault.depositClaimHistory(generationId, tokenId, 0);
+      let claimInfo = await vault.depositInfo(generationId, tokenId);
       expect(claimInfo.depositor).to.be.eq(owner.address);
       expect(claimInfo.totalFee).to.be.eq(simulatedFeeAmount);
       expect(claimInfo.totalBonus).to.be.eq(simulatedBonusAmount);
@@ -237,8 +253,8 @@ describe("Vault", function () {
       await stackOsNFT.approve(vault.address, tokenId);
       await vault.deposit(generationId, tokenId);
       // resub needed, otherwise cant ownerClaim
-      await provider.send("evm_increaseTime", [MONTH]); 
-      await provider.send("evm_mine"); 
+      await provider.send("evm_increaseTime", [MONTH]);
+      await provider.send("evm_mine");
       await sub0.subscribe(generationId, [tokenId], parseEther("100"), usdt.address, false);
 
       let simulatedFeeAmount = await simulateSubscriptionWithdraw(generationId, tokenId);
@@ -253,7 +269,7 @@ describe("Vault", function () {
       expect(balanceDelta).to.be.equal(simulatedTotalAmount);
     });
 
-    it("should work correctly with both sub0 and subscription", async function() {
+    it("should work correctly with both sub0 and subscription", async function () {
       let generationId = 1;
       let tokenId = 1;
 
@@ -261,8 +277,8 @@ describe("Vault", function () {
       await stackOsNFTgen2.approve(vault.address, tokenId);
       await vault.deposit(generationId, tokenId);
       // resub needed, otherwise cant ownerClaim
-      await provider.send("evm_increaseTime", [MONTH]); 
-      await provider.send("evm_mine"); 
+      await provider.send("evm_increaseTime", [MONTH]);
+      await provider.send("evm_mine");
       await subscription.subscribe(generationId, [tokenId], parseEther("100"), usdt.address, false);
 
       let simulatedFeeAmount = await simulateSubscriptionWithdraw(generationId, tokenId);
@@ -300,7 +316,7 @@ describe("Vault", function () {
       await stackOsNFT.approve(vault.address, tokenId);
       await vault.deposit(generationId, tokenId);
 
-      await provider.send("evm_increaseTime", [LOCK_DURATION + 1]); 
+      await provider.send("evm_increaseTime", [LOCK_DURATION + 1]);
       await expect(vault.connect(nonTokenOwner).withdraw(generationId, tokenId)).to.be.revertedWith(
         "Not owner"
       );
@@ -313,7 +329,7 @@ describe("Vault", function () {
       await sub0.subscribe(generationId, [tokenId], parseEther("100"), usdt.address, false);
       await stackOsNFT.approve(vault.address, tokenId);
       await vault.deposit(generationId, tokenId);
-      await provider.send("evm_increaseTime", [LOCK_DURATION + 1]); 
+      await provider.send("evm_increaseTime", [LOCK_DURATION + 1]);
 
       let simulatedBonusAmount = await simulateSubscriptionClaimBonus(generationId, tokenId);
 
@@ -331,7 +347,7 @@ describe("Vault", function () {
       await sub0.subscribe(generationId, [tokenId], parseEther("100"), usdt.address, false);
       await stackOsNFT.approve(vault.address, tokenId);
       await vault.deposit(generationId, tokenId);
-      await provider.send("evm_increaseTime", [LOCK_DURATION + 1]); 
+      await provider.send("evm_increaseTime", [LOCK_DURATION + 1]);
 
       // -= remove bonus STACK tokens from sub0 contract =-
       await hre.network.provider.request({
@@ -344,7 +360,7 @@ describe("Vault", function () {
         "0xffffffffffffffffffffffffffffffffffffffffff",
       ]);
       await stackToken.connect(signer).transfer(
-        bank.address, 
+        bank.address,
         await stackToken.balanceOf(sub0.address)
       );
       // -= end remove bonus STACK tokens from sub0 contract =-
@@ -365,7 +381,7 @@ describe("Vault", function () {
       await stackOsNFT.approve(vault.address, tokenId);
       await vault.deposit(generationId, tokenId);
 
-      await provider.send("evm_increaseTime", [LOCK_DURATION + 1]); 
+      await provider.send("evm_increaseTime", [LOCK_DURATION + 1]);
       await vault.withdraw(generationId, tokenId);
 
       let tokenOwner = await stackOsNFT.ownerOf(tokenId);
@@ -380,7 +396,7 @@ describe("Vault", function () {
       await stackOsNFTgen2.approve(vault.address, tokenId);
       await vault.deposit(generationId, tokenId);
 
-      await provider.send("evm_increaseTime", [LOCK_DURATION + 1]); 
+      await provider.send("evm_increaseTime", [LOCK_DURATION + 1]);
       await vault.withdraw(generationId, tokenId);
 
       let tokenOwner = await stackOsNFTgen2.ownerOf(tokenId);
@@ -388,46 +404,87 @@ describe("Vault", function () {
     });
   });
 
-  describe("getUserDepositedTokens function", async function () {
-    it("should return correct tokenIds, totalFee, totalBonus", async function () {
-      let generationId = 1;
+  describe("test total allocations", async function () {
+    it.only("should allocation increase on deposit", async function () {
+      let generationId = 0;
       let tokenId = 1;
-      await subscription.subscribe(generationId, [tokenId], parseEther("100"), usdt.address, false);
-      await stackOsNFTgen2.approve(vault.address, tokenId);
-      await vault.deposit(generationId, tokenId);
 
-      generationId = 0;
-      tokenId = 1;
       await sub0.subscribe(generationId, [tokenId], parseEther("100"), usdt.address, false);
+
+      await provider.send("evm_increaseTime", [MONTH]);
+      await provider.send("evm_mine");
+
+      // simulate allocation calculation
+      let simulatedFeeAmount = await simulateSubscriptionWithdraw(generationId, tokenId, owner);
+      let pendingBonus = await sub0.pendingBonus(generationId, tokenId);
+      let totalAlloc = simulatedFeeAmount.add(pendingBonus.locked.add(pendingBonus.unlocked));
+
       await stackOsNFT.approve(vault.address, tokenId);
       await vault.deposit(generationId, tokenId);
 
-      await provider.send("evm_increaseTime", [LOCK_DURATION + 1]); 
-      let depositedTokens = await vault.getUserDepositedTokens(owner.address);
-      
-      console.log(depositedTokens);
+      // --- repeat with NFT gen 2
+      generationId = 1;
+      tokenId = 1;
 
-      expect(depositedTokens.tokenIds[0].toString()).to.be.eq("1");
-      expect(depositedTokens.tokenIds[1].toString()).to.be.eq("1");
+      await subscription.subscribe(generationId, [tokenId], parseEther("100"), usdt.address, false);
+      await provider.send("evm_increaseTime", [MONTH]);
+      await provider.send("evm_mine");
 
-      let historyEntry0 = await vault.depositClaimHistory(0, 1, 0);
-      let historyEntry1 = await vault.depositClaimHistory(1, 1, 0);
-      expect(depositedTokens.totalFee).to.be.eq(historyEntry0.totalFee.add(historyEntry1.totalFee));
+      // simulate allocation calculation
+      simulatedFeeAmount = await simulateSubscriptionWithdraw(generationId, tokenId, owner);
+      pendingBonus = await subscription.pendingBonus(generationId, tokenId);
+      totalAlloc = totalAlloc.add(simulatedFeeAmount.add(pendingBonus.locked.add(pendingBonus.unlocked)));
 
-      historyEntry0 = await vault.depositClaimHistory(0, 1, 0);
-      historyEntry1 = await vault.depositClaimHistory(1, 1, 0);
-      expect(depositedTokens.totalBonus).to.be.eq(historyEntry0.totalBonus.add(historyEntry1.totalBonus));
+      await stackOsNFTgen2.approve(vault.address, tokenId);
+      await vault.deposit(generationId, tokenId);
 
-      // let tokenOwner = await stackOsNFTgen2.ownerOf(tokenId);
-      // expect(tokenOwner).to.be.eq(owner.address);
+      let allocation = await vault.allocations(owner.address);
+      expect(allocation).to.be.equal(totalAlloc);
+
     });
 
   });
 
+  // describe("getUserDepositedTokens function", async function () {
+  //   it("should return correct tokenIds, totalFee, totalBonus", async function () {
+  //     let generationId = 1;
+  //     let tokenId = 1;
+  //     await subscription.subscribe(generationId, [tokenId], parseEther("100"), usdt.address, false);
+  //     await stackOsNFTgen2.approve(vault.address, tokenId);
+  //     await vault.deposit(generationId, tokenId);
+
+  //     generationId = 0;
+  //     tokenId = 1;
+  //     await sub0.subscribe(generationId, [tokenId], parseEther("100"), usdt.address, false);
+  //     await stackOsNFT.approve(vault.address, tokenId);
+  //     await vault.deposit(generationId, tokenId);
+
+  //     await provider.send("evm_increaseTime", [LOCK_DURATION + 1]); 
+  //     let depositedTokens = await vault.getUserDepositedTokens(owner.address);
+
+  //     console.log(depositedTokens);
+
+  //     expect(depositedTokens.tokenIds[0].toString()).to.be.eq("1");
+  //     expect(depositedTokens.tokenIds[1].toString()).to.be.eq("1");
+
+  //     let historyEntry0 = await vault.depositInfo(0, 1);
+  //     let historyEntry1 = await vault.depositInfo(1, 1);
+  //     expect(depositedTokens.totalFee).to.be.eq(historyEntry0.totalFee.add(historyEntry1.totalFee));
+
+  //     historyEntry0 = await vault.depositInfo(0, 1);
+  //     historyEntry1 = await vault.depositInfo(1, 1);
+  //     expect(depositedTokens.totalBonus).to.be.eq(historyEntry0.totalBonus.add(historyEntry1.totalBonus));
+
+  //     // let tokenOwner = await stackOsNFTgen2.ownerOf(tokenId);
+  //     // expect(tokenOwner).to.be.eq(owner.address);
+  //   });
+
+  // });
+
   async function simulateSubscriptionWithdraw(generationId, tokenId, caller) {
     let _snapshot = await ethers.provider.send("evm_snapshot");
 
-    if(!caller) caller = vault;
+    if (!caller) caller = vault;
     await hre.network.provider.request({
       method: "hardhat_impersonateAccount",
       params: [caller.address.toString()],
@@ -439,7 +496,7 @@ describe("Vault", function () {
     ]);
 
     let balanceBefore = await stackToken.balanceOf(caller.address);
-    if(generationId == 0) 
+    if (generationId == 0)
       await sub0.connect(signer).withdraw(generationId, [tokenId]);
     else
       await subscription.connect(signer).withdraw(generationId, [tokenId]);
@@ -452,7 +509,7 @@ describe("Vault", function () {
   async function simulateSubscriptionClaimBonus(generationId, tokenId, caller) {
     let _snapshot = await ethers.provider.send("evm_snapshot");
 
-    if(!caller) caller = vault;
+    if (!caller) caller = vault;
     await hre.network.provider.request({
       method: "hardhat_impersonateAccount",
       params: [caller.address.toString()],
@@ -464,7 +521,7 @@ describe("Vault", function () {
     ]);
 
     let balanceBefore = await stackToken.balanceOf(caller.address);
-    if(generationId == 0) 
+    if (generationId == 0)
       await sub0.connect(signer).claimBonus(generationId, [tokenId]);
     else
       await subscription.connect(signer).claimBonus(generationId, [tokenId]);

@@ -19,12 +19,14 @@ contract Vault is Ownable {
     event Withdraw(address indexed depositor);
 
     // this data is stored when NFT is deposited in vault
-    struct ClaimHistoryEntry {
+    struct DepositInfo {
         address depositor; // who deposited NFT and received withdrawn fee and bonus
         uint256 totalFee; // total subscription fee withdrawn
         uint256 totalBonus; // total subscription bonus withdrawn
-        uint256 tax; // tax percent when subscription fee withdrawn
-        uint256 date; // block.timestamp when deposit with claim were made
+
+        // these two are always small numbers, so put them in one slot
+        uint128 tax; // tax percent when subscription fee withdrawn
+        uint128 date; // block.timestamp when deposit with claim were made
     }
 
     IERC20 internal immutable stackToken;
@@ -33,14 +35,11 @@ contract Vault is Ownable {
     Subscription internal immutable subscription;
     uint256 public immutable LOCK_DURATION;
 
-    bool public isDepositsOpened = true; 
+    bool public isDepositsOpened = true;
 
-    mapping(address => mapping(uint256 => EnumerableSet.UintSet)) private depositRecord;
-    mapping(uint256 => mapping(uint256 => address)) public owners;
-    mapping(uint256 => mapping(uint256 => uint256)) public balanceCounters;
-    mapping(uint256 => mapping(uint256 => uint256)) public unlockDates;
-    mapping(uint256 => mapping(uint256 => ClaimHistoryEntry[]))
-        public depositClaimHistory;
+    mapping(address => uint256) public allocations;
+    mapping(address => mapping(uint256 => uint256[])) private ownerToTokens;
+    mapping(uint256 => mapping(uint256 => DepositInfo)) public depositInfo;
 
     constructor(
         IERC20 _stackToken,
@@ -56,58 +55,27 @@ contract Vault is Ownable {
         LOCK_DURATION = _LOCK_DURATION;
     }
 
-    function depositClaimHistoryLength(uint256 generationId, uint256 tokenId)
-        public
-        view
-        returns (uint256)
-    {
-        return depositClaimHistory[generationId][tokenId].length;
-    }
-
-    function getDepositRecordArray(address owner, uint256 generationId)
+    /// @notice returns tokens in generation `generationId` that are in vault and deposited by wallet `owner`.
+    function getDepositedTokensOf(address owner, uint256 generationId)
         public
         view
         returns (uint256[] memory)
     {
-        return depositRecord[owner][generationId].values();
-    }
-
-    function getUserDepositedTokens(address depositor)
-        public
-        view
-        returns (uint256[][] memory tokenIds, uint256 totalBonus, uint256 totalFee)
-    {
-        uint256 generationsCount = generations.count();
-        tokenIds = new uint256[][](generationsCount);
-        for (uint256 generationId = 0; generationId < generationsCount; generationId++) {
-            uint256 depositRecordLength = depositRecord[depositor][generationId].length();
-            tokenIds[generationId] = new uint256[](depositRecordLength);
-            for (uint256 o = 0; o < depositRecordLength; o++) {
-                uint256 tokenId = depositRecord[depositor][generationId].at(o);
-                uint256 _depositClaimHistoryLength = depositClaimHistory[generationId][tokenId].length;
-                tokenIds[generationId] = depositRecord[depositor][generationId].values();
-                // length -1 is safe here because depositRecordLength non zero here, and thus _depositClaimHistoryLength too
-                totalFee += depositClaimHistory[generationId][tokenId][_depositClaimHistoryLength-1].totalFee;
-                totalBonus += depositClaimHistory[generationId][tokenId][_depositClaimHistoryLength-1].totalBonus;
-            }
-        }
-        return (tokenIds, totalBonus, totalFee);
+        return ownerToTokens[owner][generationId];
     }
 
     function deposit(uint256 generationId, uint256 tokenId) public {
         require(generationId < generations.count(), "Generation doesn't exist");
         require(isDepositsOpened, "Deposits are closed now");
-
-        ClaimHistoryEntry memory claimInfo;
-        claimInfo.date = block.timestamp;
-        claimInfo.depositor = msg.sender;
+        require(
+            depositInfo[generationId][tokenId].depositor == address(0),
+            "Cannot redeposit same token"
+        );
 
         StackOsNFTBasic stackNft = StackOsNFTBasic(
             address(generations.get(generationId))
         );
         stackNft.transferFrom(msg.sender, address(this), tokenId);
-        owners[generationId][tokenId] = msg.sender;
-        unlockDates[generationId][tokenId] = block.timestamp + LOCK_DURATION;
 
         Subscription _subscription = getSubscriptionContract(generationId);
         // withdraw subscription fee to this contract
@@ -117,41 +85,54 @@ contract Vault is Ownable {
         uint256 balanceBeforeWithdraw = stackToken.balanceOf(address(this));
         _subscription.withdraw(generationId, tokenIds);
         uint256 balanceAfterWithdraw = stackToken.balanceOf(address(this));
-        claimInfo.totalFee = balanceAfterWithdraw - balanceBeforeWithdraw;
-        claimInfo.tax = tax;
+
+        // save total fee + bonus that this user ever deposited
+        (uint256 unlocked, uint256 locked, ) = _subscription.pendingBonus(
+            generationId,
+            tokenId
+        );
+        allocations[msg.sender] +=
+            (balanceAfterWithdraw - balanceBeforeWithdraw) +
+            unlocked +
+            locked;
 
         // claim bonus to this contract
-        (uint256 locked, uint256 unlocked,) = _subscription.pendingBonus(generationId, tokenId);
-        console.log("before", locked, unlocked);
         uint256 balanceBeforeBonus = stackToken.balanceOf(address(this));
         _subscription.claimBonus(generationId, tokenIds);
         uint256 balanceAfterBonus = stackToken.balanceOf(address(this));
-        claimInfo.totalBonus = balanceAfterBonus - balanceBeforeBonus;
-        (locked, unlocked,) = _subscription.pendingBonus(generationId, tokenId);
-        console.log("after", locked, unlocked);
 
         // transfer withdrawn fee and bonus to owner
         if (balanceAfterBonus > 0)
             stackToken.transfer(owner(), balanceAfterBonus);
 
         // save claim info
-        depositClaimHistory[generationId][tokenId].push(claimInfo);
-        depositRecord[msg.sender][generationId].add(tokenId);
+        depositInfo[generationId][tokenId] = DepositInfo({
+            depositor: msg.sender,
+            totalFee: balanceAfterWithdraw - balanceBeforeWithdraw,
+            totalBonus: balanceAfterBonus - balanceBeforeBonus,
+            tax: uint128(tax),
+            date: uint128(block.timestamp)
+        });
+        ownerToTokens[msg.sender][generationId].push(tokenId);
 
         emit Deposit(msg.sender);
     }
 
     function withdraw(uint256 generationId, uint256 tokenId) public {
         require(generationId < generations.count(), "Generation doesn't exist");
-        require(block.timestamp > unlockDates[generationId][tokenId], "locked");
-        require(msg.sender == owners[generationId][tokenId], "Not owner");
+        require(
+            block.timestamp >
+                depositInfo[generationId][tokenId].date + LOCK_DURATION,
+            "locked"
+        );
+        require(
+            msg.sender == depositInfo[generationId][tokenId].depositor,
+            "Not owner"
+        );
 
         StackOsNFTBasic stackNft = StackOsNFTBasic(
             address(generations.get(generationId))
         );
-        delete owners[generationId][tokenId];
-        delete unlockDates[generationId][tokenId];
-        depositRecord[msg.sender][generationId].remove(tokenId);
 
         Subscription _subscription = getSubscriptionContract(generationId);
         uint256[] memory tokenIds = new uint256[](1);
@@ -195,10 +176,7 @@ contract Vault is Ownable {
         return generationId == 0 ? sub0 : subscription;
     }
 
-    function closeDeposits()
-        external
-        onlyOwner
-    {
+    function closeDeposits() external onlyOwner {
         isDepositsOpened = false;
     }
 }
