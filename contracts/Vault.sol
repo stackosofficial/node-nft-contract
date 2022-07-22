@@ -121,10 +121,14 @@ contract Vault is Ownable {
         claimInfo.tax = tax;
 
         // claim bonus to this contract
+        (uint256 locked, uint256 unlocked,) = _subscription.pendingBonus(generationId, tokenId);
+        console.log("before", locked, unlocked);
         uint256 balanceBeforeBonus = stackToken.balanceOf(address(this));
         _subscription.claimBonus(generationId, tokenIds);
         uint256 balanceAfterBonus = stackToken.balanceOf(address(this));
         claimInfo.totalBonus = balanceAfterBonus - balanceBeforeBonus;
+        (locked, unlocked,) = _subscription.pendingBonus(generationId, tokenId);
+        console.log("after", locked, unlocked);
 
         // transfer withdrawn fee and bonus to owner
         if (balanceAfterBonus > 0)
