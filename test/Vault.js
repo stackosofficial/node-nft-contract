@@ -405,7 +405,7 @@ describe("Vault", function () {
   });
 
   describe("test total allocations", async function () {
-    it.only("should allocation increase on deposit", async function () {
+    it("should allocation increase on deposit", async function () {
       let generationId = 0;
       let tokenId = 1;
 
