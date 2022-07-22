@@ -18,6 +18,7 @@ async function main() {
   GENERATION_MANAGER = "0xA07750dca4a6cb5835c1082dF3E556b0E3c98943";
   SUB0 = "0xD9A26c042b51eC5D54222e17629e4c4b4Be6A8DD";
   SUBSCRIPTION = "0x58e49a747afCF7fb6d551AAb06EF592485e3E01d";
+  LOCK_DURATION = 60*60*24*30 * 18; // = 30 days * 18
 
   //^^^^^^^^^^^^^^^^^^ SETTINGS ^^^^^^^^^^^^^^^^^^
 
@@ -29,7 +30,8 @@ async function main() {
     STACK_TOKEN,
     GENERATION_MANAGER,
     SUB0,
-    SUBSCRIPTION
+    SUBSCRIPTION,
+    LOCK_DURATION
   );
   await vault.deployed();
 

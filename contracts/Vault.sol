@@ -31,8 +31,9 @@ contract Vault is Ownable {
     GenerationManager internal immutable generations;
     Subscription internal immutable sub0;
     Subscription internal immutable subscription;
+    uint256 public immutable LOCK_DURATION;
 
-    uint256 public constant LOCK_DURATION = 30 days * 18; // 18 months
+    bool public isDepositsOpened = true; 
 
     mapping(address => mapping(uint256 => EnumerableSet.UintSet)) private depositRecord;
     mapping(uint256 => mapping(uint256 => address)) public owners;
@@ -45,12 +46,14 @@ contract Vault is Ownable {
         IERC20 _stackToken,
         GenerationManager _generations,
         Subscription _sub0,
-        Subscription _subscription
+        Subscription _subscription,
+        uint256 _LOCK_DURATION
     ) {
         stackToken = _stackToken;
         generations = _generations;
         sub0 = _sub0;
         subscription = _subscription;
+        LOCK_DURATION = _LOCK_DURATION;
     }
 
     function depositClaimHistoryLength(uint256 generationId, uint256 tokenId)
@@ -93,6 +96,7 @@ contract Vault is Ownable {
 
     function deposit(uint256 generationId, uint256 tokenId) public {
         require(generationId < generations.count(), "Generation doesn't exist");
+        require(isDepositsOpened, "Deposits are closed now");
 
         ClaimHistoryEntry memory claimInfo;
         claimInfo.date = block.timestamp;
@@ -185,5 +189,12 @@ contract Vault is Ownable {
         returns (Subscription)
     {
         return generationId == 0 ? sub0 : subscription;
+    }
+
+    function closeDeposits()
+        external
+        onlyOwner
+    {
+        isDepositsOpened = false;
     }
 }

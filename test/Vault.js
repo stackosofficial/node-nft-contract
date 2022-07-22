@@ -84,7 +84,8 @@ describe("Vault", function () {
       stackToken.address,
       generationManager.address,
       sub0.address,
-      subscription.address
+      subscription.address,
+      60*60*24*30 * 18 // = 30 days * 18
     );
     LOCK_DURATION = (await vault.LOCK_DURATION()).toNumber();
     await vault.deployed();
@@ -130,6 +131,13 @@ describe("Vault", function () {
       let tokenId = 1;
       await stackOsNFT.approve(vault.address, tokenId);
       await expect(vault.deposit(generationId, tokenId)).to.be.reverted;
+    });
+
+    it("should revert when deposits are closed", async function () {
+      let generationId = 0;
+      let tokenId = 1;
+      await vault.closeDeposits();
+      await expect(vault.deposit(generationId, tokenId)).to.be.revertedWith("Deposits are closed now");
     });
 
     it("should transfer NFT to vault (if approved)", async function () {
