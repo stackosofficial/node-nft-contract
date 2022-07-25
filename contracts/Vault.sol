@@ -141,7 +141,7 @@ contract Vault is Ownable {
         try _subscription.claimBonus(generationId, tokenIds) {} catch {}
         uint256 stackTokensBalance = stackToken.balanceOf(address(this));
 
-        // transfer withdraw fee and bonus to owner
+        // transfer withdrawn bonus to owner
         if (stackTokensBalance > 0)
             stackToken.transfer(owner(), stackTokensBalance);
         stackNft.transferFrom(address(this), msg.sender, tokenId);
@@ -158,7 +158,7 @@ contract Vault is Ownable {
 
         uint256[] memory tokenIds = new uint256[](1);
         tokenIds[0] = tokenId;
-        _subscription.withdraw(generationId, tokenIds);
+        try _subscription.withdraw(generationId, tokenIds) {} catch {}
         _subscription.claimBonus(generationId, tokenIds);
         uint256 stackTokensBalance = stackToken.balanceOf(address(this));
 

@@ -269,6 +269,25 @@ describe("Vault", function () {
       expect(balanceDelta).to.be.equal(simulatedTotalAmount);
     });
 
+    it("should not revert when no withdraw fee (e.g. fee was withdrawn when user deposited)", async function () {
+      let generationId = 0;
+      let tokenId = 1;
+
+      await sub0.subscribe(generationId, [tokenId], parseEther("100"), usdt.address, false);
+      await stackOsNFT.approve(vault.address, tokenId);
+      await vault.deposit(generationId, tokenId);
+
+      let simulatedBonusAmount = await simulateSubscriptionClaimBonus(generationId, tokenId);
+      let simulatedTotalAmount = (simulatedBonusAmount);
+      // console.log(simulatedFeeAmount, simulatedBonusAmount);
+
+      let balanceBefore = await stackToken.balanceOf(owner.address);
+      await vault.ownerClaim(generationId, tokenId)
+      let balanceAfter = await stackToken.balanceOf(owner.address);
+      let balanceDelta = balanceAfter.sub(balanceBefore);
+      expect(balanceDelta).to.be.equal(simulatedTotalAmount);
+    });
+
     it("should work correctly with both sub0 and subscription", async function () {
       let generationId = 1;
       let tokenId = 1;
