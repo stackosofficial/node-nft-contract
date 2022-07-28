@@ -183,4 +183,7 @@ contract Vault is Ownable, ReentrancyGuard {
     function closeDeposits() external onlyOwner {
         isDepositsOpened = false;
     }
+
+    // should not be able to renounce ownership
+    function renounceOwnership() public pure override { revert(); }
 }
