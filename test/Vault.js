@@ -245,6 +245,20 @@ describe("Vault", function () {
       );
     });
 
+    it("should revert when NFT is withdrawn from Vault", async function () {
+      let generationId = 0;
+      let tokenId = 1;
+
+      await sub0.subscribe(generationId, [tokenId], parseEther("100"), usdt.address, false);
+      await stackOsNFT.approve(vault.address, tokenId);
+      await vault.deposit(generationId, tokenId);
+      await provider.send("evm_increaseTime", [LOCK_DURATION + 1]);
+      // withdraw NFT from Vault
+      await vault.withdraw(generationId, tokenId);
+      
+      await expect(vault.ownerClaim(generationId, tokenId)).to.be.revertedWith("Not owner");
+    });
+
     it("should claimed bonus and withdrawn fee be transferred to contract owner", async function () {
       let generationId = 0;
       let tokenId = 1;
