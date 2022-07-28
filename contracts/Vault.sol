@@ -72,7 +72,7 @@ contract Vault is Ownable, ReentrancyGuard {
             "Cannot redeposit same token"
         );
 
-        StackOsNFTBasic stackNft = StackOsNFTBasic(
+        IERC721 stackNft = IERC721(
             address(generations.get(generationId))
         );
         stackNft.transferFrom(msg.sender, address(this), tokenId);
@@ -133,7 +133,7 @@ contract Vault is Ownable, ReentrancyGuard {
             "Not owner"
         );
 
-        StackOsNFTBasic stackNft = StackOsNFTBasic(
+        IERC721 stackNft = IERC721(
             address(generations.get(generationId))
         );
 
