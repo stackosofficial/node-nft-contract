@@ -8,13 +8,11 @@ import "./Exchange.sol";
 import "./StackOsNFTBasic.sol";
 import "./Subscription.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 import "hardhat/console.sol";
 
-contract Vault is Ownable {
-    using EnumerableSet for EnumerableSet.UintSet;
-
+contract Vault is Ownable, ReentrancyGuard {
     event Deposit(address indexed depositor);
     event Withdraw(address indexed depositor);
 
@@ -23,7 +21,6 @@ contract Vault is Ownable {
         address depositor; // who deposited NFT and received withdrawn fee and bonus
         uint256 totalFee; // total subscription fee withdrawn
         uint256 totalBonus; // total subscription bonus withdrawn
-
         // these two are always small numbers, so put them in one slot
         uint128 tax; // tax percent when subscription fee withdrawn
         uint128 date; // block.timestamp when deposit with claim were made
@@ -64,7 +61,10 @@ contract Vault is Ownable {
         return ownerToTokens[owner][generationId];
     }
 
-    function deposit(uint256 generationId, uint256 tokenId) public {
+    function deposit(uint256 generationId, uint256 tokenId)
+        public
+        nonReentrant
+    {
         require(generationId < generations.count(), "Generation doesn't exist");
         require(isDepositsOpened, "Deposits are closed now");
         require(
@@ -118,7 +118,10 @@ contract Vault is Ownable {
         emit Deposit(msg.sender);
     }
 
-    function withdraw(uint256 generationId, uint256 tokenId) public {
+    function withdraw(uint256 generationId, uint256 tokenId)
+        public
+        nonReentrant
+    {
         require(generationId < generations.count(), "Generation doesn't exist");
         require(
             block.timestamp >
@@ -151,6 +154,7 @@ contract Vault is Ownable {
     function ownerClaim(uint256 generationId, uint256 tokenId)
         public
         onlyOwner
+        nonReentrant
     {
         require(generationId < generations.count(), "Generation doesn't exist");
 
